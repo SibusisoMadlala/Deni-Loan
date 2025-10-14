@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { loanService, LoanApplication } from '../services/loanService'
 import { documentService, Document } from '../services/documentService'
-import { PaymentButton } from './PaymentButton' // Add this import
+import { PaymentButton } from './PaymentButton'// Add this import
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
