@@ -1,0 +1,176 @@
+import { projectId, publicAnonKey } from '../utils/supabase/info'
+
+const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-1ed353c1`
+
+export interface LoanApplication {
+  id?: string
+  userId?: string
+  status?: 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid'
+  
+  // Personal Details
+  idNumber: string
+  fullName: string
+  phone: string
+  email: string
+  
+  // Work & Income
+  employerName: string
+  paydayCycle: string
+  netSalary: number
+  
+  // Banking Details
+  bankName: string
+  accountType: string
+  branchCode: string
+  accountNumber: string
+  
+  // Loan Details
+  requestedAmount?: number
+  approvedAmount?: number
+  interestRate?: number
+  fees?: number
+  totalDue?: number
+  repaymentDate?: string
+  
+  // Credit Check
+  creditScore?: number
+  creditCheckPassed?: boolean
+  declineReason?: string
+  
+  // Documents
+  hasIdDocument?: boolean
+  hasBankStatements?: boolean
+  hasProofOfResidence?: boolean
+  hasPayslip?: boolean
+  
+  createdAt?: string
+  updatedAt?: string
+  decidedAt?: string
+}
+
+export interface CreditReport {
+  id: string
+  idNumber: string
+  creditScore: number
+  disposableIncome: number
+  maxLoanAmount: number
+  approved: boolean
+  reason: string
+  checkedAt: string
+}
+
+export const loanService = {
+  async createApplication(applicationData: Partial<LoanApplication>, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/loan-application`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(applicationData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create application')
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Create application error:', error)
+      throw error
+    }
+  },
+
+  async getApplication(applicationId: string, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/loan-application/${applicationId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get application')
+      }
+
+      return data.application
+    } catch (error: any) {
+      console.error('Get application error:', error)
+      throw error
+    }
+  },
+
+  async getMyApplications(accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/my-applications`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get applications')
+      }
+
+      return data.applications
+    } catch (error: any) {
+      console.error('Get my applications error:', error)
+      throw error
+    }
+  },
+
+  async updateApplication(applicationId: string, updates: Partial<LoanApplication>, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/loan-application/${applicationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(updates)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update application')
+      }
+
+      return data.application
+    } catch (error: any) {
+      console.error('Update application error:', error)
+      throw error
+    }
+  },
+
+  async performCreditCheck(idNumber: string, income: number, existingDebts: number, accessToken: string): Promise<CreditReport> {
+    try {
+      const response = await fetch(`${API_BASE}/credit-check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ idNumber, income, existingDebts })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Credit check failed')
+      }
+
+      return data.creditReport
+    } catch (error: any) {
+      console.error('Credit check error:', error)
+      throw error
+    }
+  }
+}
