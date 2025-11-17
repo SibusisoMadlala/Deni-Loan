@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/button'
 import { LogOut, User, LayoutDashboard } from 'lucide-react'
+import DeniLogo from '../assets/DeniLogo.png';
 
 export function Navbar() {
   const { user, signOut, isAdmin } = useAuth()
@@ -18,7 +19,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-16 h-16 rounded-lg flex items-center justify-center">
-              <img src="assets/DeniLogo.png" alt="DeniLoans" />
+              <img src={DeniLogo} alt="DeniLoans" />
             </div>
             
           </Link>
