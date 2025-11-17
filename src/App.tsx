@@ -9,8 +9,8 @@ import { AdminDashboard } from './components/AdminDashboard'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from './components/ui/sonner'
 // App.tsx or your router file
-import { PaymentSuccess } from './components/PaymentSuccess';
-import { PaymentCancel } from './components/PaymentCancel';
+import { PaymentSuccess } from './components/paymentSuccess';
+import { PaymentCancel } from './components/paymentCancel';
 
 // Add these routes
 
