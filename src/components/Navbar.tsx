@@ -18,7 +18,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-16 h-16 rounded-lg flex items-center justify-center">
-              <img src="../../build/assets/denilogo.png" alt="Heni" />
+              <img src="../assets/DeniLogo.png" alt="Heni" />
             </div>
             
           </Link>
