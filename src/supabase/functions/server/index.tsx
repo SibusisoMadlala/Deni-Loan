@@ -2,12 +2,15 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { createClient } from 'jsr:@supabase/supabase-js@^2.38.0';
-import { payFastService } from './paymentService.ts';
+// Payment gateway implementations (PayShap / manual bank) will be implemented here.
+// The legacy PayFast integration was removed in favor of PayShap/manual flows.
 import * as kv from './kv_store.tsx';
+
 const app = new Hono();
 app.use('*', cors());
 app.use('*', logger(console.log));
 const supabase = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+
 // Initialize storage bucket for documents
 async function initializeBucket() {
   const bucketName = 'make-1ed353c1-loan-documents';
@@ -20,6 +23,51 @@ async function initializeBucket() {
   }
 }
 initializeBucket();
+
+// --- Logging helpers -------------------------------------------------
+function redactHeaders(headers: Headers) {
+  const out: Record<string,string> = {};
+  try {
+    for (const [k,v] of headers.entries()) {
+      if (k.toLowerCase() === 'authorization' && v) {
+        out[k] = v.startsWith('Bearer ') ? 'Bearer <REDACTED>' : '<REDACTED>';
+      } else {
+        out[k] = v;
+      }
+    }
+  } catch (e) {
+    // headers may not be iterable in some runtimes
+  }
+  return out;
+}
+
+async function safeStringify(obj: any) {
+  try { return JSON.stringify(obj, null, 2); } catch (e) { return String(obj); }
+}
+
+function logHandlerStart(c: any, label: string) {
+  try {
+    const info = {
+      label,
+      method: c.req.method,
+      path: (c.req.url || c.req.path) || '<unknown>',
+      headers: redactHeaders(c.req.headers),
+      now: new Date().toISOString()
+    };
+    console.log('[HANDLER START]', label, JSON.stringify(info));
+  } catch (e) {
+    console.log('[HANDLER START] failed to log start for', label);
+  }
+}
+
+function logError(label: string, err: any) {
+  try {
+    console.log('[ERROR]', label, err && err.stack ? err.stack : err);
+  } catch (e) {
+    console.log('[ERROR] failed to log error for', label, err);
+  }
+}
+
 // Auth Middleware
 async function requireAuth(c, next) {
   const accessToken = c.req.header('Authorization')?.split(' ')[1];
@@ -39,41 +87,632 @@ async function requireAuth(c, next) {
   c.set('userMetadata', user.user_metadata);
   await next();
 }
+
 // Admin Middleware
 async function requireAdmin(c, next) {
-  const userMetadata = 'admin' //c.get('raw_user_meta_data');
-  ;
-  if (false) {
-    return c.json({
-      error: 'Forbidden - Admin access required'
-    }, 403);
+  // Ensure the request is authenticated first. If requireAuth middleware wasn't applied
+  // (some admin routes registered only requireAdmin), try to populate user info here.
+  let userMetadata = c.get('userMetadata');
+  try {
+    if (!userMetadata) {
+      const accessToken = c.req.header('Authorization')?.split(' ')[1];
+      if (!accessToken) {
+        return c.json({ error: 'Unauthorized - No token provided' }, 401);
+      }
+      const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+      if (error || !user) {
+        return c.json({ error: 'Unauthorized - Invalid token' }, 401);
+      }
+      c.set('userId', user.id);
+      c.set('userEmail', user.email);
+      c.set('userMetadata', user.user_metadata);
+      userMetadata = user.user_metadata;
+    }
+
+    if (userMetadata?.role !== 'admin') {
+      // Log useful info to help debug why admin check failed
+      try {
+        console.log('⚠️ Admin access denied. userId=', c.get('userId'), 'userMetadata=', userMetadata);
+      } catch (e) {
+        console.log('⚠️ Admin access denied and failed to read context for logging');
+      }
+      return c.json({ error: 'Forbidden - Admin access required' }, 403);
+    }
+
+    await next();
+  } catch (err) {
+    console.log('requireAdmin exception:', err);
+    return c.json({ error: 'Unauthorized - Admin validation failed' }, 401);
   }
-  await next();
 }
+
+// Debug endpoint to inspect authenticated user and metadata (requires login)
+app.get('/make-server-1ed353c1/debug/me', requireAuth, async (c) => {
+  try {
+    const userId = c.get('userId');
+    const userEmail = c.get('userEmail');
+    const userMetadata = c.get('userMetadata');
+    return c.json({
+      userId,
+      userEmail,
+      userMetadata
+    });
+  } catch (error) {
+    console.log('Debug me endpoint error:', error);
+    return c.json({ error: 'Failed to get debug info' }, 500);
+  }
+});
+
+// ============ OZOW PAYMENT ROUTES ============
+// Note: This implementation uses environment variables to configure Ozow endpoints and keys.
+// Set the following in your deployment environment:
+// OZOW_API_URL - PostPaymentRequest URL (staging or production)
+// OZOW_VERIFY_URL - Optional: endpoint to verify transaction status
+// OZOW_SITE_CODE, OZOW_COUNTRY_CODE (ZA), OZOW_CURRENCY_CODE (ZAR)
+// OZOW_API_KEY, OZOW_PRIVATE_KEY
+
+// Helper to build canonical Ozow URLs using BASE_URL and optional metadata overrides
+function buildOzowUrls(metadata?: any) {
+  const base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
+  const notify = (metadata && metadata.notifyUrl) || `${base}/make-server-1ed353c1/ozow/notify`;
+  const success = (metadata && metadata.successUrl) || `${base}/payments/success`;
+  const error = (metadata && metadata.errorUrl) || `${base}/payments/error`;
+  const cancel = (metadata && metadata.cancelUrl) || `${base}/payments/cancel`;
+  const postUrl = Deno.env.get('OZOW_POST_URL') || 'https://pay.ozow.com/';
+  return { base, notify, success, error, cancel, postUrl };
+}
+
+// Public endpoint to fetch Ozow config/URLs (read-only, safe to expose site code but not private key)
+app.get('/make-server-1ed353c1/ozow/config', async (c) => {
+  try {
+    const OZOW_SITE_CODE = Deno.env.get('OZOW_SITE_CODE') || null;
+    const OZOW_COUNTRY_CODE = Deno.env.get('OZOW_COUNTRY_CODE') || 'ZA';
+    const OZOW_CURRENCY_CODE = Deno.env.get('OZOW_CURRENCY_CODE') || 'ZAR';
+    const OZOW_API_URL = Deno.env.get('OZOW_API_URL') || 'https://api.ozow.com/PostPaymentRequest';
+    const urls = buildOzowUrls();
+    return c.json({ 
+      success: true, 
+      siteCode: OZOW_SITE_CODE, 
+      countryCode: OZOW_COUNTRY_CODE, 
+      currencyCode: OZOW_CURRENCY_CODE,
+      apiUrl: OZOW_API_URL,
+      urls 
+    });
+  } catch (e) {
+    console.log('ozow/config error:', e);
+    return c.json({ success: false, error: 'Failed to read Ozow config' }, 500);
+  }
+});
+
+// Create payment via Ozow API
+app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
+  try {
+    const body: any = await c.req.json();
+    logHandlerStart(c, '/ozow/create-payment');
+    console.log('[ozow/create-payment] incoming body:', await safeStringify(body));
+    
+    const { amount, invoiceId, returnUrl, metadata } = body;
+    const applicationId = body.applicationId || null;
+    const paymentType = body.paymentType || null;
+    
+    if (!amount || !invoiceId || !returnUrl) {
+      return c.json({ error: 'Missing required fields (amount, invoiceId, returnUrl)' }, 400);
+    }
+
+    const OZOW_SITE_CODE = Deno.env.get('OZOW_SITE_CODE');
+    const OZOW_COUNTRY_CODE = Deno.env.get('OZOW_COUNTRY_CODE') || 'ZA';
+    const OZOW_CURRENCY_CODE = Deno.env.get('OZOW_CURRENCY_CODE') || 'ZAR';
+    const OZOW_API_KEY = Deno.env.get('OZOW_API_KEY');
+    const OZOW_PRIVATE_KEY = Deno.env.get('OZOW_PRIVATE_KEY');
+    const OZOW_API_URL = Deno.env.get('OZOW_API_URL') || 'https://api.ozow.com/PostPaymentRequest';
+
+    if (!OZOW_SITE_CODE || !OZOW_API_KEY || !OZOW_PRIVATE_KEY) {
+      console.log('Ozow configuration missing (site code, API key or private key)');
+      return c.json({ error: 'Ozow not configured' }, 500);
+    }
+
+    // Build URLs
+    const base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
+    const transactionReference = invoiceId;
+    const bankReference = (metadata && metadata.bankReference) || transactionReference;
+    const cancelUrl = (metadata && metadata.cancelUrl) || `${base}/payments/cancel`;
+    const errorUrl = (metadata && metadata.errorUrl) || `${base}/payments/error`;
+    const successUrl = (metadata && metadata.successUrl) || `${base}/payments/success`;
+    const notifyUrl = (metadata && metadata.notifyUrl) || `${base}/make-server-1ed353c1/ozow/notify`;
+    const isTest = metadata?.isTest ? true : false;
+
+    // Format amount to two decimal places
+    const amountStr = Number(amount).toFixed(2);
+
+    // Prepare requestFields for Ozow API. Ozow expects an apiKey + requestFields wrapper
+    // Ensure numeric fields are numbers or null (do not send empty strings for decimals)
+    const allowVariableAmount = !!metadata?.allowVariableAmount;
+    const variableAmountMin = metadata?.variableAmountMin ? Number(metadata.variableAmountMin) : null;
+    const variableAmountMax = metadata?.variableAmountMax ? Number(metadata.variableAmountMax) : null;
+
+    const requestFields: Record<string, any> = {
+      SiteCode: OZOW_SITE_CODE,
+      CountryCode: OZOW_COUNTRY_CODE,
+      CurrencyCode: OZOW_CURRENCY_CODE,
+      Amount: amountStr,
+      TransactionReference: transactionReference,
+      BankReference: bankReference,
+      CancelUrl: cancelUrl,
+      ErrorUrl: errorUrl,
+      SuccessUrl: successUrl,
+      NotifyUrl: notifyUrl,
+      IsTest: !!isTest,
+      Customer: metadata?.customer || '',
+      CustomerCellphoneNumber: metadata?.customerCellphoneNumber || '',
+      CustomerEmail: metadata?.customerEmail || '',
+      Optional1: metadata?.optional1 || '',
+      Optional2: metadata?.optional2 || '',
+      Optional3: metadata?.optional3 || '',
+      Optional4: metadata?.optional4 || '',
+      Optional5: metadata?.optional5 || '',
+      BankAccountNumber: metadata?.bankAccountNumber || '',
+      BankAccountName: metadata?.bankAccountName || '',
+      BranchCode: metadata?.branchCode || '',
+      PayeeDisplayName: metadata?.payeeDisplayName || '',
+      AllowVariableAmount: allowVariableAmount,
+      VariableAmountMin: variableAmountMin,
+      VariableAmountMax: variableAmountMax
+    };
+
+    const wrapper = {
+      apiKey: OZOW_API_KEY,
+      requestFields
+    };
+
+    console.log('[ozow/create-payment] Sending to Ozow API:', { url: OZOW_API_URL, wrapper: JSON.stringify(wrapper, null, 2) });
+
+    // Call Ozow API to create payment
+    const response = await fetch(OZOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(wrapper)
+    });
+
+    const responseText = await response.text();
+    console.log('[ozow/create-payment] Ozow API response status:', response.status);
+    console.log('[ozow/create-payment] Ozow API response body:', responseText);
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      responseData = { raw: responseText };
+    }
+
+    if (!response.ok) {
+      console.error('[ozow/create-payment] Ozow API error:', responseData);
+      return c.json({ 
+        success: false, 
+        error: 'Ozow API request failed',
+        details: responseData,
+        status: response.status 
+      }, 500);
+    }
+
+    // Check if response contains payment URL
+    if (responseData && (responseData.url || responseData.paymentUrl || responseData.redirectUrl)) {
+      const paymentUrl = responseData.url || responseData.paymentUrl || responseData.redirectUrl;
+      
+      // Persist payment request record in KV for later reconciliation
+      try {
+        const record = {
+          id: transactionReference,
+          applicationId,
+          paymentType,
+          payload,
+          response: responseData,
+          paymentUrl,
+          status: 'created',
+          createdAt: new Date().toISOString()
+        };
+        await kv.set(`ozow_payment:${transactionReference}`, record);
+      } catch (e) {
+        console.log('Failed to persist Ozow payment record:', e);
+      }
+
+      return c.json({ 
+        success: true, 
+        paymentUrl,
+        transactionReference,
+        details: responseData
+      });
+    } else {
+      // Unexpected response format
+      console.error('[ozow/create-payment] Unexpected Ozow response format:', responseData);
+      return c.json({ 
+        success: false, 
+        error: 'Unexpected response from Ozow API',
+        details: responseData 
+      }, 500);
+    }
+  } catch (error) {
+    console.log('Ozow create-payment exception:', error);
+    return c.json({ error: 'Ozow create-payment failed', details: error.message }, 500);
+  }
+});
+
+// Ozow notification (webhook) endpoint - Ozow will POST payment status updates here
+app.post('/make-server-1ed353c1/ozow/notify', async (c) => {
+  try {
+    // Ozow sends application/x-www-form-urlencoded POSTs to the notify URL
+    logHandlerStart(c, '/ozow/notify');
+    console.log('[ozow/notify] headers:', JSON.stringify(redactHeaders(c.req.headers)));
+    const body = await c.req.text();
+    console.log('[ozow/notify] raw body:', body);
+
+    const params = new URLSearchParams(body);
+    // Map expected fields (case-insensitive access)
+    const get = (key: string) => params.get(key) ?? params.get(key.toLowerCase()) ?? '';
+
+    const SiteCode = get('SiteCode');
+    const TransactionId = get('TransactionId');
+    const TransactionReference = get('TransactionReference');
+    const Amount = get('Amount');
+    const Status = get('Status');
+    const Optional1 = get('Optional1');
+    const Optional2 = get('Optional2');
+    const Optional3 = get('Optional3');
+    const Optional4 = get('Optional4');
+    const Optional5 = get('Optional5');
+    const CurrencyCode = get('CurrencyCode');
+    const IsTest = get('IsTest');
+    const StatusMessage = get('StatusMessage');
+    const Hash = get('Hash');
+    const SubStatus = get('SubStatus');
+    const MaskedAccountNumber = get('MaskedAccountNumber');
+    const BankName = get('BankName');
+
+    const txRef = TransactionReference || params.get('transactionReference') || params.get('reference');
+
+    if (!SiteCode || !TransactionId || !TransactionReference || !Amount || !Status || !CurrencyCode || !Hash) {
+      console.log('Ozow notify missing required fields, params keys:', Array.from(params.keys()));
+      return c.json({ error: 'Missing required Ozow notification fields' }, 400);
+    }
+
+    const OZOW_PRIVATE_KEY = Deno.env.get('OZOW_PRIVATE_KEY');
+    if (!OZOW_PRIVATE_KEY) {
+      console.log('Ozow notify: missing OZOW_PRIVATE_KEY in env');
+      return c.json({ error: 'Server not configured' }, 500);
+    }
+
+    // According to Ozow spec: concatenate response variables 1..13 (SiteCode..StatusMessage), append private key, lowercase, SHA512
+    const concatParts = [
+      SiteCode,
+      TransactionId,
+      TransactionReference,
+      Amount,
+      Status,
+      Optional1,
+      Optional2,
+      Optional3,
+      Optional4,
+      Optional5,
+      CurrencyCode,
+      IsTest,
+      StatusMessage
+    ];
+    const concat = concatParts.join('') + OZOW_PRIVATE_KEY;
+
+    async function sha512hex(input: string) {
+      const enc = new TextEncoder();
+      const data = enc.encode(input.toLowerCase());
+      const hashBuffer = await crypto.subtle.digest('SHA-512', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function trimLeadingZeros(s: string) {
+      try { return s.replace(/^0+/, ''); } catch (e) { return s; }
+    }
+
+    const calculated = await sha512hex(concat);
+    const calcTrim = trimLeadingZeros(calculated.toLowerCase());
+    const gotTrim = trimLeadingZeros(Hash.toLowerCase());
+
+    if (calcTrim !== gotTrim) {
+      console.log('Ozow notify hash mismatch', { TransactionReference, calculated, received: Hash, calcTrim, gotTrim });
+      // Respond 400 so provider can retry later; do not process the notification
+      return c.json({ error: 'Invalid hash' }, 400);
+    }
+
+    // Idempotent update: fetch existing record and only update if changed
+    if (txRef) {
+      try {
+        const existing = await kv.get(`ozow_payment:${txRef}`) || {};
+        // If we've already recorded this exact TransactionId and Status, don't double-process
+        const existingNot = existing.notification || {};
+        if (existingNot.TransactionId === TransactionId && existingNot.Status === Status) {
+          console.log('Ozow notify duplicate - already processed', { TransactionReference, TransactionId, Status });
+          return c.text('OK', 200);
+        }
+
+        const mappedStatus = (s:string) => {
+          switch ((s||'').toLowerCase()) {
+            case 'complete': return 'completed';
+            case 'cancelled': return 'cancelled';
+            case 'error': return 'error';
+            case 'abandoned': return 'abandoned';
+            case 'pendinginvestigation': return 'pending_investigation';
+            case 'pending': return 'pending';
+            default: return s || 'unknown';
+          }
+        };
+
+        const updated = {
+          ...(existing || {}),
+          transactionId: TransactionId,
+          id: existing.id || txRef,
+          notification: {
+            SiteCode,
+            TransactionId,
+            TransactionReference,
+            Amount,
+            Status,
+            Optional1,
+            Optional2,
+            Optional3,
+            Optional4,
+            Optional5,
+            CurrencyCode,
+            IsTest,
+            StatusMessage,
+            Hash,
+            SubStatus,
+            MaskedAccountNumber,
+            BankName,
+            receivedAt: new Date().toISOString()
+          },
+          status: mappedStatus(Status),
+          statusMessage: StatusMessage || '',
+          subStatus: SubStatus || null,
+          maskedAccountNumber: MaskedAccountNumber || null,
+          bankName: BankName || null,
+          updatedAt: new Date().toISOString()
+        };
+
+        await kv.set(`ozow_payment:${txRef}`, updated);
+        console.log('[ozow/notify] updated ozow_payment record for', txRef);
+        try { console.log(await safeStringify(updated)); } catch(e) { console.log('[ozow/notify] (unable to stringify updated)'); }
+        
+        // If status indicates completed, create payment record / bookkeeping entry (idempotent)
+        if (mappedStatus(Status) === 'completed') {
+          try {
+            // Ensure we haven't already created a completed payment for this txRef
+            const payments = await kv.getByPrefix(`payment`);
+            const already = payments && Array.isArray(payments) ? payments.find((pId:string) => {
+              const p = kv.get(`payment:${pId}`);
+              return false; // keep simple: don't attempt heavy search here
+            }) : null;
+            // Defer detailed payment creation to admin flow or separate reconcile job to avoid accidental double-credits
+            console.log('Ozow notify: marked transaction as completed in KV:', txRef);
+          } catch (e) {
+            console.log('Ozow notify: failed to create payment record during notify (non-fatal):', e);
+          }
+        }
+      } catch (e) {
+        console.log('Failed to update ozow payment record on notify:', e);
+      }
+    }
+
+    // Acknowledge
+    return c.text('OK', 200);
+  } catch (error) {
+    console.log('Ozow notify exception:', error);
+    return c.json({ error: 'Notify processing failed' }, 500);
+  }
+});
+
+// Optional: Verify transaction status by calling Ozow verify endpoint
+app.post('/make-server-1ed353c1/ozow/verify', async (c) => {
+  try {
+    const reqBody: any = await c.req.json();
+    logHandlerStart(c, '/ozow/verify');
+    console.log('[ozow/verify] body:', await safeStringify(reqBody));
+    const { transactionReference } = reqBody;
+    if (!transactionReference) return c.json({ error: 'transactionReference required' }, 400);
+
+    const OZOW_VERIFY_URL = Deno.env.get('OZOW_VERIFY_URL');
+    const OZOW_API_KEY = Deno.env.get('OZOW_API_KEY');
+    if (!OZOW_VERIFY_URL || !OZOW_API_KEY) {
+      return c.json({ error: 'Ozow verify not configured' }, 500);
+    }
+
+    const res = await fetch(OZOW_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': OZOW_API_KEY },
+      body: JSON.stringify({ TransactionReference: transactionReference })
+    });
+
+    // Log outgoing request result for easier debugging
+    let data: any = null;
+    try {
+      const text = await res.text();
+      data = text;
+      try { data = JSON.parse(text); } catch (e) { /* keep raw text */ }
+      console.log('[ozow/verify] outgoing verify request:', { url: OZOW_VERIFY_URL, status: res.status, ok: res.ok });
+      // Log a trimmed response (avoid huge logs)
+      try { console.log('[ozow/verify] response snippet:', typeof text === 'string' ? text.slice(0, 200) : JSON.stringify(text).slice(0,200)); } catch(e) {}
+    } catch (e) {
+      console.log('[ozow/verify] failed to read verify response:', e);
+      data = null;
+    }
+
+    // Optionally update KV record
+    try {
+      const existing = await kv.get(`ozow_payment:${transactionReference}`);
+      const updated = Object.assign({}, existing || {}, { verifyResponse: data, verifiedAt: new Date().toISOString() });
+      await kv.set(`ozow_payment:${transactionReference}`, updated);
+    } catch (e) {
+      console.log('Failed to persist ozow verify response:', e);
+    }
+
+    return c.json({ success: true, data });
+  } catch (error) {
+    console.log('Ozow verify exception:', error);
+    return c.json({ error: 'Ozow verify failed' }, 500);
+  }
+});
+
+// Query Ozow API by transaction reference (GetTransactionByReference)
+app.post('/make-server-1ed353c1/ozow/get-transaction-by-reference', async (c) => {
+  try {
+    const reqBody: any = await c.req.json();
+    logHandlerStart(c, '/ozow/get-transaction-by-reference');
+    console.log('[ozow/get-transaction-by-reference] body:', await safeStringify(reqBody));
+    const { transactionReference, isTest } = reqBody;
+    if (!transactionReference) return c.json({ error: 'transactionReference required' }, 400);
+
+    const OZOW_API_BASE = Deno.env.get('OZOW_API_BASE') || 'https://api.ozow.com';
+    const OZOW_API_KEY = Deno.env.get('OZOW_API_KEY');
+    const OZOW_SITE_CODE = Deno.env.get('OZOW_SITE_CODE');
+    if (!OZOW_API_KEY || !OZOW_SITE_CODE) return c.json({ error: 'Ozow API not configured' }, 500);
+
+    const url = `${OZOW_API_BASE}/GetTransactionByReference?siteCode=${encodeURIComponent(OZOW_SITE_CODE)}&transactionReference=${encodeURIComponent(transactionReference)}${isTest ? '&IsTest=true' : ''}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'x-api-key': OZOW_API_KEY,
+        'Accept': 'application/json'
+      }
+    });
+
+    const text = await res.text();
+    let data: any = text;
+    try { data = JSON.parse(text); } catch (e) { /* leave as text */ }
+
+    // Log outgoing request to Ozow GetTransactionByReference
+    try {
+      console.log('[ozow/get-transaction-by-reference] outgoing GET', url, 'status=', res.status, 'ok=', res.ok);
+      try { console.log('[ozow/get-transaction-by-reference] response snippet:', (typeof text === 'string' ? text.slice(0,300) : JSON.stringify(text).slice(0,300))); } catch(e) {}
+    } catch (e) {
+      console.log('[ozow/get-transaction-by-reference] logging failed:', e);
+    }
+
+    // Persist a small verify record in KV
+    try {
+      const record = {
+        fetchedAt: new Date().toISOString(),
+        method: 'GetTransactionByReference',
+        transactionReference,
+        isTest: !!isTest,
+        response: data
+      };
+      await kv.set(`ozow_payment:${transactionReference}:verify`, record);
+    } catch (e) {
+      console.log('Failed to persist ozow get-transaction-by-reference response:', e);
+    }
+
+    return c.json({ success: true, data });
+  } catch (error) {
+    console.log('GetTransactionByReference exception:', error);
+    return c.json({ error: 'GetTransactionByReference failed' }, 500);
+  }
+});
+
+// Query Ozow API by Ozow TransactionId (GetTransaction)
+app.post('/make-server-1ed353c1/ozow/get-transaction', async (c) => {
+  try {
+    const reqBody: any = await c.req.json();
+    logHandlerStart(c, '/ozow/get-transaction');
+    console.log('[ozow/get-transaction] body:', await safeStringify(reqBody));
+    const { transactionId, isTest } = reqBody;
+    if (!transactionId) return c.json({ error: 'transactionId required' }, 400);
+
+    const OZOW_API_BASE = Deno.env.get('OZOW_API_BASE') || 'https://api.ozow.com';
+    const OZOW_API_KEY = Deno.env.get('OZOW_API_KEY');
+    const OZOW_SITE_CODE = Deno.env.get('OZOW_SITE_CODE');
+    if (!OZOW_API_KEY || !OZOW_SITE_CODE) return c.json({ error: 'Ozow API not configured' }, 500);
+
+    const url = `${OZOW_API_BASE}/GetTransaction?siteCode=${encodeURIComponent(OZOW_SITE_CODE)}&transactionId=${encodeURIComponent(transactionId)}${isTest ? '&IsTest=true' : ''}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'x-api-key': OZOW_API_KEY,
+        'Accept': 'application/json'
+      }
+    });
+
+    const text = await res.text();
+    let data: any = text;
+    try { data = JSON.parse(text); } catch (e) { /* leave as text */ }
+
+    // Persist a small verify record in KV keyed by transactionId
+    try {
+      const record = {
+        fetchedAt: new Date().toISOString(),
+        method: 'GetTransaction',
+        transactionId,
+        isTest: !!isTest,
+        response: data
+      };
+      await kv.set(`ozow_transaction:${transactionId}:verify`, record);
+    } catch (e) {
+      console.log('Failed to persist ozow get-transaction response:', e);
+    }
+
+    // Log outgoing request to Ozow GetTransaction
+    try {
+      console.log('[ozow/get-transaction] outgoing GET', url, 'status=', res.status, 'ok=', res.ok);
+      try { console.log('[ozow/get-transaction] response snippet:', (typeof text === 'string' ? text.slice(0,300) : JSON.stringify(text).slice(0,300))); } catch(e) {}
+    } catch (e) {
+      console.log('[ozow/get-transaction] logging failed:', e);
+    }
+
+    return c.json({ success: true, data });
+  } catch (error) {
+    console.log('GetTransaction exception:', error);
+    return c.json({ error: 'GetTransaction failed' }, 500);
+  }
+});
+
 // ============ AUTH ROUTES ============
 app.post('/make-server-1ed353c1/signup', async (c)=>{
   try {
     const { email, password, fullName, phone, role } = await c.req.json();
+    
+  // Create user without confirming email
+  // Supabase will automatically send a confirmation email (link) when email_confirm is false
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
       user_metadata: {
         fullName,
         phone,
-        role: role || 'borrower' // 'borrower' or 'admin'
+        role: role || 'borrower'
       },
-      // Automatically confirm the user's email since an email server hasn't been configured.
-      email_confirm: true
+  email_confirm: false  // ← User must verify email via confirmation link
     });
+
+    // Diagnostic: log full createUser response so we can inspect mailer/send attempts
+    try {
+      console.log('DEBUG createUser response:', JSON.stringify({ data, error }, null, 2));
+    } catch (e) {
+      console.log('DEBUG createUser response (non-serializable):', data, error);
+    }
+
     if (error) {
       console.log(`Signup error: ${error.message}`);
       return c.json({
         error: error.message
       }, 400);
     }
+
+    console.log(`✅ User created (unconfirmed): ${email}`);
+    
     return c.json({
       success: true,
-      user: data.user
+      user: data.user,
+  message: 'Account created. Please check your email for a confirmation link.'
     });
   } catch (error) {
     console.log(`Signup exception: ${error}`);
@@ -82,6 +721,84 @@ app.post('/make-server-1ed353c1/signup', async (c)=>{
     }, 500);
   }
 });
+
+// ============ EMAIL VERIFICATION ROUTES ============
+app.post('/make-server-1ed353c1/check-verification', async (c)=>{
+  try {
+    const { email } = await c.req.json();
+    if (!email) {
+      return c.json({
+        error: 'Email is required'
+      }, 400);
+    }
+    
+    // Get user by email to check verification status
+    const { data: { users }, error } = await supabase.auth.admin.listUsers();
+    if (error) {
+      return c.json({
+        error: 'Failed to check verification status'
+      }, 500);
+    }
+    
+    const user = users.find((u)=>u.email === email);
+    if (!user) {
+      return c.json({
+        error: 'User not found'
+      }, 404);
+    }
+    
+    return c.json({
+      email_confirmed: user.email_confirmed_at ? true : false,
+      user_id: user.id
+    });
+  } catch (error) {
+    console.log(`Check verification error: ${error}`);
+    return c.json({
+      error: 'Failed to check verification status'
+    }, 500);
+  }
+});
+
+app.post('/make-server-1ed353c1/resend-verification', async (c)=>{
+  try {
+    const { email } = await c.req.json();
+    if (!email) {
+      return c.json({
+        error: 'Email is required'
+      }, 400);
+    }
+    
+    // Resend confirmation email using Supabase auth
+    // Use the 'resend' method with type 'signup' to trigger a confirmation link
+    const { error } = await supabase.auth.resend({
+      email,
+      type: 'signup'
+    });
+
+    if (error) {
+      console.log(`Resend confirmation error: ${error.message}`);
+      return c.json({
+        error: error.message || 'Failed to resend confirmation email'
+      }, 400);
+    }
+
+    console.log(`✅ Confirmation email resent to: ${email}`);
+
+    return c.json({
+      success: true,
+      message: 'Confirmation email sent to your email'
+    });
+  } catch (error) {
+    console.log(`Resend exception: ${error}`);
+    // Log the full error object if possible
+    try { console.log(JSON.stringify(error, Object.getOwnPropertyNames(error))); } catch(e) {}
+    
+    return c.json({
+      error: 'Failed to resend confirmation email'
+    }, 500);
+  }
+});
+
 // ============ LOAN APPLICATION ROUTES ============
 app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
   try {
@@ -108,6 +825,7 @@ app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
     }, 500);
   }
 });
+
 app.get('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>{
   try {
     const userId = c.get('userId');
@@ -135,6 +853,7 @@ app.get('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>{
     }, 500);
   }
 });
+
 app.get('/make-server-1ed353c1/my-applications', requireAuth, async (c)=>{
   try {
     const userId = c.get("userId");
@@ -150,6 +869,7 @@ app.get('/make-server-1ed353c1/my-applications', requireAuth, async (c)=>{
     }, 500);
   }
 });
+
 app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>{
   try {
     const userId = c.get('userId');
@@ -183,6 +903,7 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
     }, 500);
   }
 });
+
 // ============ DOCUMENT ROUTES ============
 app.post('/make-server-1ed353c1/upload-document', requireAuth, async (c)=>{
   try {
@@ -231,6 +952,7 @@ app.post('/make-server-1ed353c1/upload-document', requireAuth, async (c)=>{
     }, 500);
   }
 });
+
 app.get('/make-server-1ed353c1/documents/:applicationId', requireAuth, async (c)=>{
   try {
     const userId = c.get('userId');
@@ -268,8 +990,9 @@ app.get('/make-server-1ed353c1/documents/:applicationId', requireAuth, async (c)
     }, 500);
   }
 });
-// ============ CREDIT CHECK ROUTE (Mock Experian) ============
-app.post('/make-server-1ed353c1/credit-check', async (c)=>{
+
+// ============ CREDIT CHECK ROUTE ============
+app.post('/make-server-1ed353c1/credit-check', requireAuth, async (c)=>{
   try {
     const { idNumber, income, existingDebts } = await c.req.json();
     const creditScore = Math.floor(Math.random() * 400) + 400;
@@ -299,13 +1022,13 @@ app.post('/make-server-1ed353c1/credit-check', async (c)=>{
     }, 500);
   }
 });
+
 // ============ ADMIN ROUTES ============
 app.get('/make-server-1ed353c1/admin/applications', requireAdmin, async (c)=>{
   try {
-    // getByPrefix already returns the application values directly
     const applications = await kv.getByPrefix('loan_application');
     return c.json({
-      applications: applications.filter(Boolean) // Filter out any null/undefined values
+      applications: applications.filter(Boolean)
     });
   } catch (error) {
     console.log(`Get all applications error: ${error}`);
@@ -314,6 +1037,7 @@ app.get('/make-server-1ed353c1/admin/applications', requireAdmin, async (c)=>{
     }, 500);
   }
 });
+
 app.post('/make-server-1ed353c1/admin/verify-document', requireAdmin, async (c)=>{
   try {
     const { documentId, verified, notes } = await c.req.json();
@@ -341,6 +1065,7 @@ app.post('/make-server-1ed353c1/admin/verify-document', requireAdmin, async (c)=
     }, 500);
   }
 });
+
 app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (c)=>{
   try {
     const { applicationId, status, approvedAmount, declineReason } = await c.req.json();
@@ -370,6 +1095,81 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
     }, 500);
   }
 });
+
+// Admin disburse route - supports PayShap (payshapId) or manual bank disbursement (bank details)
+app.post('/make-server-1ed353c1/admin/disburse', requireAdmin, async (c) => {
+  try {
+    const { applicationId, method, payshapId, bankName, accountNumber, amount } = await c.req.json();
+
+    if (!applicationId || !method) {
+      return c.json({ error: 'applicationId and method are required' }, 400);
+    }
+
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (!application) {
+      return c.json({ error: 'Application not found' }, 404);
+    }
+
+    // Create a disbursement record
+    const disbursement = {
+      id: crypto.randomUUID(),
+      applicationId,
+      method,
+      payshapId: payshapId || null,
+      bankName: bankName || null,
+      accountNumber: accountNumber || null,
+      amount: amount || application.approvedAmount || application.requestedAmount || 0,
+      disbursedAt: new Date().toISOString(),
+      disbursedBy: c.get('userId')
+    };
+
+    await kv.set(`disbursement:${disbursement.id}`, disbursement);
+    await kv.set(`application_disbursements:${applicationId}:${disbursement.id}`, disbursement.id);
+
+    // Update application status to disbursed
+    const updatedApplication = {
+      ...application,
+      status: 'disbursed',
+      disbursedAt: disbursement.disbursedAt,
+      updatedAt: new Date().toISOString()
+    };
+
+    await kv.set(`loan_application:${applicationId}`, updatedApplication);
+
+    // Record a payment-like entry for bookkeeping
+    const payment = {
+      id: crypto.randomUUID(),
+      applicationId,
+      amount: disbursement.amount,
+      paymentMethod: method === 'payshap' ? 'payshap-disburse' : 'bank-transfer-disburse',
+      paidAt: disbursement.disbursedAt
+    };
+
+    await kv.set(`payment:${payment.id}`, payment);
+    await kv.set(`application_payments:${applicationId}:${payment.id}`, payment.id);
+
+    // Queue an email record for disbursement confirmation (actual sending is out-of-scope here)
+    const emailRecord = {
+      id: crypto.randomUUID(),
+      to: application.email,
+      subject: 'Loan Disbursed',
+      body: `Hello ${application.fullName},\n\nYour loan has been disbursed (R${disbursement.amount}). Please find the loan agreement and details attached in your account.`,
+      relatedApplicationId: applicationId,
+      createdAt: new Date().toISOString(),
+      sent: false
+    };
+
+    await kv.set(`email_queue:${emailRecord.id}`, emailRecord);
+
+    console.log('✅ Disbursement recorded:', disbursement.id);
+
+    return c.json({ success: true, disbursement, application: updatedApplication, emailQueued: true });
+  } catch (error) {
+    console.log('❌ Disburse error:', error);
+    return c.json({ error: 'Failed to disburse' }, 500);
+  }
+});
+
 app.post('/make-server-1ed353c1/admin/record-payment', requireAdmin, async (c)=>{
   try {
     const { applicationId, amount, paymentMethod } = await c.req.json();
@@ -393,6 +1193,44 @@ app.post('/make-server-1ed353c1/admin/record-payment', requireAdmin, async (c)=>
     }, 500);
   }
 });
+
+app.post('/make-server-1ed353c1/admin/send-payment-reminder', requireAdmin, async (c) => {
+  try {
+    const { applicationId } = await c.req.json();
+    
+    // Fetch application details to get user info
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (!application) {
+      return c.json({ error: 'Application not found' }, 404);
+    }
+
+    // In a real implementation, we would use an email service here.
+    // For now, we will log the email sending action.
+    const emailContent = `
+      To: ${application.email}
+      From: admin@deniloans.co.za
+      Subject: Payment Reminder - Deni Loans
+      
+      Dear ${application.fullName},
+      
+      This is a reminder that your loan payment is due on ${application.nextPayDate}.
+      Please ensure you have sufficient funds or make a payment via the dashboard.
+      
+      Regards,
+      Deni Loans Team
+    `;
+    
+    console.log('--- SENDING EMAIL ---');
+    console.log(emailContent);
+    console.log('---------------------');
+
+    return c.json({ success: true, message: 'Reminder sent successfully' });
+  } catch (error) {
+    console.log(`Send reminder error: ${error}`);
+    return c.json({ error: 'Failed to send reminder' }, 500);
+  }
+});
+
 app.get('/make-server-1ed353c1/payments/:applicationId', async (c)=>{
   try {
     const applicationId = c.req.param('applicationId');
@@ -408,40 +1246,111 @@ app.get('/make-server-1ed353c1/payments/:applicationId', async (c)=>{
     }, 500);
   }
 });
+
 // ============ PAYMENT ROUTES ============
 app.post('/make-server-1ed353c1/create-payment', requireAuth, async (c)=>{
   try {
+    logHandlerStart(c, '/create-payment');
     const userId = c.get('userId');
     const userEmail = c.get('userEmail');
-    const { applicationId, amount, paymentType } = await c.req.json();
+    // Accept additional fields: paymentMethod, reference, documentId
+    const reqBody: any = await c.req.json();
+    console.log('[create-payment] incoming body:', await safeStringify(reqBody));
+    const { applicationId, amount, paymentType, paymentMethod, reference, documentId } = reqBody;
+
+    console.log('🔄 Creating payment (incoming):', {
+      userId,
+      applicationId,
+      amount,
+      paymentType,
+      paymentMethod,
+      reference,
+      documentId
+    });
+
     // Validate application exists and belongs to user
-    // const application = await kv.get(`loan_application:${applicationId}`);
-    // if (!application || application.userId !== userId) {
-    //   return c.json({
-    //     error: 'Application not found'
-    //   }, 404);
-    // }
-    // Determine payment type
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (!application) {
+      console.log('❌ Application not found:', applicationId);
+      return c.json({ success: false, error: 'Application not found' }, 404);
+    }
+    if (application.userId !== userId) {
+      console.log('❌ Application does not belong to user');
+      return c.json({ success: false, error: 'Forbidden' }, 403);
+    }
+
+    // If borrower included a paymentMethod and proof (documentId or reference), treat this as a real payment
+    if (paymentMethod && (documentId || reference)) {
+      // Create a pending payment record (awaiting admin verification)
+      const payment = {
+        id: crypto.randomUUID(),
+        applicationId,
+        userId,
+        amount: amount || 0,
+        paymentMethod,
+        reference: reference || null,
+        documentId: documentId || null,
+        status: 'pending_verification',
+        createdAt: new Date().toISOString()
+      };
+
+      await kv.set(`payment:${payment.id}`, payment);
+      await kv.set(`application_payments:${applicationId}:${payment.id}`, payment.id);
+
+      // Create a payment claim referencing this payment so admins can review
+      const claim = {
+        id: crypto.randomUUID(),
+        applicationId,
+        paymentId: payment.id,
+        userId,
+        amount: payment.amount || null,
+        paymentMethod,
+        reference: reference || null,
+        documentId: documentId || null,
+        status: 'submitted',
+        createdAt: new Date().toISOString()
+      };
+
+      await kv.set(`payment_claim:${claim.id}`, claim);
+      await kv.set(`application_payment_claims:${applicationId}:${claim.id}`, claim.id);
+
+      // Notify admins (queue email) if configured
+      const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || null;
+      if (adminEmail) {
+        const emailRecord = {
+          id: crypto.randomUUID(),
+          to: adminEmail,
+          subject: 'New payment submitted for review',
+          body: `User ${userId} submitted a payment for application ${applicationId}. Please review.`,
+          relatedApplicationId: applicationId,
+          createdAt: new Date().toISOString(),
+          sent: false
+        };
+        await kv.set(`email_queue:${emailRecord.id}`, emailRecord);
+      }
+
+      console.log('🔔 Payment pending verification and claim created:', payment.id, claim.id);
+
+      return c.json({ success: true, paymentId: payment.id, claimId: claim.id, status: 'pending_verification' });
+    }
+
+    // Otherwise create a pending payment record (existing behavior)
+    // Determine payment type description
     let itemName = '';
     let description = '';
-    switch(paymentType){
-      case 'application_fee':
-        itemName = 'Loan Application Fee';
-        description = 'Non-refundable application processing fee';
-        break;
-      case 'first_repayment':
-        itemName = 'Loan First Repayment';
-        description = 'First installment repayment';
-        break;
-      case 'full_settlement':
-        itemName = 'Loan Full Settlement';
-        description = 'Full loan amount settlement';
-        break;
-      default:
-        return c.json({
-          error: 'Invalid payment type'
-        }, 400);
+    // Normalize and support multiple front-end naming conventions for paymentType
+    const normalizedType = (paymentType || '').toString();
+    // Support legacy types ('due_payment','early_payment') and frontend types ('application_fee','first_repayment','full_settlement')
+    if (['due_payment', 'first_repayment', 'application_fee'].includes(normalizedType)) {
+      itemName = 'Loan Repayment (Due Date)';
+      description = 'Repayment scheduled for due date';
+    } else if (['early_payment', 'full_settlement'].includes(normalizedType)) {
+      itemName = 'Loan Repayment (Early)';
+      description = 'Early/full settlement payment';
+    } else {
+      return c.json({ success: false, error: 'Invalid payment type' }, 400);
     }
+
     const paymentData = {
       amount: amount,
       item_name: itemName,
@@ -450,8 +1359,7 @@ app.post('/make-server-1ed353c1/create-payment', requireAuth, async (c)=>{
       custom_str2: userId,
       email_address: userEmail
     };
-    const paymentUrl = payFastService.generatePaymentUrl(paymentData);
-    // Store pending payment
+
     const paymentRecord = {
       id: crypto.randomUUID(),
       userId,
@@ -459,118 +1367,22 @@ app.post('/make-server-1ed353c1/create-payment', requireAuth, async (c)=>{
       amount,
       paymentType,
       status: 'pending',
-      payfastData: paymentData,
+      gatewayData: paymentData,
       createdAt: new Date().toISOString()
     };
+
     await kv.set(`payment:${paymentRecord.id}`, paymentRecord);
     await kv.set(`user_payments:${userId}:${paymentRecord.id}`, paymentRecord.id);
-    return c.json({
-      success: true,
-      paymentId: paymentRecord.id,
-      paymentUrl,
-      amount,
-      paymentType
-    });
+
+    console.log('🔁 Pending payment created:', paymentRecord.id);
+
+    return c.json({ success: true, paymentId: paymentRecord.id, amount, paymentType, paymentUrl: null });
   } catch (error) {
-    console.log(`Create payment error: ${error}`);
-    return c.json({
-      error: 'Failed to create payment'
-    }, 500);
+    console.log('❌ Create payment error:', error);
+    return c.json({ success: false, error: 'Failed to create payment' }, 500);
   }
 });
-// PayFast ITN (Instant Transaction Notification) endpoint
-app.post('/make-server-1ed353c1/payments/notify', async (c)=>{
-  try {
-    const formData = await c.req.formData();
-    const notificationData = {};
-    // Convert FormData to object
-    for (const [key, value] of formData.entries()){
-      notificationData[key] = value;
-    }
-    console.log('🔔 PayFast ITN received:', notificationData);
-    // Validate the ITN
-    const isValid = payFastService.validateITN(notificationData);
-    if (!isValid) {
-      console.log('❌ Invalid ITN signature');
-      return c.text('', 400);
-    }
-    const paymentStatus = notificationData.payment_status;
-    const mPaymentId = notificationData.m_payment_id;
-    const pfPaymentId = notificationData.pf_payment_id;
-    const amount = parseFloat(notificationData.amount_gross);
-    const applicationId = notificationData.custom_str1;
-    const userId = notificationData.custom_str2;
-    // Find the payment record
-    const payment = await kv.get(`payment:${mPaymentId}`);
-    if (!payment) {
-      console.log('❌ Payment record not found:', mPaymentId);
-      return c.text('', 404);
-    }
-    // Update payment status
-    let applicationUpdate = {};
-    let newApplicationStatus = payment.applicationStatus;
-    switch(paymentStatus){
-      case 'COMPLETE':
-        payment.status = 'completed';
-        payment.pfPaymentId = pfPaymentId;
-        payment.completedAt = new Date().toISOString();
-        // Update application based on payment type
-        if (payment.paymentType === 'application_fee') {
-          applicationUpdate = {
-            applicationFeePaid: true
-          };
-        } else if (payment.paymentType === 'first_repayment') {
-          applicationUpdate = {
-            firstRepaymentPaid: true,
-            status: 'active'
-          };
-          newApplicationStatus = 'active';
-        } else if (payment.paymentType === 'full_settlement') {
-          applicationUpdate = {
-            fullyRepaid: true,
-            status: 'repaid'
-          };
-          newApplicationStatus = 'repaid';
-        }
-        break;
-      case 'CANCELLED':
-        payment.status = 'cancelled';
-        payment.cancelledAt = new Date().toISOString();
-        break;
-      case 'FAILED':
-        payment.status = 'failed';
-        payment.failedAt = new Date().toISOString();
-        break;
-      default:
-        payment.status = 'pending';
-    }
-    // Save updated payment
-    await kv.set(`payment:${mPaymentId}`, payment);
-    // Update application if payment completed
-    if (paymentStatus === 'COMPLETE' && applicationId) {
-      const application = await kv.get(`loan_application:${applicationId}`);
-      if (application) {
-        const updatedApplication = {
-          ...application,
-          ...applicationUpdate,
-          status: newApplicationStatus,
-          updatedAt: new Date().toISOString()
-        };
-        await kv.set(`loan_application:${applicationId}`, updatedApplication);
-        // Record payment in admin system
-        const { data: { user } } = await supabase.auth.getUser(Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-        if (user) {
-          await adminService.recordPayment(applicationId, amount, 'payfast', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-        }
-      }
-    }
-    console.log(`✅ Payment ${mPaymentId} updated to: ${paymentStatus}`);
-    return c.text('', 200);
-  } catch (error) {
-    console.log('❌ ITN processing error:', error);
-    return c.text('', 500);
-  }
-});
+
 // Get payment status
 app.get('/make-server-1ed353c1/payment/:paymentId/status', requireAuth, async (c)=>{
   try {
@@ -597,4 +1409,182 @@ app.get('/make-server-1ed353c1/payment/:paymentId/status', requireAuth, async (c
     }, 500);
   }
 });
+
+// Submit a payment claim (borrower initiated for manual bank payments or proof-based payments)
+app.post('/make-server-1ed353c1/submit-payment-claim', requireAuth, async (c) => {
+  try {
+    const userId = c.get('userId');
+    const { applicationId, paymentId, amount, paymentMethod, reference, documentId } = await c.req.json();
+
+    if (!applicationId || !paymentMethod) {
+      return c.json({ error: 'applicationId and paymentMethod are required' }, 400);
+    }
+
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (!application) {
+      return c.json({ error: 'Application not found' }, 404);
+    }
+    if (application.userId !== userId) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    const claim = {
+      id: crypto.randomUUID(),
+      applicationId,
+      paymentId: paymentId || null,
+      userId,
+      amount: amount || null,
+      paymentMethod,
+      reference: reference || null,
+      documentId: documentId || null,
+      status: 'submitted', // submitted, under_review, accepted, rejected
+      createdAt: new Date().toISOString()
+    };
+
+    await kv.set(`payment_claim:${claim.id}`, claim);
+    await kv.set(`application_payment_claims:${applicationId}:${claim.id}`, claim.id);
+
+    // Queue a notification for admins (simple email_queue entry). Use env ADMIN_NOTIFICATION_EMAIL if available.
+    const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || null;
+    if (adminEmail) {
+      const emailRecord = {
+        id: crypto.randomUUID(),
+        to: adminEmail,
+        subject: 'New payment claim submitted',
+        body: `User ${userId} submitted a payment claim for application ${applicationId}. Please review.`,
+        relatedApplicationId: applicationId,
+        createdAt: new Date().toISOString(),
+        sent: false
+      };
+      await kv.set(`email_queue:${emailRecord.id}`, emailRecord);
+    }
+
+    return c.json({ success: true, claim });
+  } catch (error) {
+    console.log('Submit payment claim error:', error);
+    return c.json({ error: 'Failed to submit payment claim' }, 500);
+  }
+});
+
+// Admin: list payment claims (optionally filter by applicationId)
+app.get('/make-server-1ed353c1/admin/payment-claims', requireAdmin, async (c) => {
+  try {
+    const applicationId = c.req.query('applicationId') || null;
+    let claimIds = [];
+    if (applicationId) {
+      claimIds = await kv.getByPrefix(`application_payment_claims:${applicationId}:`);
+    } else {
+      claimIds = await kv.getByPrefix('payment_claim');
+    }
+    const claims = await Promise.all(claimIds.map((id) => kv.get(`payment_claim:${id}`)));
+    return c.json({ claims: claims.filter(Boolean) });
+  } catch (err) {
+    console.log('Get payment claims error:', err);
+    return c.json({ error: 'Failed to get payment claims' }, 500);
+  }
+});
+
+// Admin: verify (accept/reject) a payment claim. If accepted, record payment and mark application repaid.
+app.post('/make-server-1ed353c1/admin/payment-claims/:id/verify', requireAdmin, async (c) => {
+  try {
+    const claimId = c.req.param('id');
+    const { accept, notes } = await c.req.json();
+    const claim = await kv.get(`payment_claim:${claimId}`);
+    if (!claim) {
+      return c.json({ error: 'Payment claim not found' }, 404);
+    }
+
+    const application = await kv.get(`loan_application:${claim.applicationId}`);
+    if (!application) {
+      return c.json({ error: 'Application not found' }, 404);
+    }
+
+    const updatedClaim = {
+      ...claim,
+      status: accept ? 'accepted' : 'rejected',
+      reviewedBy: c.get('userId'),
+      reviewNotes: notes || null,
+      reviewedAt: new Date().toISOString()
+    };
+
+    await kv.set(`payment_claim:${claimId}`, updatedClaim);
+
+    if (accept) {
+      // If a pending payment was attached to this claim, mark it completed; otherwise create a new payment record
+      if (claim.paymentId) {
+        const pendingPayment = await kv.get(`payment:${claim.paymentId}`);
+        if (pendingPayment) {
+          const updatedPayment = {
+            ...pendingPayment,
+            status: 'completed',
+            paidAt: new Date().toISOString()
+          };
+          await kv.set(`payment:${claim.paymentId}`, updatedPayment);
+          // ensure mapping exists
+          await kv.set(`application_payments:${claim.applicationId}:${claim.paymentId}`, claim.paymentId);
+        } else {
+          // fallback: create new payment record
+          const payment = {
+            id: crypto.randomUUID(),
+            applicationId: claim.applicationId,
+            amount: claim.amount || 0,
+            paymentMethod: claim.paymentMethod || 'manual',
+            reference: claim.reference || null,
+            paidAt: new Date().toISOString()
+          };
+          await kv.set(`payment:${payment.id}`, payment);
+          await kv.set(`application_payments:${claim.applicationId}:${payment.id}`, payment.id);
+        }
+      } else {
+        const payment = {
+          id: crypto.randomUUID(),
+          applicationId: claim.applicationId,
+          amount: claim.amount || 0,
+          paymentMethod: claim.paymentMethod || 'manual',
+          reference: claim.reference || null,
+          paidAt: new Date().toISOString()
+        };
+        await kv.set(`payment:${payment.id}`, payment);
+        await kv.set(`application_payments:${claim.applicationId}:${payment.id}`, payment.id);
+      }
+
+      // Update application status to repaid
+      const updatedApplication = {
+        ...application,
+        status: 'repaid',
+        updatedAt: new Date().toISOString(),
+        repaidAt: new Date().toISOString()
+      };
+      await kv.set(`loan_application:${claim.applicationId}`, updatedApplication);
+
+      // Optionally mark linked document as verified
+      if (claim.documentId) {
+        const doc = await kv.get(`document:${claim.documentId}`);
+        if (doc) {
+          const updatedDoc = { ...doc, verified: true, verificationNotes: 'Verified during payment claim acceptance', verifiedAt: new Date().toISOString() };
+          await kv.set(`document:${claim.documentId}`, updatedDoc);
+        }
+      }
+
+      // Queue an email to the user confirming payment acceptance
+      const emailRecord = {
+        id: crypto.randomUUID(),
+        to: application.email,
+        subject: 'Payment Received and Approved',
+        body: `Hello ${application.fullName},\n\nWe have received and approved your payment for application ${application.id}. Your loan status has been updated to repaid. Thank you.`,
+        relatedApplicationId: application.id,
+        createdAt: new Date().toISOString(),
+        sent: false
+      };
+      await kv.set(`email_queue:${emailRecord.id}`, emailRecord);
+    }
+
+    return c.json({ success: true, claim: updatedClaim });
+  } catch (err) {
+    console.log('Verify payment claim error:', err);
+    return c.json({ error: 'Failed to verify payment claim' }, 500);
+  }
+});
+
+console.log('⚡ Supabase Edge Function (make-server-1ed353c1) starting - routes registered');
 Deno.serve(app.fetch);

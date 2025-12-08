@@ -1,6 +1,12 @@
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { format } from "date-fns"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { cn } from "../ui/utils"
+import { Button } from "../ui/button"
+import { Calendar } from "../ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 
 interface WorkIncomeStepProps {
   data: any
@@ -8,6 +14,22 @@ interface WorkIncomeStepProps {
 }
 
 export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
+  const getCycleEndDate = () => {
+    const today = new Date()
+    const cycle = data.paydayCycle
+    const endDate = new Date(today)
+
+    if (cycle === 'weekly') {
+      endDate.setDate(today.getDate() + 7)
+    } else if (cycle === 'bi-weekly') {
+      endDate.setDate(today.getDate() + 14)
+    } else {
+      // Monthly default
+      endDate.setMonth(today.getMonth() + 1)
+    }
+    return endDate
+  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -18,6 +40,18 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
           placeholder="ABC Company (Pty) Ltd"
           value={data.employerName}
           onChange={(e) => updateData({ employerName: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="employerAddress">Employer Address</Label>
+        <Input
+          id="employerAddress"
+          type="text"
+          placeholder="123 Business Rd, Sandton"
+          value={data.employerAddress || ''}
+          onChange={(e) => updateData({ employerAddress: e.target.value })}
           required
         />
       </div>
@@ -37,6 +71,33 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
             <SelectItem value="monthly">Monthly</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Next Pay Date</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !data.nextPayDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {data.nextPayDate ? format(new Date(data.nextPayDate), "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={data.nextPayDate ? new Date(data.nextPayDate) : undefined}
+              onSelect={(date) => updateData({ nextPayDate: date ? date.toISOString() : undefined })}
+              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0)) || date > getCycleEndDate()}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-2">

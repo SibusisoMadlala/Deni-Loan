@@ -3,7 +3,8 @@ import { projectId, publicAnonKey } from '../utils/supabase/info'
 export interface CreatePaymentRequest {
   applicationId: string;
   amount: number;
-  paymentType: 'application_fee' | 'first_repayment' | 'full_settlement';
+  paymentType: 'due_payment' | 'early_payment' | 'first_repayment' | 'full_settlement';
+  // Note: server accepts legacy values such as 'first_repayment' and 'full_settlement'.
 }
 
 export interface CreatePaymentResponse {
@@ -82,6 +83,40 @@ class PaymentService {
     }
   }
 
+  // Create an Ozow payment via the server-side Ozow create-payment endpoint
+  async createOzowPayment(request: CreatePaymentRequest & { returnUrl: string, invoiceId?: string }, accessToken: string): Promise<CreatePaymentResponse> {
+    try {
+      console.log('🔄 Creating Ozow payment request:', request);
+      const response = await fetch(`${this.baseUrl}/ozow/create-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          const text = await response.text();
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      console.log('✅ Ozow payment created successfully:', data);
+      return data;
+    } catch (error: any) {
+      console.error('❌ Ozow payment service error:', error);
+      throw new Error(error.message || 'Failed to create Ozow payment');
+    }
+  }
+
   async getPaymentStatus(paymentId: string, accessToken: string): Promise<PaymentStatus> {
     try {
       const response = await fetch(`${this.baseUrl}/payment/${paymentId}/status`, {
@@ -106,6 +141,12 @@ class PaymentService {
   redirectToPayFast(paymentUrl: string): void {
     console.log('🔗 Redirecting to PayFast:', paymentUrl);
     window.location.href = paymentUrl;
+  }
+
+  // Helper method to redirect to Ozow or another provider
+  redirectToOzow(redirectUrl: string): void {
+    console.log('🔗 Redirecting to Ozow:', redirectUrl);
+    window.location.href = redirectUrl;
   }
 }
 

@@ -164,7 +164,13 @@ export function HomePage() {
           </div>
         </div>
 
-        
+        {/* Footer */}
+        <div className="mt-20 border-t border-gray-200 pt-8 text-center text-gray-500 text-sm">
+          <p>&copy; {new Date().getFullYear()} Deni Loans (Pty)Ltd. All rights reserved.</p>
+          <div className="mt-2 space-x-4">
+            <a href="/terms" className="hover:text-gray-900">Terms of Service</a>
+          </div>
+        </div>
       </div>
     </div>
 

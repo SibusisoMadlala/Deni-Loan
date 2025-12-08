@@ -19,12 +19,19 @@ export function SignupPage() {
     phone: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    termsAccepted: false
   })
 
+  // In your SignupPage component, update the handleSubmit function:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!formData.termsAccepted) {
+      setError('You must accept the Terms of Service to create an account')
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
@@ -43,11 +50,15 @@ export function SignupPage() {
         formData.email,
         formData.password,
         formData.fullName,
-        formData.phone
+        formData.phone,
+        'borrower',
+        true  // ← skipSignIn: true - don't auto-login, wait for email verification
       )
       
       if (result.success) {
-        navigate('/dashboard')
+        // Store email in session storage and redirect to verification
+        sessionStorage.setItem('signupEmail', formData.email)
+        navigate('/verify-email', { state: { email: formData.email } })
       } else {
         setError(result.error || 'Signup failed')
       }
@@ -132,6 +143,23 @@ export function SignupPage() {
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="terms"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                checked={formData.termsAccepted}
+                onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
+                required
+              />
+              <label htmlFor="terms" className="text-sm text-gray-600">
+                I agree to the{' '}
+                <Link to="/terms" className="text-blue-600 hover:underline" target="_blank">
+                  Terms of Service
+                </Link>
+              </label>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>

@@ -15,6 +15,8 @@ export interface LoanApplication {
   
   // Work & Income
   employerName: string
+  employerAddress?: string
+  nextPayDate?: string
   paydayCycle: string
   netSalary: number
   
@@ -52,10 +54,17 @@ export interface CreditReport {
   id: string
   idNumber: string
   creditScore: number
+  creditRisk?: 'excellent' | 'good' | 'fair' | 'poor'
   disposableIncome: number
   maxLoanAmount: number
+  existingObligations?: number
   approved: boolean
   reason: string
+  source?: 'experian' | 'mock'
+  numberOfAccounts?: number
+  defaultedAccounts?: number
+  judgments?: number
+  administrationOrders?: number
   checkedAt: string
 }
 
@@ -150,7 +159,15 @@ export const loanService = {
     }
   },
 
-  async performCreditCheck(idNumber: string, income: number, existingDebts: number, accessToken: string): Promise<CreditReport> {
+  async performCreditCheck(
+    idNumber: string,
+    income: number,
+    existingDebts: number,
+    accessToken: string,
+    firstName?: string,
+    lastName?: string,
+    dateOfBirth?: string
+  ): Promise<CreditReport> {
     try {
       const response = await fetch(`${API_BASE}/credit-check`, {
         method: 'POST',
@@ -158,7 +175,14 @@ export const loanService = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ idNumber, income, existingDebts })
+        body: JSON.stringify({
+          idNumber,
+          firstName,
+          lastName,
+          dateOfBirth,
+          income,
+          existingDebts
+        })
       })
 
       const data = await response.json()

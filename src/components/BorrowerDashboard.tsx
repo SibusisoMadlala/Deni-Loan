@@ -18,7 +18,8 @@ import {
   Clock,
   XCircle,
   DollarSign,
-  MessageCircle
+  MessageCircle,
+  AlertCircle
 } from 'lucide-react'
 
 export function BorrowerDashboard() {
@@ -109,6 +110,13 @@ export function BorrowerDashboard() {
     };
   };
 
+  // Check if user has active approved/disbursed loan
+  const hasActiveApprovedLoan = applications.some(app => 
+    app.status === 'approved' || app.status === 'disbursed'
+  );
+
+  const canApplyForNewLoan = !hasActiveApprovedLoan;
+
   const currentApp = applications.find(app => app.id === selectedApplication)
   const repaymentAmounts = currentApp ? calculateRepaymentAmounts(currentApp) : null;
 
@@ -128,7 +136,11 @@ export function BorrowerDashboard() {
             <h1 className="text-3xl mb-2">Welcome back, {user?.fullName}</h1>
             <p className="text-gray-600">Manage your loans and documents</p>
           </div>
-          <Button onClick={() => navigate('/apply')}>
+          <Button 
+            onClick={() => navigate('/apply')}
+            disabled={!canApplyForNewLoan}
+            title={!canApplyForNewLoan ? 'Complete your current loan payment before applying for a new one' : ''}
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Application
           </Button>
@@ -148,39 +160,49 @@ export function BorrowerDashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Applications List */}
-            <div className="space-y-4">
-              <h3 className="text-lg">Your Applications</h3>
-              {applications.map((app: any) => (
-                <Card
-                  key={app.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedApplication === app.id ? 'ring-2 ring-blue-500' : ''
-                  }`}
-                  onClick={() => setSelectedApplication(app.id)}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm text-gray-600">
-                        {new Date(app.createdAt).toLocaleDateString()}
-                      </span>
-                      {getStatusBadge(app.status)}
-                    </div>
-                    <p className="text-2xl">
-                      R{(app.approvedAmount || app.requestedAmount || 0).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      ID: {app.id?.substring(0, 8)}...
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <>
+            {hasActiveApprovedLoan && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Active Loan in Progress:</strong> You have an active approved or disbursed loan. 
+                  Please complete payment of your current loan by the next pay day before applying for a new one.
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Applications List */}
+              <div className="space-y-4">
+                <h3 className="text-lg">Your Applications</h3>
+                {applications.map((app: any) => (
+                  <Card
+                    key={app.id}
+                    className={`cursor-pointer transition-all ${
+                      selectedApplication === app.id ? 'ring-2 ring-blue-500' : ''
+                    }`}
+                    onClick={() => setSelectedApplication(app.id)}
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm text-gray-600">
+                          {new Date(app.createdAt).toLocaleDateString()}
+                        </span>
+                        {getStatusBadge(app.status)}
+                      </div>
+                      <p className="text-2xl">
+                        R{(app.approvedAmount || app.requestedAmount || 0).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        ID: {app.id?.substring(0, 8)}...
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-            {/* Application Details */}
-            <div className="lg:col-span-2">
-              {currentApp && (
+              {/* Application Details */}
+              <div className="lg:col-span-2">
+                {currentApp && (
                 <Tabs defaultValue="details" className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="details">Loan Details</TabsTrigger>
@@ -231,11 +253,21 @@ export function BorrowerDashboard() {
                           </Alert>
                         )}
 
+                        {currentApp.status === 'pending' && (
+                          <Alert>
+                            <Clock className="h-4 w-4" />
+                            <AlertDescription>
+                              Your application has been submitted successfully! Our admin team is reviewing your application. 
+                              You will be notified within 24-48 hours once a decision has been made.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         {currentApp.status === 'approved' && (
                           <Alert>
                             <CheckCircle className="h-4 w-4" />
                             <AlertDescription>
-                              Your loan has been approved! Funds will be disbursed within 24 hours.
+                              Your loan has been approved! Please proceed to the Repayments tab to pay the application fee and your funds will be disbursed within 24 hours.
                             </AlertDescription>
                           </Alert>
                         )}
@@ -273,101 +305,68 @@ export function BorrowerDashboard() {
                               </Alert>
                             )}
 
-                            {/* Monthly Installment Payment */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                <div>
-                                  <p className="font-semibold text-blue-900">Month End Settlement</p>
-                                  <p className="text-sm text-blue-700">
-                                    Pay your next installment of R{repaymentAmounts?.monthlyInstallment.toLocaleString()}
+                            {/* Payment Options */}
+                            {currentApp.nextPayDate && new Date().toDateString() === new Date(currentApp.nextPayDate).toDateString() ? (
+                              /* Due Date Payment */
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex justify-between items-center mb-3">
+                                  <div>
+                                    <p className="font-semibold text-blue-900">Due Date Payment</p>
+                                    <p className="text-sm text-blue-700">
+                                      Pay your scheduled installment of R{repaymentAmounts?.monthlyInstallment.toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <p className="text-2xl font-bold text-blue-900">
+                                    R{repaymentAmounts?.monthlyInstallment.toLocaleString()}
                                   </p>
                                 </div>
-                                <p className="text-2xl font-bold text-blue-900">
-                                  R{repaymentAmounts?.monthlyInstallment.toLocaleString()}
-                                </p>
+                                <PaymentButton
+                                  applicationId={currentApp.id}
+                                  amount={repaymentAmounts?.monthlyInstallment || 0}
+                                  paymentType="due_payment"
+                                  onError={(error) => setPaymentError(error)}
+                                />
                               </div>
-                              <PaymentButton
-                                applicationId={currentApp.id}
-                                amount={repaymentAmounts?.monthlyInstallment || 0}
-                                paymentType="first_repayment"
-                                onError={(error) => setPaymentError(error)}
-                              />
-                            </div>
+                            ) : (
+                              /* Early Settlement Payment */
+                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div className="flex justify-between items-center mb-3">
+                                  <div>
+                                    <p className="font-semibold text-green-900">Early Settlement</p>
+                                    <p className="text-sm text-green-700">
+                                      Pay off your loan early and save on interest
+                                    </p>
+                                    <p className="text-xs text-green-600 mt-1">
+                                      5% early settlement discount applied
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-2xl font-bold text-green-900">
+                                      R{repaymentAmounts?.fullSettlement.toLocaleString()}
+                                    </p>
+                                    <p className="text-sm text-green-600 line-through">
+                                      R{repaymentAmounts?.totalWithInterest.toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <PaymentButton
+                                  applicationId={currentApp.id}
+                                  amount={repaymentAmounts?.fullSettlement || 0}
+                                  paymentType="early_payment"
+                                  onError={(error) => setPaymentError(error)}
+                                />
+                              </div>
+                            )}
 
-                            {/* Full Settlement Payment */}
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                <div>
-                                  <p className="font-semibold text-green-900">Early Settlement</p>
-                                  <p className="text-sm text-green-700">
-                                    Pay off your entire loan early and save on interest
-                                  </p>
-                                  <p className="text-xs text-green-600 mt-1">
-                                    5% early settlement discount applied
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-2xl font-bold text-green-900">
-                                    R{repaymentAmounts?.fullSettlement.toLocaleString()}
-                                  </p>
-                                  <p className="text-sm text-green-600 line-through">
-                                    R{repaymentAmounts?.totalWithInterest.toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <PaymentButton
-                                applicationId={currentApp.id}
-                                amount={repaymentAmounts?.fullSettlement || 0}
-                                paymentType="full_settlement"
-                                onError={(error) => setPaymentError(error)}
-                              />
-                            </div>
 
-                            {/* Loan Summary */}
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                              <h4 className="font-semibold mb-2">Loan Summary</h4>
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span>Approved Amount:</span>
-                                  <span>R{(currentApp.approvedAmount || currentApp.requestedAmount || 0).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Total with Interest:</span>
-                                  <span>R{repaymentAmounts?.totalWithInterest.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Monthly Installments:</span>
-                                  <span>3 months</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Early Settlement:</span>
-                                  <span className="text-green-600">Save R{(repaymentAmounts?.totalWithInterest - (repaymentAmounts?.fullSettlement || 0)).toLocaleString()}</span>
-                                </div>
-                              </div>
-                            </div>
                           </div>
                         ) : currentApp.status === 'approved' ? (
-                          <div className="space-y-4">
-                            {/* Application Fee Payment for Approved Loans */}
-                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                <div>
-                                  <p className="font-semibold text-orange-900">Application Fee</p>
-                                  <p className="text-sm text-orange-700">
-                                    Pay the application fee to proceed with loan disbursement
-                                  </p>
-                                </div>
-                                <p className="text-2xl font-bold text-orange-900">R50</p>
-                              </div>
-                              <PaymentButton
-                                applicationId={currentApp.id}
-                                amount={50}
-                                paymentType="application_fee"
-                                onError={(error) => setPaymentError(error)}
-                              />
-                            </div>
-                            <p className="text-gray-600 text-center py-4">
-                              Once the application fee is paid, your funds will be disbursed within 24 hours.
+                          <div className="text-center py-8">
+                            <Clock className="w-12 h-12 text-blue-500 mx-auto mb-3" />
+                            <h3 className="text-lg font-medium text-gray-900">Loan Approved</h3>
+                            <p className="text-gray-600 mt-2">
+                              Your loan has been approved and is being processed for disbursement.
+                              Payment options will appear here once the funds have been disbursed.
                             </p>
                           </div>
                         ) : (
@@ -427,7 +426,8 @@ export function BorrowerDashboard() {
                 </Tabs>
               )}
             </div>
-          </div>
+            </div>
+            </>
         )}
 
         {/* Help Section */}

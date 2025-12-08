@@ -100,7 +100,8 @@ export function LoanAgreementStep({ applicationData, creditReport, onComplete }:
             <Alert className="bg-green-50 border-green-200">
               <AlertCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-900">
-                Agreement signed successfully! Redirecting to your dashboard...
+                Agreement signed successfully! Your application has been submitted for admin review.
+                You will be notified once the admin has made a decision.
               </AlertDescription>
             </Alert>
           ) : (

@@ -28,8 +28,15 @@ export function LoginPage() {
       const result = await signIn(formData.email, formData.password)
       
       if (result.success) {
-        const userRole = result.session?.user.user_metadata?.role
-        navigate(userRole === 'admin' ? '/admin' : '/dashboard')
+        // If email not confirmed, redirect to verification
+        if (result.emailNotConfirmed) {
+          sessionStorage.setItem('signupEmail', formData.email)
+          navigate('/verify-email', { state: { email: formData.email } })
+        } else {
+          // Email confirmed, go to dashboard
+          const userRole = result.session?.user?.user_metadata?.role
+          navigate(userRole === 'admin' ? '/admin' : '/dashboard')
+        }
       } else {
         setError(result.error || 'Login failed')
       }

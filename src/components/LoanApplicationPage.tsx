@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { loanService } from '../services/loanService'
@@ -30,13 +30,17 @@ export function LoanApplicationPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [hasActiveApprovedLoan, setHasActiveApprovedLoan] = useState(false)
+  const [checkingApplications, setCheckingApplications] = useState(true)
   
   const [applicationData, setApplicationData] = useState<any>({
     idNumber: '',
-    fullName: user?.fullName || '',
-    phone: user?.phone || '',
-    email: user?.email || '',
+    fullName: '',
+    phone: '',
+    email: '',
     employerName: '',
+    employerAddress: '',
+    nextPayDate: '',
     paydayCycle: 'monthly',
     netSalary: 0,
     bankName: '',
@@ -50,6 +54,42 @@ export function LoanApplicationPage() {
 
   const [applicationId, setApplicationId] = useState<string | null>(null)
   const [creditReport, setCreditReport] = useState<any>(null)
+
+  // Prepopulate form with user profile data
+  useEffect(() => {
+    if (user) {
+      setApplicationData(prevData => ({
+        ...prevData,
+        fullName: user.fullName || '',
+        phone: user.phone || '',
+        email: user.email || ''
+      }))
+    }
+  }, [user])
+
+  // Check if user has active approved/disbursed loans
+  useEffect(() => {
+    if (accessToken) {
+      checkForActiveLoans()
+    }
+  }, [accessToken])
+
+  const checkForActiveLoans = async () => {
+    try {
+      const apps = await loanService.getMyApplications(accessToken!)
+      
+      // Check if user has any approved or disbursed loans
+      const hasActive = apps.some(app => 
+        app.status === 'approved' || app.status === 'disbursed'
+      )
+      
+      setHasActiveApprovedLoan(hasActive)
+    } catch (err) {
+      console.error('Failed to check applications:', err)
+    } finally {
+      setCheckingApplications(false)
+    }
+  }
 
   const updateData = (newData: any) => {
     setApplicationData({ ...applicationData, ...newData })
@@ -114,15 +154,15 @@ export function LoanApplicationPage() {
         )
         setCreditReport(report)
         
-        // Update application with credit check results
+        // Update application with credit check results but keep status as pending
+        // Admin will make the final approval/decline decision
         await loanService.updateApplication(
           applicationId!,
           {
             creditScore: report.creditScore,
             creditCheckPassed: report.approved,
-            approvedAmount: report.approved ? report.maxLoanAmount : 0,
-            declineReason: report.approved ? undefined : report.reason,
-            status: report.approved ? 'approved' : 'declined'
+            declineReason: report.approved ? undefined : report.reason
+            // DO NOT set status to approved/declined - admin will decide
           },
           accessToken!
         )
@@ -146,18 +186,74 @@ export function LoanApplicationPage() {
   }
 
   const handleComplete = async () => {
-    // Update application to disbursed status
+    // Update application to pending status - waiting for admin approval
     if (applicationId) {
-      await loanService.updateApplication(
-        applicationId,
-        { status: 'disbursed' },
-        accessToken!
-      )
+      try {
+        await loanService.updateApplication(
+          applicationId,
+          { status: 'pending' },
+          accessToken!
+        )
+      } catch (err: any) {
+        console.error('Failed to update application status:', err)
+      }
     }
     navigate('/dashboard')
   }
 
   const progress = ((currentStep + 1) / STEPS.length) * 100
+
+  // Show loading while checking for active loans
+  if (checkingApplications) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8 px-4 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Block if user has active approved/disbursed loan
+  if (hasActiveApprovedLoan) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Loan in Progress</CardTitle>
+              <CardDescription>
+                You cannot apply for a new loan while you have an active approved loan
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>You currently have an active approved or disbursed loan.</strong>
+                  <br />
+                  <br />
+                  To apply for a new loan, you must:
+                  <ol className="list-decimal list-inside mt-2 space-y-1">
+                    <li>Complete payment of your current loan by the next pay day</li>
+                    <li>Once fully repaid, you can apply for a new loan</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <strong>Need help?</strong> Go to your dashboard to view your active loan details and make payments.
+                </p>
+              </div>
+
+              <Button onClick={() => navigate('/dashboard')} className="w-full">
+                Go to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8 px-4">

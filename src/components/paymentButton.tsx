@@ -9,10 +9,14 @@ import { useAuth } from '../hooks/useAuth';
 interface PaymentButtonProps {
   applicationId: string;
   amount: number;
-  paymentType: 'application_fee' | 'first_repayment' | 'full_settlement';
+  // Use clearer payment type names: due_date (due_payment) and early_payment
+  // Keep support for legacy 'first_repayment'
+  paymentType: 'due_payment' | 'early_payment' | 'first_repayment' | 'full_settlement';
   disabled?: boolean;
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  // Optional return URL for Ozow to redirect back to after payment
+  returnUrl?: string;
 }
 
 export function PaymentButton({ 
@@ -21,7 +25,8 @@ export function PaymentButton({
   paymentType, 
   disabled = false,
   onSuccess,
-  onError 
+  onError,
+  returnUrl
 }: PaymentButtonProps) {
   const [loading, setLoading] = useState(false);
   const { accessToken } = useAuth();
@@ -42,21 +47,26 @@ export function PaymentButton({
         paymentType
       });
       
-      const response = await paymentService.createPayment({
-        applicationId,
-        amount,
-        paymentType,
-      }, accessToken);
+      // Redirect directly to the external ozpay URL with query params so the browser navigates there
+      const invoiceId = `${applicationId}-${Date.now()}`;
+      const returnTo = returnUrl || `${window.location.origin}/payments/ozow/callback`;
+      const externalUrl = 'https://website-afa19dec.jdn.ixm.mybluehost.me/ozpay';
 
-      if (!response.success) {
-        throw new Error(response.error || 'Payment creation failed');
-      }
+      const params = new URLSearchParams({
+        invoiceId,
+        amount: String(amount),
+        paymentType: String(paymentType),
+        applicationId: String(applicationId),
+        returnUrl: returnTo
+      });
 
-      console.log('✅ Payment created, redirecting to PayFast...');
+      const redirect = `${externalUrl}?${params.toString()}`;
+      console.log('Redirecting to external ozpay URL:', redirect);
+      // Optionally notify caller before navigation
       onSuccess?.();
-      
-      // Redirect to PayFast
-      paymentService.redirectToPayFast(response.paymentUrl);
+      // Navigate browser to external payment endpoint
+      window.location.href = redirect;
+      return;
       
     } catch (error: any) {
       console.error('❌ Payment initiation error:', error);
@@ -83,8 +93,10 @@ export function PaymentButton({
 
   const getButtonText = () => {
     switch (paymentType) {
-      case 'application_fee':
-        return `Pay Application Fee - R${amount}`;
+      case 'due_payment':
+        return `Pay Due Date - R${amount}`;
+      case 'early_payment':
+        return `Pay Early - R${amount}`;
       case 'first_repayment':
         return `Pay First Installment - R${amount}`;
       case 'full_settlement':

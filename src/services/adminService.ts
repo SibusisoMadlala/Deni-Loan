@@ -112,6 +112,30 @@ export const adminService = {
     }
   },
 
+  async sendPaymentReminder(applicationId: string, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/admin/send-payment-reminder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ applicationId })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send reminder')
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Send reminder error:', error)
+      throw error
+    }
+  },
+
   async getPayments(applicationId: string, accessToken: string): Promise<Payment[]> {
     try {
       const response = await fetch(`${API_BASE}/payments/${applicationId}`, {

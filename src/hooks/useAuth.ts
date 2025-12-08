@@ -52,7 +52,7 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signUp = async (email: string, password: string, fullName: string, phone: string, role: 'borrower' | 'admin' = 'borrower') => {
+  const signUp = async (email: string, password: string, fullName: string, phone: string, role: 'borrower' | 'admin' = 'borrower', skipSignIn: boolean = false) => {
     try {
       const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1ed353c1/signup`, {
         method: 'POST',
@@ -67,6 +67,11 @@ export function useAuth() {
 
       if (!response.ok) {
         throw new Error(data.error || 'Signup failed')
+      }
+
+      // Don't sign in automatically if email verification is required
+      if (skipSignIn) {
+        return { success: true, user: data.user }
       }
 
       // Now sign in
@@ -92,8 +97,20 @@ export function useAuth() {
         password
       })
 
-      if (error) throw error
-      
+      if (error) {
+        // If error is about email not confirmed, we still want to allow verification flow
+        if (error.message.includes('email not confirmed') || error.message.includes('Email not confirmed')) {
+          // Try to get the user's session anyway for verification purposes
+          // Return success with unconfirmed status
+          return { 
+            success: true, 
+            user: { email },
+            session: null,
+            emailNotConfirmed: true
+          }
+        }
+        throw error
+      }
       
       return { success: true, user: data.user, session: data.session }
     } catch (error: any) {
