@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/button'
-import DeniLogoLoan from '../assets/DeniLogo.png'
+import DeniLogoLoans from '../assets/DeniLogo.png'
 import { LogOut, User, LayoutDashboard } from 'lucide-react'
 
 export function Navbar() {
@@ -19,7 +19,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-16 h-16 rounded-lg flex items-center justify-center">
-              <img src={DeniLogoLoan} alt="DeniLoans" />
+              <img src={DeniLogoLoans} alt="DeniLoans" />
             </div>
             
           </Link>
