@@ -3,7 +3,6 @@ import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/button'
 import DeniLogo from '../assets/DeniLogo.png'
 import { LogOut, User, LayoutDashboard } from 'lucide-react'
-import DeniLogo from '../assets/DeniLogo.png';
 
 export function Navbar() {
   const { user, signOut, isAdmin } = useAuth()
