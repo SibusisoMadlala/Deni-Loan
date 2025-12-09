@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Mail, Loader2 } from 'lucide-react'
@@ -8,7 +9,9 @@ import { projectId, publicAnonKey } from '../utils/supabase/info'
 export function EmailVerificationPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { resetPassword } = useAuth()
   const [email, setEmail] = useState('')
+  const [type, setType] = useState<'signup' | 'reset'>('signup')
   const [resendLoading, setResendLoading] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
@@ -16,16 +19,27 @@ export function EmailVerificationPage() {
   useEffect(() => {
     // Get email from location state or session storage
     const emailFromState = location.state?.email
+    const typeFromState = location.state?.type
     const emailFromStorage = sessionStorage.getItem('signupEmail')
     
+    if (typeFromState) {
+      setType(typeFromState)
+    }
+
     if (emailFromState) {
       setEmail(emailFromState)
-      sessionStorage.setItem('signupEmail', emailFromState)
-    } else if (emailFromStorage) {
+      if (!typeFromState || typeFromState === 'signup') {
+        sessionStorage.setItem('signupEmail', emailFromState)
+      }
+    } else if (emailFromStorage && (!typeFromState || typeFromState === 'signup')) {
       setEmail(emailFromStorage)
     } else {
-      // No email found, redirect to signup
-      navigate('/signup')
+      // No email found, redirect based on type
+      if (typeFromState === 'reset') {
+        navigate('/forgot-password')
+      } else {
+        navigate('/signup')
+      }
     }
   }, [location, navigate])
 
@@ -43,22 +57,29 @@ export function EmailVerificationPage() {
     setMessage(null)
 
     try {
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1ed353c1/resend-verification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`
-        },
-        body: JSON.stringify({ email })
-      })
+      if (type === 'reset') {
+        const result = await resetPassword(email)
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to resend reset email')
+        }
+      } else {
+        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-1ed353c1/resend-verification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`
+          },
+          body: JSON.stringify({ email })
+        })
 
-      const data = await response.json()
+        const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to resend confirmation email')
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to resend confirmation email')
+        }
       }
 
-      setMessage({ text: 'Confirmation email sent successfully!', type: 'success' })
+      setMessage({ text: 'Email sent successfully!', type: 'success' })
       setResendTimer(60) // 60 second cooldown
     } catch (err: any) {
       setMessage({ text: err.message || 'Failed to resend email. Please try again.', type: 'error' })
@@ -74,14 +95,17 @@ export function EmailVerificationPage() {
           <div className="flex justify-center mb-4">
             <Mail className="w-8 h-8 text-blue-600" />
           </div>
-          <CardTitle>Email Invite Sent</CardTitle>
+          <CardTitle>{type === 'reset' ? 'Password Reset Link Sent' : 'Email Invite Sent'}</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-gray-600">
-            An email invite has been sent to <strong>{email}</strong>
+            {type === 'reset' ? 'A password reset link' : 'An email invite'} has been sent to <strong>{email}</strong>
           </p>
           <p className="text-sm text-gray-500">
-            Please check your email and follow the link to verify your account.
+            {type === 'reset' 
+              ? 'Please check your email and follow the link to reset your password.'
+              : 'Please check your email and follow the link to verify your account.'
+            }
           </p>
 
           {message && (
