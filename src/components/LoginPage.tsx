@@ -52,7 +52,7 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Welcome Back</CardTitle>
-          <CardDescription>Sign in to your QuickLoan account</CardDescription>
+          <CardDescription>Sign in to your Deni Loan account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
