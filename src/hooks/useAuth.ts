@@ -132,6 +132,30 @@ export function useAuth() {
     }
   }
   
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      if (error) throw error
+      return { success: true }
+    } catch (error: any) {
+      console.error('Reset password error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) throw error
+      return { success: true }
+    } catch (error: any) {
+      console.error('Update password error:', error)
+      return { success: false, error: error.message }
+    }
+  }
+  
   return {
     user,
     loading,
@@ -139,6 +163,8 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
+    resetPassword,
+    updatePassword,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin'
   }

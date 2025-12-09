@@ -13,6 +13,8 @@ import { Toaster } from './components/ui/sonner'
 import { PaymentSuccess } from './components/paymentSuccess';
 import { PaymentCancel } from './components/paymentCancel';
 import { TermsOfService } from './components/TermsOfService';
+import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 
 // Add these routes
 
@@ -26,6 +28,8 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/cancel" element={<PaymentCancel />} />
