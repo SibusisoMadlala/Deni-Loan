@@ -69,6 +69,14 @@ export function SignupPage() {
     }
   }
 
+  const isFormValid = 
+    formData.fullName.trim() !== '' &&
+    formData.phone.trim() !== '' &&
+    formData.email.trim() !== '' &&
+    formData.password.trim() !== '' &&
+    formData.confirmPassword.trim() !== '' &&
+    formData.termsAccepted
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
@@ -162,7 +170,7 @@ export function SignupPage() {
               </label>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || !isFormValid}>
               {loading ? 'Creating account...' : 'Create Account'}
             </Button>
 
