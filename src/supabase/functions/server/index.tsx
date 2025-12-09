@@ -708,11 +708,23 @@ app.post('/make-server-1ed353c1/signup', async (c)=>{
     }
 
     console.log(`✅ User created (unconfirmed): ${email}`);
+
+    // Explicitly send the confirmation email since admin.createUser might not trigger it automatically
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: email
+    });
+
+    if (resendError) {
+      console.log(`⚠️ Failed to send confirmation email: ${resendError.message}`);
+    } else {
+      console.log(`📧 Confirmation email sent to: ${email}`);
+    }
     
     return c.json({
       success: true,
       user: data.user,
-  message: 'Account created. Please check your email for a confirmation link.'
+      message: 'Account created. Please check your email for a confirmation link.'
     });
   } catch (error) {
     console.log(`Signup exception: ${error}`);
