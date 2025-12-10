@@ -15,7 +15,7 @@ export function PersonalDetailsStep({ data, updateData }: PersonalDetailsStepPro
         <Input
           id="idNumber"
           type="text"
-          placeholder="8001015009087"
+          placeholder="800105009087"
           value={data.idNumber}
           onChange={(e) => updateData({ idNumber: e.target.value })}
           maxLength={13}

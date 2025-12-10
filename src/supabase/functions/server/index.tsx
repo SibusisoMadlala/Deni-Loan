@@ -904,6 +904,17 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
       updatedAt: new Date().toISOString()
     };
     await kv.set(`loan_application:${applicationId}`, updatedApplication);
+
+    // Trigger "Application Received" email (using Magic Link template)
+    if (updates.status === 'pending' && application.status !== 'pending') {
+      try {
+        console.log(`Sending Application Received email to ${application.email}`);
+        await supabase.auth.signInWithOtp({ email: application.email });
+      } catch (emailError) {
+        console.error('Failed to send application received email:', emailError);
+      }
+    }
+
     return c.json({
       success: true,
       application: updatedApplication
@@ -1096,6 +1107,24 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
       updatedAt: new Date().toISOString()
     };
     await kv.set(`loan_application:${applicationId}`, updatedApplication);
+
+    // Trigger emails based on status
+    try {
+      if (status === 'approved') {
+        console.log(`Sending Loan Approved email to ${application.email}`);
+        // Using "Invite User" template for Approval
+        // Note: This might fail if user is already confirmed, but it's the best slot available
+        // If this fails, we might need to use a different strategy or external SMTP
+        await supabase.auth.admin.inviteUserByEmail(application.email);
+      } else if (status === 'declined') {
+        console.log(`Sending Loan Declined email to ${application.email}`);
+        // Using "Reset Password" (Recovery) template for Decline
+        await supabase.auth.resetPasswordForEmail(application.email);
+      }
+    } catch (emailError) {
+      console.error(`Failed to send ${status} email:`, emailError);
+    }
+
     return c.json({
       success: true,
       application: updatedApplication
