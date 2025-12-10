@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { createClient } from 'jsr:@supabase/supabase-js@^2.38.0';
+import { createTransport } from "npm:nodemailer@6.9.7";
+
 // Payment gateway implementations (PayShap / manual bank) will be implemented here.
 // The legacy PayFast integration was removed in favor of PayShap/manual flows.
 import * as kv from './kv_store.tsx';
@@ -10,6 +12,18 @@ const app = new Hono();
 app.use('*', cors());
 app.use('*', logger(console.log));
 const supabase = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+
+// SMTP Configuration for Emails
+// TODO: Replace these with your actual Google Workspace / Gmail SMTP details
+const transporter = createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: "admin@deniloans.co.za", // REPLACE WITH YOUR EMAIL
+    pass: "tkjr cbqu rsfb uynf",     // REPLACE WITH YOUR APP PASSWORD
+  },
+});
 
 // Initialize storage bucket for documents
 async function initializeBucket() {
@@ -820,7 +834,7 @@ app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
       id: crypto.randomUUID(),
       userId,
       ...applicationData,
-      status: 'pending',
+      status: 'draft',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -905,11 +919,24 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
     };
     await kv.set(`loan_application:${applicationId}`, updatedApplication);
 
-    // Trigger "Application Received" email (using Magic Link template)
+    // Trigger "Application Received" email
     if (updates.status === 'pending' && application.status !== 'pending') {
       try {
         console.log(`Sending Application Received email to ${application.email}`);
-        await supabase.auth.signInWithOtp({ email: application.email });
+        await transporter.sendMail({
+          from: '"Deni Loans" <admin@deniloans.co.za>', // Update this sender email
+          to: application.email,
+          subject: "Application Received - Deni Loans",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">Application Received</h2>
+              <p>Dear ${application.fullName},</p>
+              <p>We have received your loan application and it is currently under review.</p>
+              <p>Our team will assess your application and you will be notified of the outcome shortly.</p>
+              <p>Best regards,<br>Deni Loans Team</p>
+            </div>
+          `
+        });
       } catch (emailError) {
         console.error('Failed to send application received email:', emailError);
       }
@@ -1112,14 +1139,37 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
     try {
       if (status === 'approved') {
         console.log(`Sending Loan Approved email to ${application.email}`);
-        // Using "Invite User" template for Approval
-        // Note: This might fail if user is already confirmed, but it's the best slot available
-        // If this fails, we might need to use a different strategy or external SMTP
-        await supabase.auth.admin.inviteUserByEmail(application.email);
+        await transporter.sendMail({
+          from: '"Deni Loans" <admin@deniloans.co.za>',
+          to: application.email,
+          subject: "Loan Approved - Deni Loans",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #16a34a;">Loan Approved!</h2>
+              <p>Dear ${application.fullName},</p>
+              <p>Congratulations! Your loan application for R${approvedAmount} has been approved.</p>
+              <p>The funds will be disbursed to your account shortly.</p>
+              <p>Best regards,<br>Deni Loans Team</p>
+            </div>
+          `
+        });
       } else if (status === 'declined') {
         console.log(`Sending Loan Declined email to ${application.email}`);
-        // Using "Reset Password" (Recovery) template for Decline
-        await supabase.auth.resetPasswordForEmail(application.email);
+        await transporter.sendMail({
+          from: '"Deni Loans" <admin@deniloans.co.za>',
+          to: application.email,
+          subject: "Loan Application Update - Deni Loans",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #dc2626;">Application Update</h2>
+              <p>Dear ${application.fullName},</p>
+              <p>Thank you for your application. After careful review, we regret to inform you that we are unable to approve your loan at this time.</p>
+              <p><strong>Reason:</strong> ${declineReason || 'Did not meet credit criteria'}</p>
+              <p>You may apply again in 30 days.</p>
+              <p>Best regards,<br>Deni Loans Team</p>
+            </div>
+          `
+        });
       }
     } catch (emailError) {
       console.error(`Failed to send ${status} email:`, emailError);
@@ -1245,25 +1295,27 @@ app.post('/make-server-1ed353c1/admin/send-payment-reminder', requireAdmin, asyn
       return c.json({ error: 'Application not found' }, 404);
     }
 
-    // In a real implementation, we would use an email service here.
-    // For now, we will log the email sending action.
-    const emailContent = `
-      To: ${application.email}
-      From: admin@deniloans.co.za
-      Subject: Payment Reminder - Deni Loans
-      
-      Dear ${application.fullName},
-      
-      This is a reminder that your loan payment is due on ${application.nextPayDate}.
-      Please ensure you have sufficient funds or make a payment via the dashboard.
-      
-      Regards,
-      Deni Loans Team
-    `;
-    
-    console.log('--- SENDING EMAIL ---');
-    console.log(emailContent);
-    console.log('---------------------');
+    // Send email using nodemailer
+    try {
+      await transporter.sendMail({
+        from: '"Deni Loans" <admin@deniloans.co.za>',
+        to: application.email,
+        subject: "Payment Reminder - Deni Loans",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Payment Reminder</h2>
+            <p>Dear ${application.fullName},</p>
+            <p>This is a reminder that your loan payment is due on <strong>${application.nextPayDate}</strong>.</p>
+            <p>Please ensure you have sufficient funds or make a payment via the dashboard.</p>
+            <p>Best regards,<br>Deni Loans Team</p>
+          </div>
+        `
+      });
+      console.log(`Payment reminder sent to ${application.email}`);
+    } catch (emailError) {
+      console.error('Failed to send payment reminder email:', emailError);
+      return c.json({ error: 'Failed to send email' }, 500);
+    }
 
     return c.json({ success: true, message: 'Reminder sent successfully' });
   } catch (error) {
