@@ -21,7 +21,7 @@ const transporter = createTransport({
   secure: true,
   auth: {
     user: "admin@deniloans.co.za", // REPLACE WITH YOUR EMAIL
-    pass: "tkjr cbqu rsfb uynf",     // REPLACE WITH YOUR APP PASSWORD
+    pass: "pvth ndxj eghy etsh",     // REPLACE WITH YOUR APP PASSWORD
   },
 });
 
