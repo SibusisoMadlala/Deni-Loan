@@ -32,6 +32,7 @@ export function LoanApplicationPage() {
   const [error, setError] = useState('')
   const [hasActiveApprovedLoan, setHasActiveApprovedLoan] = useState(false)
   const [checkingApplications, setCheckingApplications] = useState(true)
+  const [isFirstLoanInYear, setIsFirstLoanInYear] = useState(true) // Default to true
   
   const [applicationData, setApplicationData] = useState<any>({
     idNumber: '',
@@ -84,6 +85,15 @@ export function LoanApplicationPage() {
       )
       
       setHasActiveApprovedLoan(hasActive)
+
+      // Check if first loan in calendar year
+      const currentYear = new Date().getFullYear()
+      const hasLoanInYear = apps.some(app => {
+        const appDate = new Date(app.createdAt || '')
+        return appDate.getFullYear() === currentYear && (app.status === 'repaid' || app.status === 'disbursed' || app.status === 'approved')
+      })
+      setIsFirstLoanInYear(!hasLoanInYear)
+
     } catch (err) {
       console.error('Failed to check applications:', err)
     } finally {
@@ -185,13 +195,22 @@ export function LoanApplicationPage() {
     }
   }
 
-  const handleComplete = async () => {
+  const handleComplete = async (loanDetails?: any) => {
     // Update application to pending status - waiting for admin approval
     if (applicationId) {
       try {
+        const updates: any = { status: 'pending' }
+        if (loanDetails) {
+          updates.approvedAmount = loanDetails.approvedAmount
+          updates.interestRate = loanDetails.interestRate
+          updates.fees = loanDetails.fees
+          updates.totalDue = loanDetails.totalDue
+          updates.repaymentDate = loanDetails.repaymentDate
+        }
+
         await loanService.updateApplication(
           applicationId,
-          { status: 'pending' },
+          updates,
           accessToken!
         )
       } catch (err: any) {
@@ -297,6 +316,7 @@ export function LoanApplicationPage() {
                 applicationData={applicationData}
                 creditReport={creditReport}
                 onComplete={handleComplete}
+                isFirstLoanInYear={isFirstLoanInYear}
               />
             )}
 

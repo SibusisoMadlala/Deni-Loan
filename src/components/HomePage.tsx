@@ -4,20 +4,15 @@ import { Button } from './ui/button'
 import { Slider } from './ui/slider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Shield, CheckCircle, FileCheck, Lock } from 'lucide-react'
+import { calculateLoan } from '../utils/loanCalculator'
 
 export function HomePage() {
   const navigate = useNavigate()
   const [loanAmount, setLoanAmount] = useState(2000)
 
-  // Loan calculation logic
-  const interestRate = 0.10 // 10% interest
-  
-  // Initiation Fee: 16.5% on first R1000, 10% on remainder
-  const initiationFee = (Math.min(loanAmount, 1000) * 0.165) + (Math.max(loanAmount - 1000, 0) * 0.10)
-  
-  const serviceFee = 60 // R60 service fee
-  const interest = loanAmount * interestRate
-  const totalDue = loanAmount + interest + initiationFee + serviceFee
+  // Calculate loan details
+  const { interest, initiationFee, serviceFee, insurance, totalRepayable } = calculateLoan(loanAmount, true)
+  const totalFees = initiationFee + serviceFee + insurance
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -69,7 +64,7 @@ export function HomePage() {
                 <span>R{loanAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Interest (10% next payday)</span>
+                <span className="text-gray-600">Interest (4.5%)</span>
                 <span>R{interest.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -80,11 +75,15 @@ export function HomePage() {
                 <span className="text-gray-600">Service Fee</span>
                 <span>R{serviceFee.toFixed(2)}</span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Insurance</span>
+                <span>R{insurance.toFixed(2)}</span>
+              </div>
               <div className="border-t border-gray-200 pt-2 mt-2">
                 <div className="flex justify-between">
                   <span>Total to Repay</span>
                   <span className="text-xl text-blue-600">
-                    R{totalDue.toFixed(2)}
+                    R{totalRepayable.toFixed(2)}
                   </span>
                 </div>
               </div>

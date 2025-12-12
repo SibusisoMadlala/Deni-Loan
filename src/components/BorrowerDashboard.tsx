@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Badge } from './ui/badge'
 import { Alert, AlertDescription } from './ui/alert'
+import { calculateLoan } from '../utils/loanCalculator'
 import { 
   CreditCard, 
   FileText, 
@@ -98,17 +99,23 @@ export function BorrowerDashboard() {
   const calculateRepaymentAmounts = (application: any) => {
     const approvedAmount = application.approvedAmount || application.requestedAmount || 0;
     
-    // Initiation Fee: 16.5% on first R1000, 10% on remainder
-    const initiationFee = (Math.min(approvedAmount, 1000) * 0.165) + (Math.max(approvedAmount - 1000, 0) * 0.10)
-    const serviceFee = 60
-    const interest = approvedAmount * 0.10 // 10% interest
+    let totalWithInterest = 0;
     
-    const totalDue = approvedAmount + interest + initiationFee + serviceFee
+    if (application.totalDue) {
+      totalWithInterest = application.totalDue;
+    } else {
+      // Fallback for applications without stored totals
+      const { totalRepayable } = calculateLoan(approvedAmount, true);
+      totalWithInterest = totalRepayable;
+    }
+
+    const monthlyInstallment = totalWithInterest; // Assuming 1 month term
+    const fullSettlement = totalWithInterest; 
     
     return {
-      monthlyInstallment: totalDue,
-      fullSettlement: totalDue,
-      totalWithInterest: totalDue
+      monthlyInstallment,
+      fullSettlement,
+      totalWithInterest
     };
   };
 

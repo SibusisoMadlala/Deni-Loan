@@ -4,26 +4,22 @@ import { Checkbox } from '../ui/checkbox'
 import { Card, CardContent } from '../ui/card'
 import { Alert, AlertDescription } from '../ui/alert'
 import { FileText, AlertCircle } from 'lucide-react'
+import { calculateLoan } from '../../utils/loanCalculator'
 
 interface LoanAgreementStepProps {
   applicationData: any
   creditReport: any
-  onComplete: () => void
+  onComplete: (loanDetails: any) => void
+  isFirstLoanInYear: boolean
 }
 
-export function LoanAgreementStep({ applicationData, creditReport, onComplete }: LoanAgreementStepProps) {
+export function LoanAgreementStep({ applicationData, creditReport, onComplete, isFirstLoanInYear }: LoanAgreementStepProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [signed, setSigned] = useState(false)
 
   const loanAmount = creditReport.maxLoanAmount
-  const interestRate = 0.10
-  const interest = loanAmount * interestRate
+  const { interest, initiationFee, serviceFee, insurance, totalRepayable } = calculateLoan(loanAmount, isFirstLoanInYear)
   
-  // Initiation Fee: 16.5% on first R1000, 10% on remainder
-  const initiationFee = (Math.min(loanAmount, 1000) * 0.165) + (Math.max(loanAmount - 1000, 0) * 0.10)
-  const serviceFee = 60
-  
-  const totalDue = loanAmount + interest + initiationFee + serviceFee
   const repaymentDate = new Date()
   repaymentDate.setMonth(repaymentDate.getMonth() + 1)
 
@@ -32,7 +28,13 @@ export function LoanAgreementStep({ applicationData, creditReport, onComplete }:
       setSigned(true)
       // In a real app, you would send an OTP or use e-signature
       setTimeout(() => {
-        onComplete()
+        onComplete({
+          approvedAmount: loanAmount,
+          interestRate: isFirstLoanInYear ? 0.045 : 0.03,
+          fees: initiationFee + serviceFee + insurance,
+          totalDue: totalRepayable,
+          repaymentDate: repaymentDate.toISOString()
+        })
       }, 1000)
     }
   }
@@ -61,11 +63,12 @@ export function LoanAgreementStep({ applicationData, creditReport, onComplete }:
             <div className="border-b pb-2">
               <h5 className="text-sm mb-2">Loan Details</h5>
               <p className="text-sm"><strong>Principal Amount:</strong> R{loanAmount.toLocaleString()}</p>
-              <p className="text-sm"><strong>Interest Rate:</strong> 10% per month</p>
+              <p className="text-sm"><strong>Interest Rate:</strong> {isFirstLoanInYear ? '4.5%' : '3%'} per month</p>
               <p className="text-sm"><strong>Interest Amount:</strong> R{interest.toFixed(2)}</p>
               <p className="text-sm"><strong>Initiation Fee:</strong> R{initiationFee.toFixed(2)}</p>
               <p className="text-sm"><strong>Service Fee:</strong> R{serviceFee.toFixed(2)}</p>
-              <p className="text-sm"><strong>Total Amount Due:</strong> R{totalDue.toFixed(2)}</p>
+              <p className="text-sm"><strong>Insurance:</strong> R{insurance.toFixed(2)}</p>
+              <p className="text-sm"><strong>Total Amount Due:</strong> R{totalRepayable.toFixed(2)}</p>
               <p className="text-sm"><strong>Repayment Date:</strong> {repaymentDate.toLocaleDateString()}</p>
             </div>
 
