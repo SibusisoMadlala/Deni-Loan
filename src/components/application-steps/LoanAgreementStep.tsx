@@ -16,10 +16,14 @@ export function LoanAgreementStep({ applicationData, creditReport, onComplete }:
   const [signed, setSigned] = useState(false)
 
   const loanAmount = creditReport.maxLoanAmount
-  const interestRate = 0.05
+  const interestRate = 0.10
   const interest = loanAmount * interestRate
-  const fees = 50
-  const totalDue = loanAmount + interest + fees
+  
+  // Initiation Fee: 16.5% on first R1000, 10% on remainder
+  const initiationFee = (Math.min(loanAmount, 1000) * 0.165) + (Math.max(loanAmount - 1000, 0) * 0.10)
+  const serviceFee = 60
+  
+  const totalDue = loanAmount + interest + initiationFee + serviceFee
   const repaymentDate = new Date()
   repaymentDate.setMonth(repaymentDate.getMonth() + 1)
 
@@ -57,9 +61,10 @@ export function LoanAgreementStep({ applicationData, creditReport, onComplete }:
             <div className="border-b pb-2">
               <h5 className="text-sm mb-2">Loan Details</h5>
               <p className="text-sm"><strong>Principal Amount:</strong> R{loanAmount.toLocaleString()}</p>
-              <p className="text-sm"><strong>Interest Rate:</strong> 5% per month</p>
+              <p className="text-sm"><strong>Interest Rate:</strong> 10% per month</p>
               <p className="text-sm"><strong>Interest Amount:</strong> R{interest.toFixed(2)}</p>
-              <p className="text-sm"><strong>Admin Fee:</strong> R{fees.toFixed(2)}</p>
+              <p className="text-sm"><strong>Initiation Fee:</strong> R{initiationFee.toFixed(2)}</p>
+              <p className="text-sm"><strong>Service Fee:</strong> R{serviceFee.toFixed(2)}</p>
               <p className="text-sm"><strong>Total Amount Due:</strong> R{totalDue.toFixed(2)}</p>
               <p className="text-sm"><strong>Repayment Date:</strong> {repaymentDate.toLocaleDateString()}</p>
             </div>

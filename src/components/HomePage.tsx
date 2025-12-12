@@ -9,11 +9,15 @@ export function HomePage() {
   const navigate = useNavigate()
   const [loanAmount, setLoanAmount] = useState(2000)
 
-  // Simple interest calculation
-  const interestRate = 0.10 // 5% per month
-  const fees = 50 // R50 admin fee
+  // Loan calculation logic
+  const interestRate = 0.10 // 10% interest
+  
+  // Initiation Fee: 16.5% on first R1000, 10% on remainder
+  const initiationFee = (Math.min(loanAmount, 1000) * 0.165) + (Math.max(loanAmount - 1000, 0) * 0.10)
+  
+  const serviceFee = 60 // R60 service fee
   const interest = loanAmount * interestRate
-  const totalDue = loanAmount + interest + fees
+  const totalDue = loanAmount + interest + initiationFee + serviceFee
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
@@ -69,8 +73,12 @@ export function HomePage() {
                 <span>R{interest.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Admin Fee</span>
-                <span>R{fees.toFixed(2)}</span>
+                <span className="text-gray-600">Initiation Fee</span>
+                <span>R{initiationFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Service Fee</span>
+                <span>R{serviceFee.toFixed(2)}</span>
               </div>
               <div className="border-t border-gray-200 pt-2 mt-2">
                 <div className="flex justify-between">

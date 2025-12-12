@@ -98,15 +98,17 @@ export function BorrowerDashboard() {
   const calculateRepaymentAmounts = (application: any) => {
     const approvedAmount = application.approvedAmount || application.requestedAmount || 0;
     
-    // Simple calculation: 3 monthly installments with 10% interest
-    const totalWithInterest = approvedAmount * 1.1;
-    const monthlyInstallment = Math.ceil(totalWithInterest);
-    const fullSettlement = Math.ceil(approvedAmount * 1.05); // 5% early settlement discount
+    // Initiation Fee: 16.5% on first R1000, 10% on remainder
+    const initiationFee = (Math.min(approvedAmount, 1000) * 0.165) + (Math.max(approvedAmount - 1000, 0) * 0.10)
+    const serviceFee = 60
+    const interest = approvedAmount * 0.10 // 10% interest
+    
+    const totalDue = approvedAmount + interest + initiationFee + serviceFee
     
     return {
-      monthlyInstallment,
-      fullSettlement,
-      totalWithInterest
+      monthlyInstallment: totalDue,
+      fullSettlement: totalDue,
+      totalWithInterest: totalDue
     };
   };
 
