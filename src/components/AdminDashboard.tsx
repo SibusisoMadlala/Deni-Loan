@@ -73,6 +73,17 @@ export function AdminDashboard() {
         '-999': 'Unknown Error.'
       };
 
+      // Check for TransactionReplyClass (Experian format)
+      const transactionReply = xmlDoc.getElementsByTagName('TransactionReplyClass')[0];
+      if (transactionReply) {
+        const errorCode = transactionReply.getElementsByTagName('errorCode')[0]?.textContent;
+        const errorDescription = transactionReply.getElementsByTagName('errorDescription')[0]?.textContent;
+        
+        if (errorCode) {
+           return [{ error: errorDescription || errorCodes[errorCode] || 'Unknown Error', code: errorCode }];
+        }
+      }
+
       // Check if it's a SOAP envelope and extract the return value
       const returnNode = xmlDoc.getElementsByTagName('return')[0];
       if (returnNode && returnNode.textContent) {
