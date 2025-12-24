@@ -5,7 +5,7 @@ import { Slider } from './ui/slider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Shield, CheckCircle, FileCheck, Lock } from 'lucide-react'
 import { calculateLoan } from '../utils/loanCalculator'
-import NCRLogo from '../assets/NCRLogo.png'
+import NCRLogo from '../assets/NCRlogoV.png'
 import ExperianLogo from '../assets/ExperianLogo.png'
 import MSECALogo from '../assets/MSECALogo.png'
 
