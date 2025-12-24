@@ -1695,7 +1695,7 @@ app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) 
     const myOrigin = "DeniLoans";
     const version = "1.0";
     const identityType = "SID";
-    const wantPhoto = "Y";
+    const wantPhoto = "N";
     const wantAllowCache = "Y";
 
     // Construct the SOAP Envelope
