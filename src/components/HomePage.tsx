@@ -173,10 +173,10 @@ export function HomePage() {
             
           </div>
         </div>
-
+        <br /><br />
         {/* Our Partners */}
         <div className="mt-20 mb-12">
-          <h2 className="text-3xl text-center mb-10 text-gray-900">Our Partners</h2>
+          <h2 className="text-3xl text-center mb-10 text-gray-900">Our Partners</h2><br />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto px-4">
             <Card className="flex items-center justify-center p-8 hover:shadow-md transition-shadow h-40">
               <img src={NCRLogo} alt="NCR Logo" className="h-full w-full object-contain" />
