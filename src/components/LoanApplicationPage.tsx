@@ -150,20 +150,27 @@ export function LoanApplicationPage() {
 
     // Submit application after documents (Step 3)
     if (currentStep === 3) {
+      if (!applicationId) {
+        setError('Application ID is missing')
+        return
+      }
+
       setLoading(true)
       try {
         // Just update status to pending to trigger email
         await loanService.updateApplication(
-          applicationId!,
+          applicationId,
           { status: 'pending' },
           accessToken!
         )
+        setLoading(false)
+        setCurrentStep(4) // Explicitly move to success step
+        return
       } catch (err: any) {
         setError(err.message || 'Failed to submit application')
         setLoading(false)
         return
       }
-      setLoading(false)
     }
 
     if (currentStep < STEPS.length - 1) {
