@@ -1682,10 +1682,10 @@ app.post('/make-server-1ed353c1/admin/payment-claims/:id/verify', requireAdmin, 
 // Experian IDV Check
 app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) => {
   try {
-    const { identityNumber } = await c.req.json();
+    const { applicationId, identityNumber } = await c.req.json();
     
-    if (!identityNumber) {
-      return c.json({ error: 'Identity number is required' }, 400);
+    if (!identityNumber || !applicationId) {
+      return c.json({ error: 'Identity number and Application ID are required' }, 400);
     }
 
     // Configuration
@@ -1739,6 +1739,20 @@ app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) 
     
     // Log the response for debugging
     console.log('Experian Response Status:', response.status);
+
+    // Store the result in the application record
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (application) {
+      const updatedApplication = {
+        ...application,
+        identityVerification: {
+          verifiedAt: new Date().toISOString(),
+          rawData: responseText,
+          status: response.status
+        }
+      };
+      await kv.set(`loan_application:${applicationId}`, updatedApplication);
+    }
     
     return c.json({
       success: true,

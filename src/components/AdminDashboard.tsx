@@ -44,7 +44,6 @@ export function AdminDashboard() {
   const [declineReason, setDeclineReason] = useState('')
 
   // Identity verification state
-  const [verificationResult, setVerificationResult] = useState<string | null>(null)
   const [verifyingIdentity, setVerifyingIdentity] = useState(false)
 
   useEffect(() => {
@@ -186,15 +185,55 @@ export function AdminDashboard() {
     }
   }
 
+  const [showVerificationDetails, setShowVerificationDetails] = useState(false)
+
+  const parseVerificationResult = (xml: string) => {
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xml, "text/xml");
+      
+      const getText = (tag: string) => {
+        const el = xmlDoc.getElementsByTagName(tag)[0];
+        return el ? el.textContent : 'N/A';
+      };
+
+      return {
+        result: getText('Result'),
+        idNumber: getText('IdentityNumber'),
+        names: getText('Names'),
+        surname: getText('Surname'),
+        deceasedStatus: getText('DeceasedStatus'),
+        dob: getText('DOB'),
+        gender: getText('Gender'),
+        citizenship: getText('Citizenship'),
+        maritalStatus: getText('MaritalStatus')
+      };
+    } catch (e) {
+      console.error("Error parsing XML", e);
+      return null;
+    }
+  };
+
   const handleVerifyIdentity = async () => {
-    if (!selectedApp?.idNumber) return
+    if (!selectedApp?.idNumber || !selectedApp?.id) return
     
     setVerifyingIdentity(true)
-    setVerificationResult(null)
     
     try {
-      const result = await adminService.verifyIdentity(selectedApp.idNumber, accessToken!)
-      setVerificationResult(result.data)
+      const result = await adminService.verifyIdentity(selectedApp.id, selectedApp.idNumber, accessToken!)
+      
+      const updatedApp = {
+        ...selectedApp,
+        identityVerification: {
+          verifiedAt: new Date().toISOString(),
+          rawData: result.data,
+          status: result.status
+        }
+      };
+      
+      setSelectedApp(updatedApp);
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a));
+      
       toast.success('Identity verification completed')
     } catch (err) {
       console.error('Failed to verify identity:', err)
@@ -418,23 +457,75 @@ export function AdminDashboard() {
                           <Label className="text-xs text-gray-600">ID Number</Label>
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium">{selectedApp.idNumber}</p>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={handleVerifyIdentity}
-                              disabled={verifyingIdentity}
-                            >
-                              {verifyingIdentity ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
-                              ) : (
-                                <Shield className="w-3 h-3 mr-1" />
-                              )}
-                              Verify Identity
-                            </Button>
+                            {!selectedApp.identityVerification ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={handleVerifyIdentity}
+                                disabled={verifyingIdentity}
+                              >
+                                {verifyingIdentity ? (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                                ) : (
+                                  <Shield className="w-3 h-3 mr-1" />
+                                )}
+                                Verify Identity
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Verified
+                                </Badge>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  onClick={() => setShowVerificationDetails(!showVerificationDetails)}
+                                >
+                                  {showVerificationDetails ? 'Hide Details' : 'View Details'}
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                          {verificationResult && (
-                            <div className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40 border border-gray-200">
-                              <pre className="whitespace-pre-wrap">{verificationResult}</pre>
+                          {selectedApp.identityVerification && showVerificationDetails && (
+                            <div className="mt-4 border rounded-md p-4 bg-gray-50">
+                              <h4 className="text-sm font-medium mb-3">Verification Results</h4>
+                              {(() => {
+                                const data = parseVerificationResult(selectedApp.identityVerification!.rawData);
+                                if (!data) return <p className="text-xs text-red-500">Error parsing data</p>;
+                                return (
+                                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                                    <div className="text-gray-500">Result</div>
+                                    <div className="font-medium">{data.result}</div>
+                                    
+                                    <div className="text-gray-500">Names</div>
+                                    <div className="font-medium">{data.names}</div>
+                                    
+                                    <div className="text-gray-500">Surname</div>
+                                    <div className="font-medium">{data.surname}</div>
+                                    
+                                    <div className="text-gray-500">ID Number</div>
+                                    <div className="font-medium">{data.idNumber}</div>
+                                    
+                                    <div className="text-gray-500">Deceased Status</div>
+                                    <div className={`font-medium ${data.deceasedStatus !== 'Alive' ? 'text-red-600' : 'text-green-600'}`}>
+                                      {data.deceasedStatus}
+                                    </div>
+                                    
+                                    <div className="text-gray-500">DOB</div>
+                                    <div className="font-medium">{data.dob}</div>
+                                    
+                                    <div className="text-gray-500">Gender</div>
+                                    <div className="font-medium">{data.gender}</div>
+                                    
+                                    <div className="text-gray-500">Citizenship</div>
+                                    <div className="font-medium">{data.citizenship}</div>
+                                    
+                                    <div className="text-gray-500">Marital Status</div>
+                                    <div className="font-medium">{data.maritalStatus}</div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                         </div>

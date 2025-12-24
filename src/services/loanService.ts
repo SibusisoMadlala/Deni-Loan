@@ -45,6 +45,13 @@ export interface LoanApplication {
   hasProofOfResidence?: boolean
   hasPayslip?: boolean
   
+  // Identity Verification
+  identityVerification?: {
+    verifiedAt: string
+    rawData: string
+    status: number
+  }
+  
   createdAt?: string
   updatedAt?: string
   decidedAt?: string
