@@ -53,19 +53,12 @@ export function AdminDashboard() {
   const [showCreditScoreDetails, setShowCreditScoreDetails] = useState(false)
 
   const parseCreditScoreResult = (xml: string) => {
+    if (!xml) return [];
+    console.log("Raw XML to parse:", xml);
     try {
       const parser = new DOMParser();
       let xmlDoc = parser.parseFromString(xml, "text/xml");
       
-      // Check if it's a SOAP envelope and extract the return value
-      const returnNode = xmlDoc.getElementsByTagName('return')[0];
-      if (returnNode && returnNode.textContent) {
-        // Parse the inner XML
-        xmlDoc = parser.parseFromString(returnNode.textContent, "text/xml");
-      }
-
-      // Check for error codes in the root text content if no results found
-      const rootText = xmlDoc.documentElement?.textContent?.trim();
       const errorCodes: {[key: string]: string} = {
         '-101': 'Not all variables filled in.',
         '-105': 'Input version not supported',
@@ -80,6 +73,25 @@ export function AdminDashboard() {
         '-999': 'Unknown Error.'
       };
 
+      // Check if it's a SOAP envelope and extract the return value
+      const returnNode = xmlDoc.getElementsByTagName('return')[0];
+      if (returnNode && returnNode.textContent) {
+        const content = returnNode.textContent.trim();
+        console.log("Return node content:", content);
+
+        // Check if the content itself is an error code
+        if (errorCodes[content]) {
+          return [{ error: errorCodes[content], code: content }];
+        }
+
+        // If it looks like XML, parse it
+        if (content.startsWith('<')) {
+          xmlDoc = parser.parseFromString(content, "text/xml");
+        }
+      }
+
+      // Check for error codes in the root text content if no results found (fallback)
+      const rootText = xmlDoc.documentElement?.textContent?.trim();
       if (rootText && errorCodes[rootText]) {
         return [{ error: errorCodes[rootText], code: rootText }];
       }
@@ -100,6 +112,7 @@ export function AdminDashboard() {
         return { resultType, score, reasons };
       });
 
+      console.log("Parsed results:", results);
       return results;
     } catch (e) {
       console.error("Error parsing Credit Score XML", e);
