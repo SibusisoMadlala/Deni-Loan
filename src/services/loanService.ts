@@ -52,6 +52,13 @@ export interface LoanApplication {
     status: number
   }
   
+  // Credit Score Check
+  creditScoreCheck?: {
+    checkedAt: string
+    rawData: string
+    status: number
+  }
+  
   createdAt?: string
   updatedAt?: string
   decidedAt?: string

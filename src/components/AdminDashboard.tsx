@@ -45,6 +45,63 @@ export function AdminDashboard() {
 
   // Identity verification state
   const [verifyingIdentity, setVerifyingIdentity] = useState(false)
+  const [showVerificationDetails, setShowVerificationDetails] = useState(false)
+
+  // Credit Score state
+  const [checkingCreditScore, setCheckingCreditScore] = useState(false)
+  const [showCreditScoreDetails, setShowCreditScoreDetails] = useState(false)
+
+  const parseCreditScoreResult = (xml: string) => {
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xml, "text/xml");
+      
+      const results = Array.from(xmlDoc.getElementsByTagName('result')).map(result => {
+        const resultType = result.getElementsByTagName('resultType')[0]?.textContent;
+        const score = result.getElementsByTagName('score')[0]?.textContent;
+        const reasons = Array.from(result.getElementsByTagName('reason')).map(reason => ({
+          code: reason.getElementsByTagName('reasonCode')[0]?.textContent,
+          description: reason.getElementsByTagName('reasonDescription')[0]?.textContent
+        }));
+        
+        return { resultType, score, reasons };
+      });
+
+      return results;
+    } catch (e) {
+      console.error("Error parsing Credit Score XML", e);
+      return [];
+    }
+  };
+
+  const handleGetCreditScore = async () => {
+    if (!selectedApp?.idNumber || !selectedApp?.id) return
+    
+    setCheckingCreditScore(true)
+    
+    try {
+      const result = await adminService.getCreditScore(selectedApp.id, selectedApp.idNumber, accessToken!)
+      
+      const updatedApp = {
+        ...selectedApp,
+        creditScoreCheck: {
+          checkedAt: new Date().toISOString(),
+          rawData: result.data,
+          status: result.status
+        }
+      };
+      
+      setSelectedApp(updatedApp);
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a));
+      
+      toast.success('Credit score check completed')
+    } catch (err) {
+      console.error('Failed to get credit score:', err)
+      toast.error('Failed to get credit score')
+    } finally {
+      setCheckingCreditScore(false)
+    }
+  }
 
   useEffect(() => {
     if (!loading && !accessToken) {
@@ -822,138 +879,106 @@ export function AdminDashboard() {
                     <CardHeader>
                       <CardTitle>Credit Report</CardTitle>
                       <CardDescription>
-                        View the applicant's credit report
+                        View the applicant's credit score and risk profile
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {creditReportLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          <span className="ml-2 text-gray-600">Loading credit report...</span>
-                        </div>
-                      ) : creditReport ? (
-                        <div className="space-y-6">
-                          {/* Credit Score and Risk Overview */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="border rounded-lg p-4">
-                              <p className="text-xs text-gray-600 mb-1">Credit Score</p>
-                              <p className="text-2xl font-bold">{creditReport.creditScore}</p>
-                            </div>
-                            <div className="border rounded-lg p-4">
-                              <p className="text-xs text-gray-600 mb-1">Credit Risk</p>
-                              <div className="mt-1">
-                                {creditReport.creditRisk && (
-                                  <Badge 
-                                    variant={
-                                      creditReport.creditRisk === 'excellent' ? 'default' :
-                                      creditReport.creditRisk === 'good' ? 'default' :
-                                      creditReport.creditRisk === 'fair' ? 'secondary' :
-                                      'destructive'
-                                    }
-                                  >
-                                    {creditReport.creditRisk.charAt(0).toUpperCase() + creditReport.creditRisk.slice(1)}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="border rounded-lg p-4">
-                              <p className="text-xs text-gray-600 mb-1">Disposable Income</p>
-                              <p className="text-xl font-semibold text-green-600">
-                                R{creditReport.disposableIncome?.toLocaleString() || '0'}
-                              </p>
-                            </div>
-                            <div className="border rounded-lg p-4">
-                              <p className="text-xs text-gray-600 mb-1">Max Loan Amount</p>
-                              <p className="text-xl font-semibold text-blue-600">
-                                R{creditReport.maxLoanAmount?.toLocaleString() || '0'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Approval Status */}
-                          <div className="border-l-4 rounded-lg p-4" style={{
-                            borderLeftColor: creditReport.approved ? '#10b981' : '#ef4444'
-                          }}>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-semibold">
-                                  {creditReport.approved ? 'Credit Check Passed' : 'Credit Check Failed'}
-                                </p>
-                                <p className="text-sm text-gray-600 mt-1">{creditReport.reason}</p>
-                              </div>
-                              {creditReport.approved ? (
-                                <CheckCircle className="w-8 h-8 text-green-600" />
-                              ) : (
-                                <XCircle className="w-8 h-8 text-red-600" />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Credit Profile Details */}
-                          <div className="border rounded-lg p-4">
-                            <h4 className="font-semibold mb-4">Credit Profile Details</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                              {creditReport.numberOfAccounts !== undefined && (
-                                <div>
-                                  <p className="text-xs text-gray-600">Number of Accounts</p>
-                                  <p className="text-lg font-semibold">{creditReport.numberOfAccounts}</p>
-                                </div>
-                              )}
-                              {creditReport.defaultedAccounts !== undefined && (
-                                <div>
-                                  <p className="text-xs text-gray-600">Defaulted Accounts</p>
-                                  <p className="text-lg font-semibold text-orange-600">{creditReport.defaultedAccounts}</p>
-                                </div>
-                              )}
-                              {creditReport.judgments !== undefined && (
-                                <div>
-                                  <p className="text-xs text-gray-600">Judgments</p>
-                                  <p className="text-lg font-semibold text-red-600">{creditReport.judgments}</p>
-                                </div>
-                              )}
-                              {creditReport.administrationOrders !== undefined && (
-                                <div>
-                                  <p className="text-xs text-gray-600">Administration Orders</p>
-                                  <p className="text-lg font-semibold text-red-600">{creditReport.administrationOrders}</p>
-                                </div>
-                              )}
-                              {creditReport.existingObligations !== undefined && (
-                                <div>
-                                  <p className="text-xs text-gray-600">Existing Obligations</p>
-                                  <p className="text-lg font-semibold">R{creditReport.existingObligations.toLocaleString()}</p>
-                                </div>
-                              )}
-                              {creditReport.source && (
-                                <div>
-                                  <p className="text-xs text-gray-600">Data Source</p>
-                                  <Badge variant="outline">
-                                    {creditReport.source === 'experian' ? 'Experian' : 'Mock'}
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Check Timestamp */}
-                          {creditReport.checkedAt && (
-                            <div className="text-xs text-gray-500 text-right">
-                              Credit check performed: {new Date(creditReport.checkedAt).toLocaleString()}
-                            </div>
-                          )}
+                      {!selectedApp.creditScoreCheck ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                          <p className="text-gray-600">No credit score check performed yet.</p>
+                          <Button 
+                            onClick={handleGetCreditScore}
+                            disabled={checkingCreditScore}
+                          >
+                            {checkingCreditScore ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Checking...
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="w-4 h-4 mr-2" />
+                                Get Credit Score
+                              </>
+                            )}
+                          </Button>
                         </div>
                       ) : (
-                        <div className="text-center py-8">
-                          <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-600">
-                            No credit report available
-                          </p>
-                          <Button
-                            variant="outline"
-                            className="mt-4"
-                            onClick={() => selectedApp && loadCreditReport(selectedApp)}
-                          >
-                            Retry Loading Credit Report
-                          </Button>
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Checked
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {new Date(selectedApp.creditScoreCheck.checkedAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              onClick={() => setShowCreditScoreDetails(!showCreditScoreDetails)}
+                            >
+                              {showCreditScoreDetails ? 'Hide Details' : 'View Details'}
+                            </Button>
+                          </div>
+
+                          {(() => {
+                            const results = parseCreditScoreResult(selectedApp.creditScoreCheck.rawData);
+                            if (!results || results.length === 0) {
+                              return <p className="text-red-500">Error parsing credit score data</p>;
+                            }
+
+                            return (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {results.map((res, idx) => (
+                                  <Card key={idx} className="bg-gray-50">
+                                    <CardContent className="pt-6">
+                                      <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                          <p className="text-sm font-medium text-gray-600">Score Type</p>
+                                          <p className="text-lg font-bold">{res.resultType}</p>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="text-sm font-medium text-gray-600">Score</p>
+                                          <p className={`text-2xl font-bold ${
+                                            parseInt(res.score || '0') > 600 ? 'text-green-600' : 
+                                            parseInt(res.score || '0') > 500 ? 'text-yellow-600' : 'text-red-600'
+                                          }`}>
+                                            {res.score}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      
+                                      {res.reasons.length > 0 && (
+                                        <div className="mt-4">
+                                          <p className="text-xs font-semibold text-gray-500 mb-2">Risk Factors</p>
+                                          <ul className="space-y-2">
+                                            {res.reasons.map((reason, rIdx) => (
+                                              <li key={rIdx} className="text-xs bg-white p-2 rounded border">
+                                                <span className="font-medium block mb-1">{reason.code}</span>
+                                                {reason.description}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      )}
+                                    </CardContent>
+                                  </Card>
+                                ))}
+                              </div>
+                            );
+                          })()}
+
+                          <div className="mt-4 pt-4 border-t">
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-blue-600 hover:underline mb-2">View Raw Response</summary>
+                              <pre className="bg-gray-100 p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap">
+                                {selectedApp.creditScoreCheck.rawData}
+                              </pre>
+                            </details>
+                          </div>
                         </div>
                       )}
                     </CardContent>

@@ -1768,5 +1768,84 @@ app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) 
   }
 });
 
+// Experian Get Credit Score
+app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c) => {
+  try {
+    const { applicationId, identityNumber } = await c.req.json();
+    
+    if (!identityNumber || !applicationId) {
+      return c.json({ error: 'Identity number and Application ID are required' }, 400);
+    }
+
+    // Configuration
+    const url = "https://apis-uat.experian.co.za/GetPersonScore?wsdl";
+    const username = "2903-uat";
+    const password = '4O2@Rp43%$yi';
+    const myOrigin = "DeniLoans";
+    const version = "1.0";
+    const resultType = "json";
+
+    // Construct the SOAP Envelope
+    const soapEnvelope = `
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.compuscan.co.za/">
+        <soap:Header/>
+        <soap:Body>
+          <web:getScore>
+            <pUsername>${username}</pUsername>
+            <pPassword>${password}</pPassword>
+            <pMyOrigin>${myOrigin}</pMyOrigin>
+            <pVersion>${version}</pVersion>
+            <pResultType>${resultType}</pResultType>
+            <pIdNumber>${identityNumber}</pIdNumber>
+          </web:getScore>
+        </soap:Body>
+      </soap:Envelope>
+    `;
+
+    console.log(`Sending Experian Credit Score Request for ID: ${identityNumber}`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'Content-Length': String(soapEnvelope.length),
+        'SOAPAction': '""'
+      },
+      body: soapEnvelope
+    });
+
+    const responseText = await response.text();
+    
+    // Log the response for debugging
+    console.log('Experian Credit Score Response Status:', response.status);
+
+    // Store the result in the application record
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (application) {
+      const updatedApplication = {
+        ...application,
+        creditScoreCheck: {
+          checkedAt: new Date().toISOString(),
+          rawData: responseText,
+          status: response.status
+        }
+      };
+      await kv.set(`loan_application:${applicationId}`, updatedApplication);
+    }
+    
+    return c.json({
+      success: true,
+      status: response.status,
+      data: responseText
+    });
+
+  } catch (error) {
+    console.log(`Experian Credit Score error: ${error}`);
+    return c.json({
+      error: 'Failed to get credit score'
+    }, 500);
+  }
+});
+
 console.log('⚡ Supabase Edge Function (make-server-1ed353c1) starting - routes registered');
 Deno.serve(app.fetch);

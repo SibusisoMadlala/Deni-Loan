@@ -180,4 +180,28 @@ export const adminService = {
       throw error
     }
   },
+
+  async getCreditScore(applicationId: string, identityNumber: string, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/admin/get-credit-score`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ applicationId, identityNumber })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get credit score')
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Get credit score error:', error)
+      throw error
+    }
+  },
 }
