@@ -242,8 +242,6 @@ export function AdminDashboard() {
     }
   }
 
-  const [showVerificationDetails, setShowVerificationDetails] = useState(false)
-
   const parseVerificationResult = (xml: string) => {
     try {
       const parser = new DOMParser();
