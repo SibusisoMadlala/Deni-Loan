@@ -1790,14 +1790,14 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
       <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.compuscan.co.za/">
         <soap:Header/>
         <soap:Body>
-          <web:getScore>
+          <web:GetScore>
             <pUsername>${username}</pUsername>
             <pPassword>${password}</pPassword>
             <pMyOrigin>${myOrigin}</pMyOrigin>
             <pVersion>${version}</pVersion>
             <pResultType>${resultType}</pResultType>
             <pIdNumber>${identityNumber}</pIdNumber>
-          </web:getScore>
+          </web:GetScore>
         </soap:Body>
       </soap:Envelope>
     `;
@@ -1809,7 +1809,7 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
         'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': 'http://webservices.compuscan.co.za/getScore'
+        'SOAPAction': '""'
       },
       body: soapEnvelope
     });
