@@ -11,6 +11,7 @@ import { WorkIncomeStep } from './application-steps/WorkIncomeStep'
 import { BankingDetailsStep } from './application-steps/BankingDetailsStep'
 import { DocumentUploadStep } from './application-steps/DocumentUploadStep'
 import { Alert, AlertDescription } from './ui/alert'
+import { CheckCircle, AlertCircle } from 'lucide-react'
 
 const STEPS = [
   'Personal Details',
@@ -184,19 +185,7 @@ export function LoanApplicationPage() {
     }
   }
 
-  const handleComplete = async () => {
-    // Update application to pending status - waiting for admin approval
-    if (applicationId) {
-      try {
-        await loanService.updateApplication(
-          applicationId,
-          { status: 'pending' },
-          accessToken!
-        )
-      } catch (err: any) {
-        console.error('Failed to update application status:', err)
-      }
-    }
+  const handleComplete = () => {
     navigate('/dashboard')
   }
 
@@ -289,19 +278,17 @@ export function LoanApplicationPage() {
               />
             )}
             {currentStep === 4 && (
-              <div className="text-center py-8">
-                <div className="mb-4 flex justify-center">
-                  <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
-                  </div>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                  <CheckCircle className="h-10 w-10 text-green-600" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Application Sent!</h3>
-                <p className="text-gray-600 mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Application Sent!</h3>
+                <p className="text-gray-600 mb-8 max-w-md">
                   Your loan application has been successfully submitted. 
-                  We have sent a confirmation email to {applicationData.email}.
+                  We have sent a confirmation email to <span className="font-medium text-gray-900">{applicationData.email}</span>.
                   Our team will review your documents and get back to you shortly.
                 </p>
-                <Button onClick={() => handleComplete()} className="w-full max-w-xs">
+                <Button onClick={handleComplete} size="lg" className="w-full max-w-xs">
                   Go to Dashboard
                 </Button>
               </div>
