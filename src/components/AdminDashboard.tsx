@@ -79,8 +79,30 @@ export function AdminDashboard() {
         const errorCode = transactionReply.getElementsByTagName('errorCode')[0]?.textContent;
         const errorDescription = transactionReply.getElementsByTagName('errorDescription')[0]?.textContent;
         
-        if (errorCode) {
+        if (errorCode && errorCode.trim() !== '') {
            return [{ error: errorDescription || errorCodes[errorCode] || 'Unknown Error', code: errorCode }];
+        }
+
+        // Parse returnData JSON
+        const returnData = transactionReply.getElementsByTagName('returnData')[0]?.textContent;
+        if (returnData) {
+          try {
+            const parsedData = JSON.parse(returnData);
+            if (parsedData.results && Array.isArray(parsedData.results)) {
+              return parsedData.results.map((res: any) => ({
+                resultType: res.resultType,
+                score: res.score,
+                reasons: (res.reasons || [])
+                  .filter((r: any) => r.reasonCode && r.reasonDescription)
+                  .map((r: any) => ({
+                    code: r.reasonCode,
+                    description: r.reasonDescription
+                  }))
+              }));
+            }
+          } catch (e) {
+            console.error("Failed to parse returnData JSON", e);
+          }
         }
       }
 
