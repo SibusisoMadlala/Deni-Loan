@@ -22,7 +22,8 @@ import {
   TrendingUp,
   AlertCircle,
   TrendingDown,
-  Bell
+  Bell,
+  Shield
 } from 'lucide-react'
 
 export function AdminDashboard() {
