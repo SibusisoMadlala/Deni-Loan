@@ -10,9 +10,6 @@ import { PersonalDetailsStep } from './application-steps/PersonalDetailsStep'
 import { WorkIncomeStep } from './application-steps/WorkIncomeStep'
 import { BankingDetailsStep } from './application-steps/BankingDetailsStep'
 import { DocumentUploadStep } from './application-steps/DocumentUploadStep'
-import { CreditCheckStep } from './application-steps/CreditCheckStep'
-import { LoanAgreementStep } from './application-steps/LoanAgreementStep'
-import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from './ui/alert'
 
 const STEPS = [
@@ -20,8 +17,7 @@ const STEPS = [
   'Work & Income',
   'Banking Details',
   'Upload Documents',
-  'Credit Check',
-  'Loan Agreement'
+  'Application Sent'
 ]
 
 export function LoanApplicationPage() {
@@ -152,32 +148,18 @@ export function LoanApplicationPage() {
       setLoading(false)
     }
 
-    // Perform credit check after documents
-    if (currentStep === 3 && !creditReport) {
+    // Submit application after documents (Step 3)
+    if (currentStep === 3) {
       setLoading(true)
       try {
-        const report = await loanService.performCreditCheck(
-          applicationData.idNumber,
-          applicationData.netSalary,
-          0, // existing debts - could be added to form
-          accessToken!
-        )
-        setCreditReport(report)
-        
-        // Update application with credit check results but keep status as pending
-        // Admin will make the final approval/decline decision
+        // Just update status to pending to trigger email
         await loanService.updateApplication(
           applicationId!,
-          {
-            creditScore: report.creditScore,
-            creditCheckPassed: report.approved,
-            declineReason: report.approved ? undefined : report.reason
-            // DO NOT set status to approved/declined - admin will decide
-          },
+          { status: 'pending' },
           accessToken!
         )
       } catch (err: any) {
-        setError(err.message || 'Credit check failed')
+        setError(err.message || 'Failed to submit application')
         setLoading(false)
         return
       }
@@ -195,22 +177,13 @@ export function LoanApplicationPage() {
     }
   }
 
-  const handleComplete = async (loanDetails?: any) => {
+  const handleComplete = async () => {
     // Update application to pending status - waiting for admin approval
     if (applicationId) {
       try {
-        const updates: any = { status: 'pending' }
-        if (loanDetails) {
-          updates.approvedAmount = loanDetails.approvedAmount
-          updates.interestRate = loanDetails.interestRate
-          updates.fees = loanDetails.fees
-          updates.totalDue = loanDetails.totalDue
-          updates.repaymentDate = loanDetails.repaymentDate
-        }
-
         await loanService.updateApplication(
           applicationId,
-          updates,
+          { status: 'pending' },
           accessToken!
         )
       } catch (err: any) {
@@ -308,38 +281,45 @@ export function LoanApplicationPage() {
                 accessToken={accessToken!}
               />
             )}
-            {currentStep === 4 && creditReport && (
-              <CreditCheckStep creditReport={creditReport} />
-            )}
-            {currentStep === 5 && creditReport?.approved && (
-              <LoanAgreementStep 
-                applicationData={applicationData}
-                creditReport={creditReport}
-                onComplete={handleComplete}
-                isFirstLoanInYear={isFirstLoanInYear}
-              />
+            {currentStep === 4 && (
+              <div className="text-center py-8">
+                <div className="mb-4 flex justify-center">
+                  <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Application Sent!</h3>
+                <p className="text-gray-600 mb-6">
+                  Your loan application has been successfully submitted. 
+                  We have sent a confirmation email to {applicationData.email}.
+                  Our team will review your documents and get back to you shortly.
+                </p>
+                <Button onClick={() => handleComplete()} className="w-full max-w-xs">
+                  Go to Dashboard
+                </Button>
+              </div>
             )}
 
             <div className="flex justify-between mt-6">
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                disabled={currentStep === 0 || loading}
-              >
-                Back
-              </Button>
+              {currentStep < 4 && (
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={currentStep === 0 || loading}
+                >
+                  Back
+                </Button>
+              )}
               
-              {currentStep < STEPS.length - 1 ? (
+              {currentStep < 3 ? (
                 <Button onClick={handleNext} disabled={loading}>
                   {loading ? 'Processing...' : 'Next'}
                 </Button>
-              ) : (
-                creditReport?.approved && (
-                  <Button onClick={handleComplete} disabled={loading}>
-                    Complete Application
-                  </Button>
-                )
-              )}
+              ) : currentStep === 3 ? (
+                <Button onClick={handleNext} disabled={loading}>
+                  Submit Application
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>
