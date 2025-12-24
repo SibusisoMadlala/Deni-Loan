@@ -200,7 +200,7 @@ export function AdminDashboard() {
         // Try with namespaces (iterate all elements)
         const allElements = xmlDoc.getElementsByTagName("*");
         for (let i = 0; i < allElements.length; i++) {
-          if (allElements[i].localName === tag) {
+          if (allElements[i].localName === tag || allElements[i].localName === tag.toLowerCase()) {
             return allElements[i].textContent;
           }
         }
@@ -208,15 +208,15 @@ export function AdminDashboard() {
       };
 
       return {
-        result: getText('Result'),
+        result: getText('ResponseStatus') || getText('Result'),
         idNumber: getText('IdentityNumber'),
-        names: getText('Names'),
+        names: getText('Name') || getText('Names'),
         surname: getText('Surname'),
-        deceasedStatus: getText('DeceasedStatus'),
-        dob: getText('DOB'),
-        gender: getText('Gender'),
-        citizenship: getText('Citizenship'),
-        maritalStatus: getText('MaritalStatus')
+        deceasedStatus: getText('Deceased') || getText('DeceasedStatus'),
+        maritalStatus: getText('MaritalStatus'),
+        smartCardIssued: getText('SmartCardIssued'),
+        onHANIS: getText('OnHANIS'),
+        onNPR: getText('OnNPR')
       };
     } catch (e) {
       console.error("Error parsing XML", e);
@@ -518,21 +518,21 @@ export function AdminDashboard() {
                                     <div className="font-medium">{data.idNumber}</div>
                                     
                                     <div className="text-gray-500">Deceased Status</div>
-                                    <div className={`font-medium ${data.deceasedStatus !== 'Alive' ? 'text-red-600' : 'text-green-600'}`}>
-                                      {data.deceasedStatus}
+                                    <div className={`font-medium ${data.deceasedStatus === 'true' ? 'text-red-600' : 'text-green-600'}`}>
+                                      {data.deceasedStatus === 'true' ? 'Deceased' : 'Alive'}
                                     </div>
-                                    
-                                    <div className="text-gray-500">DOB</div>
-                                    <div className="font-medium">{data.dob}</div>
-                                    
-                                    <div className="text-gray-500">Gender</div>
-                                    <div className="font-medium">{data.gender}</div>
-                                    
-                                    <div className="text-gray-500">Citizenship</div>
-                                    <div className="font-medium">{data.citizenship}</div>
                                     
                                     <div className="text-gray-500">Marital Status</div>
                                     <div className="font-medium">{data.maritalStatus}</div>
+
+                                    <div className="text-gray-500">Smart Card Issued</div>
+                                    <div className="font-medium">{data.smartCardIssued}</div>
+
+                                    <div className="text-gray-500">On HANIS</div>
+                                    <div className="font-medium">{data.onHANIS}</div>
+
+                                    <div className="text-gray-500">On NPR</div>
+                                    <div className="font-medium">{data.onNPR}</div>
                                   </div>
                                 );
                               })()}
