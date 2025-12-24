@@ -155,5 +155,29 @@ export const adminService = {
       console.error('Get payments error:', error)
       throw error
     }
-  }
+  },
+
+  async verifyIdentity(identityNumber: string, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/admin/verify-identity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ identityNumber })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify identity')
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Verify identity error:', error)
+      throw error
+    }
+  },
 }

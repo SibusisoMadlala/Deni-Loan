@@ -42,6 +42,10 @@ export function AdminDashboard() {
   const [approvedAmount, setApprovedAmount] = useState<number>(0)
   const [declineReason, setDeclineReason] = useState('')
 
+  // Identity verification state
+  const [verificationResult, setVerificationResult] = useState<string | null>(null)
+  const [verifyingIdentity, setVerifyingIdentity] = useState(false)
+
   useEffect(() => {
     if (!loading && !accessToken) {
       navigate('/login')
@@ -178,6 +182,24 @@ export function AdminDashboard() {
     } catch (err) {
       console.error('Failed to mark as repaid:', err)
       toast.error('Failed to mark as repaid')
+    }
+  }
+
+  const handleVerifyIdentity = async () => {
+    if (!selectedApp?.idNumber) return
+    
+    setVerifyingIdentity(true)
+    setVerificationResult(null)
+    
+    try {
+      const result = await adminService.verifyIdentity(selectedApp.idNumber, accessToken!)
+      setVerificationResult(result.data)
+      toast.success('Identity verification completed')
+    } catch (err) {
+      console.error('Failed to verify identity:', err)
+      toast.error('Failed to verify identity')
+    } finally {
+      setVerifyingIdentity(false)
     }
   }
 
@@ -393,7 +415,27 @@ export function AdminDashboard() {
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">ID Number</Label>
-                          <p className="text-sm">{selectedApp.idNumber}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{selectedApp.idNumber}</p>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={handleVerifyIdentity}
+                              disabled={verifyingIdentity}
+                            >
+                              {verifyingIdentity ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></div>
+                              ) : (
+                                <Shield className="w-3 h-3 mr-1" />
+                              )}
+                              Verify Identity
+                            </Button>
+                          </div>
+                          {verificationResult && (
+                            <div className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40 border border-gray-200">
+                              <pre className="whitespace-pre-wrap">{verificationResult}</pre>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">Phone</Label>

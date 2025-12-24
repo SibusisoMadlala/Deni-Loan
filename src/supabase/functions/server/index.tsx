@@ -1679,5 +1679,80 @@ app.post('/make-server-1ed353c1/admin/payment-claims/:id/verify', requireAdmin, 
   }
 });
 
+// Experian IDV Check
+app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) => {
+  try {
+    const { identityNumber } = await c.req.json();
+    
+    if (!identityNumber) {
+      return c.json({ error: 'Identity number is required' }, 400);
+    }
+
+    // Configuration
+    const url = "https://apis-uat.experian.co.za/IDVService?wsdl";
+    const username = "2903-uat";
+    const password = '4O2@Rp43%$yi';
+    const myOrigin = "DeniLoans";
+    const version = "1.0";
+    const identityType = "SID";
+    const wantPhoto = "Y";
+    const wantAllowCache = "Y";
+
+    // Construct the SOAP Envelope
+    const soapEnvelope = `
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.compuscan.co.za/">
+        <soap:Header/>
+        <soap:Body>
+          <web:RequestIDVInfo>
+            <Auth>
+              <Username>${username}</Username>
+              <Password>${password}</Password>
+            </Auth>
+            <SystemSettings>
+              <Version>${version}</Version>
+              <Origin>${myOrigin}</Origin>
+            </SystemSettings>
+            <SearchCriteria>
+              <IdentityNumber>${identityNumber}</IdentityNumber>
+              <IdentityType>${identityType}</IdentityType>
+              <WantPhoto>${wantPhoto}</WantPhoto>
+              <WantAllowCache>${wantAllowCache}</WantAllowCache>
+            </SearchCriteria>
+          </web:RequestIDVInfo>
+        </soap:Body>
+      </soap:Envelope>
+    `;
+
+    console.log(`Sending Experian IDV Request for ID: ${identityNumber}`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'Content-Length': String(soapEnvelope.length),
+        'SOAPAction': '""'
+      },
+      body: soapEnvelope
+    });
+
+    const responseText = await response.text();
+    
+    // Log the response for debugging
+    console.log('Experian Response Status:', response.status);
+    
+    return c.json({
+      success: true,
+      status: response.status,
+      data: responseText
+    });
+
+  } catch (error) {
+    console.log(`Experian IDV error: ${error}`);
+    return c.json({
+      error: 'Failed to verify identity'
+    }, 500);
+  }
+});
+
 console.log('⚡ Supabase Edge Function (make-server-1ed353c1) starting - routes registered');
 Deno.serve(app.fetch);
