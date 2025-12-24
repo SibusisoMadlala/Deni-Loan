@@ -1778,7 +1778,7 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
     }
 
     // Configuration
-    const url = "https://apis-uat.experian.co.za/GetPersonScore?wsdl";
+    const url = "https://apis-uat.experian.co.za/GetPersonScore";
     const username = "2903-uat";
     const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
@@ -1786,18 +1786,19 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
     const resultType = "json";
 
     // Construct the SOAP Envelope
+    // Namespace must match the WSDL targetNamespace: http://services/
     const soapEnvelope = `
-      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.compuscan.co.za/">
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services/">
         <soap:Header/>
         <soap:Body>
-          <web:GetScore>
+          <ser:getScore>
             <pUsername>${username}</pUsername>
             <pPassword>${password}</pPassword>
             <pMyOrigin>${myOrigin}</pMyOrigin>
             <pVersion>${version}</pVersion>
             <pResultType>${resultType}</pResultType>
             <pIdNumber>${identityNumber}</pIdNumber>
-          </web:GetScore>
+          </ser:getScore>
         </soap:Body>
       </soap:Envelope>
     `;

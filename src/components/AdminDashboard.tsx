@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { 
   CheckCircle, 
   XCircle, 
+  AlertCircle,
   Clock, 
   FileText, 
   DollarSign,
@@ -54,11 +55,43 @@ export function AdminDashboard() {
   const parseCreditScoreResult = (xml: string) => {
     try {
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xml, "text/xml");
+      let xmlDoc = parser.parseFromString(xml, "text/xml");
       
+      // Check if it's a SOAP envelope and extract the return value
+      const returnNode = xmlDoc.getElementsByTagName('return')[0];
+      if (returnNode && returnNode.textContent) {
+        // Parse the inner XML
+        xmlDoc = parser.parseFromString(returnNode.textContent, "text/xml");
+      }
+
+      // Check for error codes in the root text content if no results found
+      const rootText = xmlDoc.documentElement?.textContent?.trim();
+      const errorCodes: {[key: string]: string} = {
+        '-101': 'Not all variables filled in.',
+        '-105': 'Input version not supported',
+        '-106': 'Something went wrong while your transaction was executing.',
+        '-107': 'Invalid user details supplied or user inactive.',
+        '-108': 'Result type not supported.',
+        '-110': 'Your branch is not switched on for this service.',
+        '-113': 'Id Number not supplied',
+        '-114': 'Invalid Id number supplied.',
+        '-115': 'Thin file - No data available for the Id number supplied.',
+        '-116': 'Your branch is not switched on for any CompuScore version.',
+        '-999': 'Unknown Error.'
+      };
+
+      if (rootText && errorCodes[rootText]) {
+        return [{ error: errorCodes[rootText], code: rootText }];
+      }
+
       const results = Array.from(xmlDoc.getElementsByTagName('result')).map(result => {
         const resultType = result.getElementsByTagName('resultType')[0]?.textContent;
-        const score = result.getElementsByTagName('score')[0]?.textContent;
+        const score = result.getElementsByTagName('score')[0]?.textContent?.trim();
+
+        if (score && errorCodes[score]) {
+          return { error: errorCodes[score], code: score };
+        }
+
         const reasons = Array.from(result.getElementsByTagName('reason')).map(reason => ({
           code: reason.getElementsByTagName('reasonCode')[0]?.textContent,
           description: reason.getElementsByTagName('reasonDescription')[0]?.textContent
@@ -930,37 +963,47 @@ export function AdminDashboard() {
 
                             return (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {results.map((res, idx) => (
-                                  <Card key={idx} className="bg-gray-50">
+                                {results.map((res: any, idx: number) => (
+                                  <Card key={idx} className={`bg-gray-50 ${res.error ? 'border-red-200 bg-red-50' : ''}`}>
                                     <CardContent className="pt-6">
-                                      <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                          <p className="text-sm font-medium text-gray-600">Score Type</p>
-                                          <p className="text-lg font-bold">{res.resultType}</p>
+                                      {res.error ? (
+                                        <div className="text-center">
+                                          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                                          <p className="font-bold text-red-700">Error {res.code}</p>
+                                          <p className="text-sm text-red-600 mt-1">{res.error}</p>
                                         </div>
-                                        <div className="text-right">
-                                          <p className="text-sm font-medium text-gray-600">Score</p>
-                                          <p className={`text-2xl font-bold ${
-                                            parseInt(res.score || '0') > 600 ? 'text-green-600' : 
-                                            parseInt(res.score || '0') > 500 ? 'text-yellow-600' : 'text-red-600'
-                                          }`}>
-                                            {res.score}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      
-                                      {res.reasons.length > 0 && (
-                                        <div className="mt-4">
-                                          <p className="text-xs font-semibold text-gray-500 mb-2">Risk Factors</p>
-                                          <ul className="space-y-2">
-                                            {res.reasons.map((reason, rIdx) => (
-                                              <li key={rIdx} className="text-xs bg-white p-2 rounded border">
-                                                <span className="font-medium block mb-1">{reason.code}</span>
-                                                {reason.description}
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
+                                      ) : (
+                                        <>
+                                          <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                              <p className="text-sm font-medium text-gray-600">Score Type</p>
+                                              <p className="text-lg font-bold">{res.resultType}</p>
+                                            </div>
+                                            <div className="text-right">
+                                              <p className="text-sm font-medium text-gray-600">Score</p>
+                                              <p className={`text-2xl font-bold ${
+                                                parseInt(res.score || '0') > 600 ? 'text-green-600' : 
+                                                parseInt(res.score || '0') > 500 ? 'text-yellow-600' : 'text-red-600'
+                                              }`}>
+                                                {res.score}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          
+                                          {res.reasons.length > 0 && (
+                                            <div className="mt-4">
+                                              <p className="text-xs font-semibold text-gray-500 mb-2">Risk Factors</p>
+                                              <ul className="space-y-2">
+                                                {res.reasons.map((reason: any, rIdx: number) => (
+                                                  <li key={rIdx} className="text-xs bg-white p-2 rounded border">
+                                                    <span className="font-medium block mb-1">{reason.code}</span>
+                                                    {reason.description}
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            </div>
+                                          )}
+                                        </>
                                       )}
                                     </CardContent>
                                   </Card>
