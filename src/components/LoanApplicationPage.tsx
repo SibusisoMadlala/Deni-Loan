@@ -11,7 +11,8 @@ import { WorkIncomeStep } from './application-steps/WorkIncomeStep'
 import { BankingDetailsStep } from './application-steps/BankingDetailsStep'
 import { DocumentUploadStep } from './application-steps/DocumentUploadStep'
 import { Alert, AlertDescription } from './ui/alert'
-import { CheckCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 const STEPS = [
   'Personal Details',
