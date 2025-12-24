@@ -193,8 +193,18 @@ export function AdminDashboard() {
       const xmlDoc = parser.parseFromString(xml, "text/xml");
       
       const getText = (tag: string) => {
-        const el = xmlDoc.getElementsByTagName(tag)[0];
-        return el ? el.textContent : 'N/A';
+        // Try direct tag name first
+        let el = xmlDoc.getElementsByTagName(tag)[0];
+        if (el) return el.textContent;
+        
+        // Try with namespaces (iterate all elements)
+        const allElements = xmlDoc.getElementsByTagName("*");
+        for (let i = 0; i < allElements.length; i++) {
+          if (allElements[i].localName === tag) {
+            return allElements[i].textContent;
+          }
+        }
+        return 'N/A';
       };
 
       return {
@@ -526,6 +536,15 @@ export function AdminDashboard() {
                                   </div>
                                 );
                               })()}
+                              
+                              <div className="mt-4 pt-4 border-t">
+                                <details className="text-xs">
+                                  <summary className="cursor-pointer text-blue-600 hover:underline mb-2">View Raw Response</summary>
+                                  <pre className="bg-gray-100 p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap">
+                                    {selectedApp.identityVerification!.rawData}
+                                  </pre>
+                                </details>
+                              </div>
                             </div>
                           )}
                         </div>
