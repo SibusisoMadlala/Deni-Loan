@@ -157,7 +157,7 @@ export const adminService = {
     }
   },
 
-  async verifyIdentity(identityNumber: string, accessToken: string) {
+  async verifyIdentity(applicationId: string, identityNumber: string, accessToken: string) {
     try {
       const response = await fetch(`${API_BASE}/admin/verify-identity`, {
         method: 'POST',
@@ -165,7 +165,7 @@ export const adminService = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ identityNumber })
+        body: JSON.stringify({ applicationId, identityNumber })
       })
 
       const data = await response.json()
