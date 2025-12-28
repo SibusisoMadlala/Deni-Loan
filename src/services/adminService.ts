@@ -204,4 +204,28 @@ export const adminService = {
       throw error
     }
   },
+
+  async getFinancialSnapshot(applicationId: string, identityNumber: string, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/admin/financial-snapshot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ applicationId, identityNumber })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get financial snapshot')
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('Get financial snapshot error:', error)
+      throw error
+    }
+  },
 }

@@ -52,6 +52,10 @@ export function AdminDashboard() {
   const [checkingCreditScore, setCheckingCreditScore] = useState(false)
   const [showCreditScoreDetails, setShowCreditScoreDetails] = useState(false)
 
+  // Financial Snapshot state
+  const [gettingFinancialSnapshot, setGettingFinancialSnapshot] = useState(false)
+  const [showFinancialSnapshotDetails, setShowFinancialSnapshotDetails] = useState(false)
+
   const parseCreditScoreResult = (xml: string) => {
     if (!xml) return [];
     console.log("Raw XML to parse:", xml);
@@ -179,6 +183,35 @@ export function AdminDashboard() {
       toast.error('Failed to get credit score')
     } finally {
       setCheckingCreditScore(false)
+    }
+  }
+
+  const handleGetFinancialSnapshot = async () => {
+    if (!selectedApp?.idNumber || !selectedApp?.id) return
+    
+    setGettingFinancialSnapshot(true)
+    
+    try {
+      const result = await adminService.getFinancialSnapshot(selectedApp.id, selectedApp.idNumber, accessToken!)
+      
+      const updatedApp = {
+        ...selectedApp,
+        financialSnapshot: {
+          checkedAt: new Date().toISOString(),
+          rawData: result.data,
+          status: result.status
+        }
+      };
+      
+      setSelectedApp(updatedApp);
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a));
+      
+      toast.success('Financial snapshot retrieved')
+    } catch (err) {
+      console.error('Failed to get financial snapshot:', err)
+      toast.error('Failed to get financial snapshot')
+    } finally {
+      setGettingFinancialSnapshot(false)
     }
   }
 
@@ -892,6 +925,65 @@ export function AdminDashboard() {
                             R{((selectedApp.netSalary || 0) - (selectedApp.monthlyExpenses?.reduce((sum: number, e: any) => sum + (e.amount || 0), 0) || 0)).toLocaleString()}
                           </span>
                         </div>
+                      </div>
+
+                      <div className="border-t pt-6 mt-6">
+                        <h3 className="font-medium mb-4">External Financial Data</h3>
+                        {!selectedApp.financialSnapshot ? (
+                          <div className="flex flex-col items-center justify-center py-4 space-y-4 bg-gray-50 rounded-lg border border-dashed">
+                            <p className="text-gray-600 text-sm">No financial snapshot retrieved yet.</p>
+                            <Button 
+                              onClick={handleGetFinancialSnapshot}
+                              disabled={gettingFinancialSnapshot}
+                              variant="outline"
+                              size="sm"
+                            >
+                              {gettingFinancialSnapshot ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-2"></div>
+                                  Retrieving...
+                                </>
+                              ) : (
+                                <>
+                                  <TrendingUp className="w-4 h-4 mr-2" />
+                                  Get Financial Snapshot
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Retrieved
+                                </Badge>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(selectedApp.financialSnapshot.checkedAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => setShowFinancialSnapshotDetails(!showFinancialSnapshotDetails)}
+                              >
+                                {showFinancialSnapshotDetails ? 'Hide Details' : 'View Details'}
+                              </Button>
+                            </div>
+
+                            {showFinancialSnapshotDetails && (
+                              <div className="mt-4">
+                                <details className="text-xs" open>
+                                  <summary className="cursor-pointer text-blue-600 hover:underline mb-2">Raw Response</summary>
+                                  <pre className="bg-gray-100 p-2 rounded overflow-auto max-h-60 whitespace-pre-wrap">
+                                    {selectedApp.financialSnapshot.rawData}
+                                  </pre>
+                                </details>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

@@ -1848,5 +1848,94 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
   }
 });
 
+// Experian Financial Snapshot
+app.post('/make-server-1ed353c1/admin/financial-snapshot', requireAdmin, async (c) => {
+  try {
+    const { applicationId, identityNumber } = await c.req.json();
+    
+    if (!identityNumber || !applicationId) {
+      return c.json({ error: 'Identity number and Application ID are required' }, 400);
+    }
+
+    // Configuration
+    const url = "https://apis-uat.experian.co.za/FinSnapService";
+    const username = "2903-uat";
+    const password = '4O2@Rp43%$yi';
+    const myOrigin = "DeniLoans";
+    const version = "1.0";
+
+    // Construct the SOAP Envelope
+    const soapEnvelope = `
+      <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:api="http://api.experian.co.za/">
+        <soapenv:Header/>
+        <soapenv:Body>
+          <api:RequestNewFinSnap>
+            <SystemSettings>
+              <Version>${version}</Version>
+              <OriginatingApplication>${myOrigin}</OriginatingApplication>
+              <OriginatingEnvironment>UAT</OriginatingEnvironment>
+              <ClientReference>${crypto.randomUUID()}</ClientReference>
+              <RequestTime>${new Date().toISOString().split('.')[0]}</RequestTime>
+            </SystemSettings>
+            <SearchCriteria>
+              <IdentityNumber>${identityNumber}</IdentityNumber>
+              <IdentityType>SID</IdentityType>
+              <ClientConsent>Y</ClientConsent>
+              <WantCategory>N</WantCategory>
+              <WantStatements>N</WantStatements>
+              <Months>12</Months>
+              <WantProcessedTransactions>Y</WantProcessedTransactions>
+            </SearchCriteria>
+          </api:RequestNewFinSnap>
+        </soapenv:Body>
+      </soapenv:Envelope>
+    `;
+
+    console.log(`Sending Experian Financial Snapshot Request for ID: ${identityNumber}`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'Content-Length': String(soapEnvelope.length),
+        'SOAPAction': '"http://api.experian.co.za/RequestNewFinSnap"',
+        'Authorization': 'Basic ' + btoa(`${username}:${password}`)
+      },
+      body: soapEnvelope
+    });
+
+    const responseText = await response.text();
+    
+    // Log the response for debugging
+    console.log('Experian Financial Snapshot Response Status:', response.status);
+
+    // Store the result in the application record
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (application) {
+      const updatedApplication = {
+        ...application,
+        financialSnapshot: {
+          checkedAt: new Date().toISOString(),
+          rawData: responseText,
+          status: response.status
+        }
+      };
+      await kv.set(`loan_application:${applicationId}`, updatedApplication);
+    }
+    
+    return c.json({
+      success: true,
+      status: response.status,
+      data: responseText
+    });
+
+  } catch (error) {
+    console.log(`Experian Financial Snapshot error: ${error}`);
+    return c.json({
+      error: 'Failed to get financial snapshot'
+    }, 500);
+  }
+});
+
 console.log('⚡ Supabase Edge Function (make-server-1ed353c1) starting - routes registered');
 Deno.serve(app.fetch);
