@@ -581,6 +581,7 @@ export function AdminDashboard() {
                 <TabsList>
                   <TabsTrigger value="details">Details</TabsTrigger>
                   <TabsTrigger value="documents">Documents</TabsTrigger>
+                  <TabsTrigger value="affordability">Affordability</TabsTrigger>
                   <TabsTrigger value="credit report">Credit Report</TabsTrigger>
                   <TabsTrigger value="decision">Decision</TabsTrigger>
                 </TabsList>
@@ -830,6 +831,68 @@ export function AdminDashboard() {
                           No documents uploaded yet
                         </p>
                       )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="affordability">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Affordability Assessment</CardTitle>
+                      <CardDescription>Review applicant's income and expenses</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h3 className="font-medium mb-4">Income</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Net Salary</span>
+                              <span className="font-medium">R{selectedApp.netSalary?.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Pay Frequency</span>
+                              <span className="font-medium capitalize">{selectedApp.paydayCycle}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="font-medium mb-4">Monthly Expenses</h3>
+                          <div className="space-y-3">
+                            {selectedApp.monthlyExpenses && selectedApp.monthlyExpenses.length > 0 ? (
+                              <>
+                                {selectedApp.monthlyExpenses.map((expense: any, idx: number) => (
+                                  <div key={idx} className="flex justify-between items-start">
+                                    <div>
+                                      <span className="text-gray-600 block">{expense.category}</span>
+                                      {expense.description && (
+                                        <span className="text-xs text-gray-400">{expense.description}</span>
+                                      )}
+                                    </div>
+                                    <span className="font-medium">R{expense.amount.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                                  <span>Total Expenses</span>
+                                  <span>R{selectedApp.monthlyExpenses.reduce((sum: number, e: any) => sum + (e.amount || 0), 0).toLocaleString()}</span>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-gray-500 italic">No expenses recorded</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50 p-4 rounded-lg mt-6">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-blue-900">Disposable Income</span>
+                          <span className="font-bold text-xl text-blue-700">
+                            R{((selectedApp.netSalary || 0) - (selectedApp.monthlyExpenses?.reduce((sum: number, e: any) => sum + (e.amount || 0), 0) || 0)).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

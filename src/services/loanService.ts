@@ -19,6 +19,11 @@ export interface LoanApplication {
   nextPayDate?: string
   paydayCycle: string
   netSalary: number
+  monthlyExpenses?: {
+    category: string
+    amount: number
+    description?: string
+  }[]
   
   // Banking Details
   bankName: string

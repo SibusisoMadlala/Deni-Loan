@@ -14,6 +14,40 @@ interface WorkIncomeStepProps {
 }
 
 export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
+  const expenseCategories = [
+    "Rent / Mortgage",
+    "Transport / Fuel",
+    "Food / Groceries",
+    "Utilities (Water, Electricity)",
+    "Phone / Data",
+    "Loan Repayments",
+    "Childcare / School Fees"
+  ];
+
+  const handleExpenseChange = (category: string, amount: number, description?: string) => {
+    const currentExpenses = data.monthlyExpenses || [];
+    const existingIndex = currentExpenses.findIndex((e: any) => e.category === category);
+    
+    let newExpenses = [...currentExpenses];
+    if (existingIndex >= 0) {
+       newExpenses[existingIndex] = { ...newExpenses[existingIndex], amount, description };
+    } else {
+      newExpenses.push({ category, amount, description });
+    }
+    
+    updateData({ monthlyExpenses: newExpenses });
+  };
+
+  const getExpenseAmount = (category: string) => {
+    return data.monthlyExpenses?.find((e: any) => e.category === category)?.amount || '';
+  };
+
+  const getOtherDescription = () => {
+    return data.monthlyExpenses?.find((e: any) => e.category === 'Other')?.description || '';
+  };
+
+  const totalExpenses = (data.monthlyExpenses || []).reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+
   const getCycleEndDate = () => {
     const today = new Date()
     const cycle = data.paydayCycle
@@ -119,6 +153,62 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
         <p className="text-xs text-gray-500">
           Your take-home pay after all deductions (tax, UIF, pension, etc.)
         </p>
+      </div>
+
+      <div className="space-y-4 border-t pt-4">
+        <h3 className="font-medium text-gray-900">Monthly Expenses</h3>
+        <p className="text-xs text-gray-500 -mt-2 mb-4">
+          Please estimate your monthly expenses to help us check affordability.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {expenseCategories.map((category) => (
+            <div key={category} className="space-y-2">
+              <Label htmlFor={`expense-${category}`}>{category}</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500">R</span>
+                <Input
+                  id={`expense-${category}`}
+                  type="number"
+                  placeholder="0"
+                  className="pl-8"
+                  value={getExpenseAmount(category)}
+                  onChange={(e) => handleExpenseChange(category, parseFloat(e.target.value) || 0)}
+                  min="0"
+                />
+              </div>
+            </div>
+          ))}
+          
+          {/* Other Expenses */}
+          <div className="space-y-2 md:col-span-2 border-t pt-2 mt-2">
+            <Label htmlFor="expense-other-amount">Other Expenses</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500">R</span>
+                <Input
+                  id="expense-other-amount"
+                  type="number"
+                  placeholder="Amount"
+                  className="pl-8"
+                  value={getExpenseAmount('Other')}
+                  onChange={(e) => handleExpenseChange('Other', parseFloat(e.target.value) || 0, getOtherDescription())}
+                  min="0"
+                />
+              </div>
+              <Input
+                placeholder="Description (e.g. Medical Aid)"
+                value={getOtherDescription()}
+                onChange={(e) => handleExpenseChange('Other', parseFloat(getExpenseAmount('Other') || '0'), e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 p-3 rounded-md flex justify-between items-center">
+          <span className="font-medium text-sm">Total Monthly Expenses:</span>
+          <span className="font-bold text-lg">R{totalExpenses.toLocaleString()}</span>
+        </div>
       </div>
 
       <div className="space-y-2">
