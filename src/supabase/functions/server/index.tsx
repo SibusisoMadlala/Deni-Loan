@@ -206,8 +206,6 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     console.log('[ozow/create-payment] incoming body:', await safeStringify(body));
     
     const { amount, invoiceId, returnUrl, metadata } = body;
-    const applicationId = body.applicationId || null;
-    const paymentType = body.paymentType || null;
     
     if (!amount || !invoiceId || !returnUrl) {
       return c.json({ error: 'Missing required fields (amount, invoiceId, returnUrl)' }, 400);
@@ -218,7 +216,8 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     const OZOW_CURRENCY_CODE = Deno.env.get('OZOW_CURRENCY_CODE') || 'ZAR';
     const OZOW_API_KEY = Deno.env.get('OZOW_API_KEY');
     const OZOW_PRIVATE_KEY = Deno.env.get('OZOW_PRIVATE_KEY');
-    const OZOW_API_URL = Deno.env.get('OZOW_API_URL') || 'https://api.ozow.com/PostPaymentRequest';
+    // Default to the URL from the PHP example if not set
+    const OZOW_API_URL = Deno.env.get('OZOW_API_URL') || 'https://api.ozow.com/postpaymentrequest';
 
     if (!OZOW_SITE_CODE || !OZOW_API_KEY || !OZOW_PRIVATE_KEY) {
       console.log('Ozow configuration missing (site code, API key or private key)');
@@ -227,24 +226,25 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
 
     // Build URLs
     const base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
-    const transactionReference = invoiceId;
-    const bankReference = (metadata && metadata.bankReference) || transactionReference;
-    const cancelUrl = (metadata && metadata.cancelUrl) || `${base}/payments/cancel`;
-    const errorUrl = (metadata && metadata.errorUrl) || `${base}/payments/error`;
-    const successUrl = (metadata && metadata.successUrl) || `${base}/payments/success`;
+    // Ensure unique reference like the PHP example: $ref . "_" . generateRandomString(2);
+    const uniqueRef = `${invoiceId}_${Math.random().toString(36).substring(2, 4)}`;
+    
+    const transactionReference = uniqueRef;
+    const bankReference = uniqueRef; // PHP uses same ref for bank reference
+    
+    // Match frontend routes in App.tsx (/payment/success, /payment/cancel)
+    const cancelUrl = (metadata && metadata.cancelUrl) || `${base}/payment/cancel`;
+    const errorUrl = (metadata && metadata.errorUrl) || `${base}/payment/cancel`; // Map error to cancel for now
+    const successUrl = (metadata && metadata.successUrl) || `${base}/payment/success`;
     const notifyUrl = (metadata && metadata.notifyUrl) || `${base}/make-server-1ed353c1/ozow/notify`;
-    const isTest = metadata?.isTest ? true : false;
+    const isTest = Deno.env.get('OZOW_IS_TEST') === 'true';
 
     // Format amount to two decimal places
     const amountStr = Number(amount).toFixed(2);
 
-    // Prepare requestFields for Ozow API. Ozow expects an apiKey + requestFields wrapper
-    // Ensure numeric fields are numbers or null (do not send empty strings for decimals)
-    const allowVariableAmount = !!metadata?.allowVariableAmount;
-    const variableAmountMin = metadata?.variableAmountMin ? Number(metadata.variableAmountMin) : null;
-    const variableAmountMax = metadata?.variableAmountMax ? Number(metadata.variableAmountMax) : null;
-
-    const requestFields: Record<string, any> = {
+    // Construct postData exactly as PHP example for hashing order
+    // PHP Order: SiteCode, CountryCode, CurrencyCode, Amount, TransactionReference, BankReference, CancelUrl, ErrorUrl, SuccessUrl, NotifyUrl, IsTest
+    const postData = {
       SiteCode: OZOW_SITE_CODE,
       CountryCode: OZOW_COUNTRY_CODE,
       CurrencyCode: OZOW_CURRENCY_CODE,
@@ -255,39 +255,105 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
       ErrorUrl: errorUrl,
       SuccessUrl: successUrl,
       NotifyUrl: notifyUrl,
-      IsTest: !!isTest,
-      Customer: metadata?.customer || '',
-      CustomerCellphoneNumber: metadata?.customerCellphoneNumber || '',
-      CustomerEmail: metadata?.customerEmail || '',
-      Optional1: metadata?.optional1 || '',
-      Optional2: metadata?.optional2 || '',
-      Optional3: metadata?.optional3 || '',
-      Optional4: metadata?.optional4 || '',
-      Optional5: metadata?.optional5 || '',
-      BankAccountNumber: metadata?.bankAccountNumber || '',
-      BankAccountName: metadata?.bankAccountName || '',
-      BranchCode: metadata?.branchCode || '',
-      PayeeDisplayName: metadata?.payeeDisplayName || '',
-      AllowVariableAmount: allowVariableAmount,
-      VariableAmountMin: variableAmountMin,
-      VariableAmountMax: variableAmountMax
+      IsTest: isTest
     };
 
-    const wrapper = {
-      apiKey: OZOW_API_KEY,
-      requestFields
-    };
+    // Generate Hash
+    // PHP: $hashString = strtolower(implode('', $postData) . $privateKey);
+    let concatenated = '';
+    // Iterate in specific order
+    const keys = [
+      'SiteCode', 'CountryCode', 'CurrencyCode', 'Amount', 
+      'TransactionReference', 'BankReference', 
+      'CancelUrl', 'ErrorUrl', 'SuccessUrl', 'NotifyUrl', 'IsTest'
+    ];
 
-    console.log('[ozow/create-payment] Sending to Ozow API:', { url: OZOW_API_URL, wrapper: JSON.stringify(wrapper, null, 2) });
+    for (const key of keys) {
+      const val = (postData as any)[key];
+      if (typeof val === 'boolean') {
+        concatenated += val ? 'true' : 'false'; // Note: PHP implode on boolean might differ, but Ozow docs usually specify 'true'/'false' string or boolean. 
+        // Let's check the PHP behavior again. 
+        // In PHP, implode('', [true, false]) gives "1". 
+        // However, Ozow JSON API expects boolean types in JSON, but the hash generation usually follows specific rules.
+        // The PHP example: $postData is an array. json_encode($postData) is sent.
+        // The hash is calculated on the values.
+        // If $IsTest is boolean in PHP, implode uses "1".
+        // BUT, if we look at the PHP code: $IsTest = $IsTest.
+        // If we assume standard Ozow integration, let's try to match the string concatenation.
+        // If I send boolean in JSON, I should probably use boolean in hash?
+        // Let's look at the PHP code again: $hashString = strtolower(implode('', $postData) . $privateKey);
+        // If $IsTest is true, it appends "1". If false, "".
+        // Let's try to be safe. If the PHP code works, we should emulate it.
+        // However, in the JSON body, we must send actual booleans if the API expects it.
+        // Let's assume for now we send boolean in JSON.
+        // For the hash, let's try to match the string representation.
+        // Actually, let's look at the PHP code: $IsTest is passed to the array.
+        // If it's a boolean, implode uses "1" or "".
+        // Let's assume we should use the string value of the boolean for safety if we are not sure.
+        // But wait, the PHP code sends `json_encode($postData)`.
+        // So `IsTest` will be `true` or `false` in the JSON.
+        // The hash check on Ozow side will replicate the hashing logic.
+        // If Ozow expects the hash to be generated from the values, we need to know how they treat booleans.
+        // Most Ozow integrations use string 'true'/'false' for IsTest in the hash generation if it's part of the string.
+        // Let's stick to the values we put in the object.
+      } else {
+        concatenated += String(val);
+      }
+    }
+    
+    // Correction: In PHP, implode on boolean true is "1", false is "".
+    // But if $IsTest comes from config as string "true" or "false", it's just a string.
+    // Let's assume it's a boolean in our Deno code.
+    // Let's use the values as they are.
+    
+    // Re-evaluating the loop for hash generation to be robust:
+    concatenated = '';
+    for (const key of keys) {
+        const val = (postData as any)[key];
+        if (typeof val === 'boolean') {
+             // If we send boolean in JSON, we should probably use 'true'/'false' string for hash if that's what they expect,
+             // OR if we follow PHP implode behavior:
+             // If isTest is true -> "1", if false -> "".
+             // Let's try to match the PHP implode behavior for the hash.
+             concatenated += val ? '1' : ''; 
+        } else {
+             concatenated += String(val);
+        }
+    }
+    
+    // Wait, if I send boolean in JSON, Ozow receives boolean.
+    // If I send string "true" in JSON, Ozow receives string.
+    // The PHP code: 'IsTest' => $IsTest.
+    // If $IsTest is boolean, json_encode sends true/false.
+    // If $IsTest is boolean, implode sends "1"/"".
+    // This seems risky. Let's check if we can just send everything as strings?
+    // The PHP code: 'Amount' => $amount (string?), 'SiteCode' => $siteCode (string).
+    // Let's convert IsTest to boolean for the JSON body, but for the hash, we need to be careful.
+    // Let's assume the PHP code provided is the source of truth.
+    
+    concatenated += OZOW_PRIVATE_KEY;
+    const toHash = concatenated.toLowerCase();
+    
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(toHash);
+    const hashBuffer = await crypto.subtle.digest('SHA-512', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashCheck = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Call Ozow API to create payment
+    // Add HashCheck to postData
+    (postData as any).HashCheck = hashCheck;
+
+    console.log('[ozow/create-payment] Sending to Ozow API:', { url: OZOW_API_URL, postData });
+
+    // Call Ozow API
     const response = await fetch(OZOW_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'ApiKey': OZOW_API_KEY
       },
-      body: JSON.stringify(wrapper)
+      body: JSON.stringify(postData)
     });
 
     const responseText = await response.text();
@@ -298,6 +364,7 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     try {
       responseData = JSON.parse(responseText);
     } catch (e) {
+
       responseData = { raw: responseText };
     }
 

@@ -47,26 +47,29 @@ export function PaymentButton({
         paymentType
       });
       
-      // Redirect directly to the external ozpay URL with query params so the browser navigates there
       const invoiceId = `${applicationId}-${Date.now()}`;
       const returnTo = returnUrl || `${window.location.origin}/payments/ozow/callback`;
-      const externalUrl = 'https://website-afa19dec.jdn.ixm.mybluehost.me/ozpay';
+      
+      // Call Supabase Edge Function to create Ozow payment
+      const response: any = await paymentService.createOzowPayment({
+        applicationId,
+        amount,
+        paymentType,
+        returnUrl: returnTo,
+        invoiceId
+      }, accessToken);
 
-      const params = new URLSearchParams({
-        invoiceId,
-        amount: String(amount),
-        paymentType: String(paymentType),
-        applicationId: String(applicationId),
-        returnUrl: returnTo
-      });
+      console.log('✅ Payment created, redirecting:', response);
 
-      const redirect = `${externalUrl}?${params.toString()}`;
-      console.log('Redirecting to external ozpay URL:', redirect);
-      // Optionally notify caller before navigation
-      onSuccess?.();
-      // Navigate browser to external payment endpoint
-      window.location.href = redirect;
-      return;
+      // Ozow API returns 'url' property
+      const redirectUrl = response.url || response.paymentUrl;
+
+      if (redirectUrl) {
+        onSuccess?.();
+        window.location.href = redirectUrl;
+      } else {
+        throw new Error(response.errorMessage || 'No payment URL returned from payment provider');
+      }
       
     } catch (error: any) {
       console.error('❌ Payment initiation error:', error);
