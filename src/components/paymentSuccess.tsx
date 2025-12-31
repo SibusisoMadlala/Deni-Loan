@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 
 export function PaymentSuccess() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [paymentDetails, setPaymentDetails] = useState<any>(null);
 
   useEffect(() => {
@@ -67,16 +68,12 @@ export function PaymentSuccess() {
           )}
           
           <div className="space-y-2">
-            <Button asChild className="w-full">
-              <Link to="/dashboard">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Link>
+            <Button className="w-full" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
             </Button>
-            <Button variant="outline" asChild className="w-full">
-              <Link to="/my-applications">
-                View Applications
-              </Link>
+            <Button variant="outline" className="w-full" onClick={() => navigate('/my-applications')}>
+              View Applications
             </Button>
           </div>
           

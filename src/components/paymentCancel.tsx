@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { XCircle, ArrowLeft } from 'lucide-react';
 
 export function PaymentCancel() {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <Card className="w-full max-w-md">
@@ -18,16 +19,12 @@ export function PaymentCancel() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Button asChild className="w-full">
-              <Link to="/dashboard">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Link>
+            <Button className="w-full" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
             </Button>
-            <Button variant="outline" asChild className="w-full">
-              <Link to="/my-applications">
-                Try Again
-              </Link>
+            <Button variant="outline" className="w-full" onClick={() => navigate('/my-applications')}>
+              Try Again
             </Button>
           </div>
           
