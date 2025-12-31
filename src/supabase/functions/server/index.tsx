@@ -226,11 +226,20 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
 
     // Build URLs
     const base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
-    // Ensure unique reference like the PHP example: $ref . "_" . generateRandomString(2);
-    const uniqueRef = `${invoiceId}_${Math.random().toString(36).substring(2, 4)}`;
     
-    const transactionReference = uniqueRef;
-    const bankReference = uniqueRef; // PHP uses same ref for bank reference
+    // Fix for Ozow validation errors:
+    // TransactionReference: max 50 chars.
+    // BankReference: max 20 chars.
+    
+    // Frontend sends invoiceId = `${applicationId}-${Date.now()}`.
+    // If applicationId is UUID (36) + '-' (1) + Date (13) = 50 chars.
+    // We truncate to 50 just in case, but do NOT add extra chars.
+    const transactionReference = invoiceId.substring(0, 50);
+    
+    // Generate a short, unique BankReference (max 20 chars)
+    // Format: Ref-{last 9 of timestamp}-{3 random chars}
+    // Example: Ref-123456789-abc (17 chars)
+    const bankReference = `Ref-${Date.now().toString().slice(-9)}-${Math.random().toString(36).substring(2, 5)}`;
     
     // Match frontend routes in App.tsx (/payment/success, /payment/cancel)
     const cancelUrl = (metadata && metadata.cancelUrl) || `${base}/payment/cancel`;
