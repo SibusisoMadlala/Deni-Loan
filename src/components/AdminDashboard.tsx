@@ -611,7 +611,7 @@ export function AdminDashboard() {
           <div className="lg:col-span-2">
             {selectedApp ? (
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList>
+                <TabsList className="flex flex-wrap h-auto w-full justify-start">
                   <TabsTrigger value="details">Details</TabsTrigger>
                   <TabsTrigger value="documents">Documents</TabsTrigger>
                   <TabsTrigger value="affordability">Affordability</TabsTrigger>
@@ -626,14 +626,14 @@ export function AdminDashboard() {
                       <CardDescription>ID: {selectedApp.id}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-xs text-gray-600">Full Name</Label>
                           <p className="text-sm">{selectedApp.fullName}</p>
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">ID Number</Label>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-medium">{selectedApp.idNumber}</p>
                             {!selectedApp.identityVerification ? (
                               <Button 
