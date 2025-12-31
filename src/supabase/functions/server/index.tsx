@@ -211,11 +211,11 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
       return c.json({ error: 'Missing required fields (amount, invoiceId, returnUrl)' }, 400);
     }
 
-    const OZOW_SITE_CODE = Deno.env.get('OZOW_SITE_CODE');
+    const OZOW_SITE_CODE = (Deno.env.get('OZOW_SITE_CODE') || '').trim();
     const OZOW_COUNTRY_CODE = Deno.env.get('OZOW_COUNTRY_CODE') || 'ZA';
     const OZOW_CURRENCY_CODE = Deno.env.get('OZOW_CURRENCY_CODE') || 'ZAR';
-    const OZOW_API_KEY = Deno.env.get('OZOW_API_KEY');
-    const OZOW_PRIVATE_KEY = Deno.env.get('OZOW_PRIVATE_KEY');
+    const OZOW_API_KEY = (Deno.env.get('OZOW_API_KEY') || '').trim();
+    const OZOW_PRIVATE_KEY = (Deno.env.get('OZOW_PRIVATE_KEY') || '').trim();
     // Default to the URL from the PHP example if not set
     const OZOW_API_URL = Deno.env.get('OZOW_API_URL') || 'https://api.ozow.com/postpaymentrequest';
 
@@ -260,7 +260,16 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     const cancelUrl = (metadata && metadata.cancelUrl) || `${base}/payment/cancel`;
     const errorUrl = (metadata && metadata.errorUrl) || `${base}/payment/cancel`; // Map error to cancel for now
     const successUrl = (metadata && metadata.successUrl) || `${base}/payment/success`;
-    const notifyUrl = (metadata && metadata.notifyUrl) || `${base}/functions/v1/make-server-1ed353c1/ozow/notify`;
+    
+    // NotifyUrl MUST be public. If base is localhost, use a placeholder or the production URL if known.
+    // Ozow will fail if NotifyUrl is not a valid public URL.
+    let notifyUrl = (metadata && metadata.notifyUrl) || `${base}/functions/v1/make-server-1ed353c1/ozow/notify`;
+    if (notifyUrl.includes('localhost') || notifyUrl.includes('127.0.0.1')) {
+        console.log('Warning: NotifyUrl is localhost, which Ozow cannot reach. Using placeholder.');
+        // Use a dummy public URL to pass validation during local testing
+        notifyUrl = 'https://deniloans.co.za/api/ozow/notify'; 
+    }
+
     const isTest = Deno.env.get('OZOW_IS_TEST') === 'true';
 
     // Format amount to two decimal places
