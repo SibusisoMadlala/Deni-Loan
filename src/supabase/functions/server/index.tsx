@@ -225,7 +225,15 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     }
 
     // Build URLs
-    const base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
+    // Ensure we have a valid base URL. If BASE_URL env var is not set, try to construct it or fail gracefully.
+    // For Supabase Edge Functions, we can't easily auto-detect the full public URL without configuration.
+    let base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
+    
+    if (!base) {
+       // Fallback for development/testing if BASE_URL is missing
+       console.log('Warning: BASE_URL not set, using placeholder. Ozow callbacks may fail.');
+       base = 'https://deniloans.co.za'; // Replace with your actual domain or localhost for testing
+    }
     
     // Fix for Ozow validation errors:
     // TransactionReference: max 50 chars.
@@ -245,7 +253,7 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     const cancelUrl = (metadata && metadata.cancelUrl) || `${base}/payment/cancel`;
     const errorUrl = (metadata && metadata.errorUrl) || `${base}/payment/cancel`; // Map error to cancel for now
     const successUrl = (metadata && metadata.successUrl) || `${base}/payment/success`;
-    const notifyUrl = (metadata && metadata.notifyUrl) || `${base}/make-server-1ed353c1/ozow/notify`;
+    const notifyUrl = (metadata && metadata.notifyUrl) || `${base}/functions/v1/make-server-1ed353c1/ozow/notify`;
     const isTest = Deno.env.get('OZOW_IS_TEST') === 'true';
 
     // Format amount to two decimal places
@@ -280,65 +288,12 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     for (const key of keys) {
       const val = (postData as any)[key];
       if (typeof val === 'boolean') {
-        concatenated += val ? 'true' : 'false'; // Note: PHP implode on boolean might differ, but Ozow docs usually specify 'true'/'false' string or boolean. 
-        // Let's check the PHP behavior again. 
-        // In PHP, implode('', [true, false]) gives "1". 
-        // However, Ozow JSON API expects boolean types in JSON, but the hash generation usually follows specific rules.
-        // The PHP example: $postData is an array. json_encode($postData) is sent.
-        // The hash is calculated on the values.
-        // If $IsTest is boolean in PHP, implode uses "1".
-        // BUT, if we look at the PHP code: $IsTest = $IsTest.
-        // If we assume standard Ozow integration, let's try to match the string concatenation.
-        // If I send boolean in JSON, I should probably use boolean in hash?
-        // Let's look at the PHP code again: $hashString = strtolower(implode('', $postData) . $privateKey);
-        // If $IsTest is true, it appends "1". If false, "".
-        // Let's try to be safe. If the PHP code works, we should emulate it.
-        // However, in the JSON body, we must send actual booleans if the API expects it.
-        // Let's assume for now we send boolean in JSON.
-        // For the hash, let's try to match the string representation.
-        // Actually, let's look at the PHP code: $IsTest is passed to the array.
-        // If it's a boolean, implode uses "1" or "".
-        // Let's assume we should use the string value of the boolean for safety if we are not sure.
-        // But wait, the PHP code sends `json_encode($postData)`.
-        // So `IsTest` will be `true` or `false` in the JSON.
-        // The hash check on Ozow side will replicate the hashing logic.
-        // If Ozow expects the hash to be generated from the values, we need to know how they treat booleans.
-        // Most Ozow integrations use string 'true'/'false' for IsTest in the hash generation if it's part of the string.
-        // Let's stick to the values we put in the object.
+        // PHP implode behavior: true -> "1", false -> ""
+        concatenated += val ? '1' : ''; 
       } else {
         concatenated += String(val);
       }
     }
-    
-    // Correction: In PHP, implode on boolean true is "1", false is "".
-    // But if $IsTest comes from config as string "true" or "false", it's just a string.
-    // Let's assume it's a boolean in our Deno code.
-    // Let's use the values as they are.
-    
-    // Re-evaluating the loop for hash generation to be robust:
-    concatenated = '';
-    for (const key of keys) {
-        const val = (postData as any)[key];
-        if (typeof val === 'boolean') {
-             // If we send boolean in JSON, we should probably use 'true'/'false' string for hash if that's what they expect,
-             // OR if we follow PHP implode behavior:
-             // If isTest is true -> "1", if false -> "".
-             // Let's try to match the PHP implode behavior for the hash.
-             concatenated += val ? '1' : ''; 
-        } else {
-             concatenated += String(val);
-        }
-    }
-    
-    // Wait, if I send boolean in JSON, Ozow receives boolean.
-    // If I send string "true" in JSON, Ozow receives string.
-    // The PHP code: 'IsTest' => $IsTest.
-    // If $IsTest is boolean, json_encode sends true/false.
-    // If $IsTest is boolean, implode sends "1"/"".
-    // This seems risky. Let's check if we can just send everything as strings?
-    // The PHP code: 'Amount' => $amount (string?), 'SiteCode' => $siteCode (string).
-    // Let's convert IsTest to boolean for the JSON body, but for the hash, we need to be careful.
-    // Let's assume the PHP code provided is the source of truth.
     
     concatenated += OZOW_PRIVATE_KEY;
     const toHash = concatenated.toLowerCase();
