@@ -100,7 +100,12 @@ class PaymentService {
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
+          // Include details if available
+          if (errorData.details) {
+             errorMessage = `${errorData.error}: ${JSON.stringify(errorData.details)}`;
+          } else {
+             errorMessage = errorData.error || errorMessage;
+          }
         } catch (e) {
           const text = await response.text();
           errorMessage = text || errorMessage;
