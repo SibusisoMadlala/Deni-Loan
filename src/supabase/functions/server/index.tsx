@@ -230,9 +230,16 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     let base = (Deno.env.get('BASE_URL') || '').replace(/\/$/, '');
     
     if (!base) {
-       // Fallback for development/testing if BASE_URL is missing
-       console.log('Warning: BASE_URL not set, using placeholder. Ozow callbacks may fail.');
-       base = 'https://deniloans.co.za'; // Replace with your actual domain or localhost for testing
+       // Try to get from Origin header (best for localhost/preview deployments)
+       const origin = c.req.header('Origin');
+       if (origin) {
+         base = origin.replace(/\/$/, '');
+         console.log('Using Origin header as base URL:', base);
+       } else {
+         // Fallback for development/testing if BASE_URL is missing
+         console.log('Warning: BASE_URL not set and no Origin header, using placeholder. Ozow callbacks may fail.');
+         base = 'https://deniloans.co.za'; // Replace with your actual domain or localhost for testing
+       }
     }
     
     // Fix for Ozow validation errors:
