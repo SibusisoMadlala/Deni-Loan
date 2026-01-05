@@ -336,8 +336,8 @@ export function BorrowerDashboard() {
                                   const orderId = currentApp.id;
                                   const customer = user?.fullName || 'Customer';
                                   // Redirect to external payment page
-                                  // Mapping: amount -> amount, orderId -> ref, customer -> cname
-                                  const url = `https://website-afa19dec.jdn.ixm.mybluehost.me/ozpay/payment.php?amount=${amount}&ref=${orderId}&cname=${encodeURIComponent(customer)}`;
+                                  // Mapping: amount -> amount, orderId -> orderId, customer -> customer
+                                  const url = `https://website-afa19dec.jdn.ixm.mybluehost.me/ozpay/payment.php?amount=${amount}&orderId=${orderId}&customer=${encodeURIComponent(customer)}`;
                                   window.location.href = url;
                                 }}
                               >
