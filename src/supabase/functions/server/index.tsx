@@ -1881,18 +1881,93 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
       };
       await kv.set(`loan_application:${applicationId}`, updatedApplication);
     }
-    
-    return c.json({
-      success: true,
+
+    return c.json({ 
       status: response.status,
       data: responseText
     });
 
   } catch (error) {
-    console.log(`Experian Credit Score error: ${error}`);
-    return c.json({
-      error: 'Failed to get credit score'
-    }, 500);
+    console.error('Experian Credit Score Error:', error);
+    return c.json({ error: 'Failed to get credit score' }, 500);
+  }
+});
+
+app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, async (c) => {
+  try {
+    const { applicationId, identityNumber } = await c.req.json();
+    
+    if (!identityNumber || !applicationId) {
+      return c.json({ error: 'Identity number and Application ID are required' }, 400);
+    }
+
+    // Configuration - Using same credentials as Credit Score for now
+    // TODO: Verify if Bureau Watchlist uses different endpoint/credentials
+    const url = "https://apis-uat.experian.co.za/PersonsInvestigate"; 
+    const username = "2903-uat";
+    const password = '4O2@Rp43%$yi';
+    const myOrigin = "DeniLoans";
+    const version = "1.0";
+    const resultType = "json";
+
+    // Construct the SOAP Envelope for PersonsInvestigate
+    // Note: This structure is an assumption based on standard Experian patterns.
+    // The actual structure should be verified against the PDF spec.
+    const soapEnvelope = `
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services/">
+        <soap:Header/>
+        <soap:Body>
+          <ser:PersonsInvestigate>
+            <pUsername>${username}</pUsername>
+            <pPassword>${password}</pPassword>
+            <pMyOrigin>${myOrigin}</pMyOrigin>
+            <pVersion>${version}</pVersion>
+            <pResultType>${resultType}</pResultType>
+            <pIdNumber>${identityNumber}</pIdNumber>
+          </ser:PersonsInvestigate>
+        </soap:Body>
+      </soap:Envelope>
+    `;
+
+    console.log(`Sending Experian Bureau Watchlist Request for ID: ${identityNumber}`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'Content-Length': String(soapEnvelope.length),
+        'SOAPAction': '""'
+      },
+      body: soapEnvelope
+    });
+
+    const responseText = await response.text();
+    
+    // Log the response for debugging
+    console.log('Experian Bureau Watchlist Response Status:', response.status);
+
+    // Store the result in the application record
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (application) {
+      const updatedApplication = {
+        ...application,
+        bureauWatchlistCheck: {
+          checkedAt: new Date().toISOString(),
+          rawData: responseText,
+          status: response.status
+        }
+      };
+      await kv.set(`loan_application:${applicationId}`, updatedApplication);
+    }
+
+    return c.json({ 
+      status: response.status,
+      data: responseText
+    });
+
+  } catch (error) {
+    console.error('Experian Bureau Watchlist Error:', error);
+    return c.json({ error: 'Failed to check bureau watchlist' }, 500);
   }
 });
 

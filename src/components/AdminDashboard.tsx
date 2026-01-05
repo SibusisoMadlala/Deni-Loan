@@ -56,6 +56,9 @@ export function AdminDashboard() {
   const [gettingFinancialSnapshot, setGettingFinancialSnapshot] = useState(false)
   const [showFinancialSnapshotDetails, setShowFinancialSnapshotDetails] = useState(false)
 
+  // Bureau Watchlist state
+  const [checkingBureauWatchlist, setCheckingBureauWatchlist] = useState(false)
+
   const parseCreditScoreResult = (xml: string) => {
     if (!xml) return [];
     console.log("Raw XML to parse:", xml);
@@ -183,6 +186,35 @@ export function AdminDashboard() {
       toast.error('Failed to get credit score')
     } finally {
       setCheckingCreditScore(false)
+    }
+  }
+
+  const handleCheckBureauWatchlist = async () => {
+    if (!selectedApp?.idNumber || !selectedApp?.id) return
+    
+    setCheckingBureauWatchlist(true)
+    
+    try {
+      const result = await adminService.checkBureauWatchlist(selectedApp.id, selectedApp.idNumber, accessToken!)
+      
+      const updatedApp = {
+        ...selectedApp,
+        bureauWatchlistCheck: {
+          checkedAt: new Date().toISOString(),
+          rawData: result.data,
+          status: result.status
+        }
+      };
+      
+      setSelectedApp(updatedApp);
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a));
+      
+      toast.success('Bureau watchlist check completed')
+    } catch (err) {
+      console.error('Failed to check bureau watchlist:', err)
+      toast.error('Failed to check bureau watchlist')
+    } finally {
+      setCheckingBureauWatchlist(false)
     }
   }
 
@@ -616,6 +648,7 @@ export function AdminDashboard() {
                   <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
                   <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
                   <TabsTrigger value="credit report" className="flex-shrink-0">Credit Report</TabsTrigger>
+                  <TabsTrigger value="bureau watchlist" className="flex-shrink-0">Bureau Watchlist</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
                 </TabsList>
 
@@ -1148,78 +1181,81 @@ export function AdminDashboard() {
                               </span>
                             </div>
                             <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => setShowCreditScoreDetails(!showCreditScoreDetails)}
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleGetCreditScore}
+                              disabled={checkingCreditScore}
                             >
-                              {showCreditScoreDetails ? 'Hide Details' : 'View Details'}
+                              {checkingCreditScore ? 'Refreshing...' : 'Refresh'}
                             </Button>
                           </div>
+                          
+                          <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                            <pre className="text-xs whitespace-pre-wrap">
+                              {selectedApp.creditScoreCheck.rawData}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-                          {(() => {
-                            const results = parseCreditScoreResult(selectedApp.creditScoreCheck.rawData);
-                            if (!results || results.length === 0) {
-                              return <p className="text-red-500">Error parsing credit score data</p>;
-                            }
-
-                            return (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {results.map((res: any, idx: number) => (
-                                  <Card key={idx} className={`bg-gray-50 ${res.error ? 'border-red-200 bg-red-50' : ''}`}>
-                                    <CardContent className="pt-6">
-                                      {res.error ? (
-                                        <div className="text-center">
-                                          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                                          <p className="font-bold text-red-700">Error {res.code}</p>
-                                          <p className="text-sm text-red-600 mt-1">{res.error}</p>
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                              <p className="text-sm font-medium text-gray-600">Score Type</p>
-                                              <p className="text-lg font-bold">{res.resultType}</p>
-                                            </div>
-                                            <div className="text-right">
-                                              <p className="text-sm font-medium text-gray-600">Score</p>
-                                              <p className={`text-2xl font-bold ${
-                                                parseInt(res.score || '0') > 600 ? 'text-green-600' : 
-                                                parseInt(res.score || '0') > 500 ? 'text-yellow-600' : 'text-red-600'
-                                              }`}>
-                                                {res.score}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          
-                                          {res.reasons.length > 0 && (
-                                            <div className="mt-4">
-                                              <p className="text-xs font-semibold text-gray-500 mb-2">Risk Factors</p>
-                                              <ul className="space-y-2">
-                                                {res.reasons.map((reason: any, rIdx: number) => (
-                                                  <li key={rIdx} className="text-xs bg-white p-2 rounded border">
-                                                    <span className="font-medium block mb-1">{reason.code}</span>
-                                                    {reason.description}
-                                                  </li>
-                                                ))}
-                                              </ul>
-                                            </div>
-                                          )}
-                                        </>
-                                      )}
-                                    </CardContent>
-                                  </Card>
-                                ))}
-                              </div>
-                            );
-                          })()}
-
-                          <div className="mt-4 pt-4 border-t">
-                            <details className="text-xs">
-                              <summary className="cursor-pointer text-blue-600 hover:underline mb-2">View Raw Response</summary>
-                              <pre className="bg-gray-100 p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap">
-                                {selectedApp.creditScoreCheck.rawData}
-                              </pre>
-                            </details>
+                <TabsContent value="bureau watchlist">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Bureau Watchlist Screening</CardTitle>
+                      <CardDescription>
+                        Check if the applicant appears on any bureau watchlists
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {!selectedApp.bureauWatchlistCheck ? (
+                        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                          <p className="text-gray-600">No bureau watchlist check performed yet.</p>
+                          <Button 
+                            onClick={handleCheckBureauWatchlist}
+                            disabled={checkingBureauWatchlist}
+                          >
+                            {checkingBureauWatchlist ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Checking...
+                              </>
+                            ) : (
+                              <>
+                                <Shield className="w-4 h-4 mr-2" />
+                                Check Bureau Watchlist
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Checked
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {new Date(selectedApp.bureauWatchlistCheck.checkedAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleCheckBureauWatchlist}
+                              disabled={checkingBureauWatchlist}
+                            >
+                              {checkingBureauWatchlist ? 'Refreshing...' : 'Refresh'}
+                            </Button>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                            <pre className="text-xs whitespace-pre-wrap">
+                              {selectedApp.bureauWatchlistCheck.rawData}
+                            </pre>
                           </div>
                         </div>
                       )}

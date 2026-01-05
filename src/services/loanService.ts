@@ -44,6 +44,18 @@ export interface LoanApplication {
   creditCheckPassed?: boolean
   declineReason?: string
   
+  creditScoreCheck?: {
+    checkedAt: string
+    rawData: string
+    status: number
+  }
+
+  bureauWatchlistCheck?: {
+    checkedAt: string
+    rawData: string
+    status: number
+  }
+  
   // Documents
   hasIdDocument?: boolean
   hasBankStatements?: boolean
