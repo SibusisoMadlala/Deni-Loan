@@ -1901,32 +1901,36 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
       return c.json({ error: 'Identity number and Application ID are required' }, 400);
     }
 
-    // Configuration - Using same credentials as Credit Score for now
-    // TODO: Verify if Bureau Watchlist uses different endpoint/credentials
-    const url = "https://apis-uat.experian.co.za/PersonsInvestigate"; 
+    // Configuration
+    const url = "https://apis-uat.experian.co.za/PersonsSearch"; 
     const username = "2903-uat";
     const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
     const version = "1.0";
-    const resultType = "json";
 
-    // Construct the SOAP Envelope for PersonsInvestigate
-    // Note: This structure is an assumption based on standard Experian patterns.
-    // The actual structure should be verified against the PDF spec.
+    // Construct the SOAP Envelope for PersonsSearch
     const soapEnvelope = `
-      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services/">
-        <soap:Header/>
-        <soap:Body>
-          <ser:PersonsInvestigate>
-            <pUsername>${username}</pUsername>
-            <pPassword>${password}</pPassword>
-            <pMyOrigin>${myOrigin}</pMyOrigin>
-            <pVersion>${version}</pVersion>
-            <pResultType>${resultType}</pResultType>
-            <pIdNumber>${identityNumber}</pIdNumber>
-          </ser:PersonsInvestigate>
-        </soap:Body>
-      </soap:Envelope>
+      <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:api="http://api.experian.co.za/">
+        <soapenv:Header/>
+        <soapenv:Body>
+          <api:PersonsSearch>
+            <SystemSettings>
+              <Version>${version}</Version>
+              <OriginatingApplication>${myOrigin}</OriginatingApplication>
+              <OriginatingEnvironment>UAT</OriginatingEnvironment>
+              <ClientReference>${crypto.randomUUID()}</ClientReference>
+              <RequestTime>${new Date().toISOString().split('.')[0]}</RequestTime>
+            </SystemSettings>
+            <SearchCriteria>
+              <IdentityNumber>${identityNumber}</IdentityNumber>
+              <IdentityType>SID</IdentityType>
+              <WantWatchlist>Y</WantWatchlist>
+              <WantNegativeMedia>Y</WantNegativeMedia>
+              <WantPEPS>Y</WantPEPS>
+            </SearchCriteria>
+          </api:PersonsSearch>
+        </soapenv:Body>
+      </soapenv:Envelope>
     `;
 
     console.log(`Sending Experian Bureau Watchlist Request for ID: ${identityNumber}`);
@@ -1936,7 +1940,8 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
         'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': '""'
+        'SOAPAction': '"http://api.experian.co.za/PersonsSearch"',
+        'Authorization': 'Basic ' + btoa(`${username}:${password}`)
       },
       body: soapEnvelope
     });
