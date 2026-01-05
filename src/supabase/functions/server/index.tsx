@@ -1902,7 +1902,8 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
     }
 
     // Configuration
-    const url = "https://apis-uat.experian.co.za/PersonsSearch"; 
+    // URL might be PersonSearch or PersonsSearch. Trying PersonSearch based on user prompt.
+    const url = "https://apis-uat.experian.co.za/PersonSearch"; 
     const username = "2903-uat";
     const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
