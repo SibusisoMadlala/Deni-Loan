@@ -611,12 +611,12 @@ export function AdminDashboard() {
           <div className="lg:col-span-2">
             {selectedApp ? (
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList className="flex flex-wrap h-auto w-full justify-start">
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="documents">Documents</TabsTrigger>
-                  <TabsTrigger value="affordability">Affordability</TabsTrigger>
-                  <TabsTrigger value="credit report">Credit Report</TabsTrigger>
-                  <TabsTrigger value="decision">Decision</TabsTrigger>
+                <TabsList className="flex w-full justify-start overflow-x-auto h-auto pb-2 gap-2">
+                  <TabsTrigger value="details" className="flex-shrink-0">Details</TabsTrigger>
+                  <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
+                  <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
+                  <TabsTrigger value="credit report" className="flex-shrink-0">Credit Report</TabsTrigger>
+                  <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details">
