@@ -648,7 +648,7 @@ export function AdminDashboard() {
                   <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
                   <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
                   <TabsTrigger value="credit report" className="flex-shrink-0">Credit Report</TabsTrigger>
-                  <TabsTrigger value="bureau watchlist" className="flex-shrink-0">Bureau Watchlist</TabsTrigger>
+                  <TabsTrigger value="person search" className="flex-shrink-0">Person Search</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
                 </TabsList>
 
@@ -1201,18 +1201,18 @@ export function AdminDashboard() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="bureau watchlist">
+                <TabsContent value="person search">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Bureau Watchlist Screening</CardTitle>
+                      <CardTitle>Person Search</CardTitle>
                       <CardDescription>
-                        Check if the applicant appears on any bureau watchlists
+                        Perform a Person Search (Watchlist, Negative Media, PEPS)
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {!selectedApp.bureauWatchlistCheck ? (
                         <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                          <p className="text-gray-600">No bureau watchlist check performed yet.</p>
+                          <p className="text-gray-600">No person search performed yet.</p>
                           <Button 
                             onClick={handleCheckBureauWatchlist}
                             disabled={checkingBureauWatchlist}
@@ -1220,12 +1220,12 @@ export function AdminDashboard() {
                             {checkingBureauWatchlist ? (
                               <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Checking...
+                                Searching...
                               </>
                             ) : (
                               <>
                                 <Shield className="w-4 h-4 mr-2" />
-                                Check Bureau Watchlist
+                                Run Person Search
                               </>
                             )}
                           </Button>
@@ -1236,7 +1236,7 @@ export function AdminDashboard() {
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 <CheckCircle className="w-3 h-3 mr-1" />
-                                Checked
+                                Searched
                               </Badge>
                               <span className="text-xs text-gray-500">
                                 {new Date(selectedApp.bureauWatchlistCheck.checkedAt).toLocaleString()}
