@@ -330,7 +330,7 @@ export function BorrowerDashboard() {
                                 </div>
                               </div>
                               <Button 
-                                className="w-full bg-green-600 hover:bg-green-700 text-white h-16 text-lg font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                                className="w-full bg-green-600 hover:bg-green-700 text-black"
                                 onClick={() => {
                                   const amount = repaymentAmounts?.fullSettlement || 0;
                                   const orderId = currentApp.idNumber.toString() || '123456789';
@@ -341,8 +341,7 @@ export function BorrowerDashboard() {
                                   window.location.href = url;
                                 }}
                               >
-                                <CreditCard className="w-6 h-6 mr-2" />
-                                Pay Early Repayment - R{repaymentAmounts?.fullSettlement.toLocaleString()}
+                                Early Repayment - R{repaymentAmounts?.fullSettlement.toLocaleString()}
                               </Button>
                             </div>
 
