@@ -337,7 +337,7 @@ export function BorrowerDashboard() {
                                   const customer = currentApp.fullName || user?.fullName || 'Customer';
                                   // Redirect to external payment page
                                   // Mapping: amount -> amount, orderId -> orderId, customer -> customer
-                                  const url = `https://website-afa19dec.jdn.ixm.mybluehost.me/omnipay-ozpay/payment.php?amount=${amount}&orderId=${orderId}&customer=${encodeURIComponent(customer)}`;
+                                  const url = `https://website-afa19dec.jdn.ixm.mybluehost.me/omnipay-ozow/payment.php?amount=${amount}&orderId=${orderId}&customer=${encodeURIComponent(customer)}`;
                                   window.location.href = url;
                                 }}
                               >
