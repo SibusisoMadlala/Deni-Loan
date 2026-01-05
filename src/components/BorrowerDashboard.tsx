@@ -330,7 +330,7 @@ export function BorrowerDashboard() {
                                 </div>
                               </div>
                               <Button 
-                                className="w-full bg-green-600 hover:bg-green-700 text-black"
+                                className="w-full bg-green-600 hover:bg-green-700 text-blue-50 hover:shadow-lg "
                                 onClick={() => {
                                   const amount = repaymentAmounts?.fullSettlement || 0;
                                   const orderId = currentApp.idNumber.toString() || '123456789';
