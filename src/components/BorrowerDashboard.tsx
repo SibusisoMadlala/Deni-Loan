@@ -314,58 +314,36 @@ export function BorrowerDashboard() {
                               </Alert>
                             )}
 
-                            {/* Payment Options */}
-                            {currentApp.nextPayDate && new Date().toDateString() === new Date(currentApp.nextPayDate).toDateString() ? (
-                              /* Due Date Payment */
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div className="flex justify-between items-center mb-3">
-                                  <div>
-                                    <p className="font-semibold text-blue-900">Due Date Payment</p>
-                                    <p className="text-sm text-blue-700">
-                                      Pay your scheduled installment of R{repaymentAmounts?.monthlyInstallment.toLocaleString()}
-                                    </p>
-                                  </div>
-                                  <p className="text-2xl font-bold text-blue-900">
-                                    R{repaymentAmounts?.monthlyInstallment.toLocaleString()}
+                            {/* Payment Options - Early Repayment Only */}
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                              <div className="flex justify-between items-center mb-3">
+                                <div>
+                                  <p className="font-semibold text-green-900">Early Repayment</p>
+                                  <p className="text-sm text-green-700">
+                                    Pay off your loan early
                                   </p>
                                 </div>
-                                <PaymentButton
-                                  applicationId={currentApp.id}
-                                  amount={repaymentAmounts?.monthlyInstallment || 0}
-                                  paymentType="due_payment"
-                                  onError={(error) => setPaymentError(error)}
-                                />
-                              </div>
-                            ) : (
-                              /* Early Settlement Payment */
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <div className="flex justify-between items-center mb-3">
-                                  <div>
-                                    <p className="font-semibold text-green-900">Early Settlement</p>
-                                    <p className="text-sm text-green-700">
-                                      Pay off your loan early and save on interest
-                                    </p>
-                                    <p className="text-xs text-green-600 mt-1">
-                                      5% early settlement discount applied
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-2xl font-bold text-green-900">
-                                      R{repaymentAmounts?.fullSettlement.toLocaleString()}
-                                    </p>
-                                    <p className="text-sm text-green-600 line-through">
-                                      R{repaymentAmounts?.totalWithInterest.toLocaleString()}
-                                    </p>
-                                  </div>
+                                <div className="text-right">
+                                  <p className="text-2xl font-bold text-green-900">
+                                    R{repaymentAmounts?.fullSettlement.toLocaleString()}
+                                  </p>
                                 </div>
-                                <PaymentButton
-                                  applicationId={currentApp.id}
-                                  amount={repaymentAmounts?.fullSettlement || 0}
-                                  paymentType="early_payment"
-                                  onError={(error) => setPaymentError(error)}
-                                />
                               </div>
-                            )}
+                              <Button 
+                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => {
+                                  const amount = repaymentAmounts?.fullSettlement || 0;
+                                  const orderId = currentApp.id;
+                                  const customer = user?.fullName || 'Customer';
+                                  // Redirect to external payment page
+                                  // Mapping: amount -> amount, orderId -> ref, customer -> cname
+                                  const url = `https://website-afa19dec.jdn.ixm.mybluehost.me/ozpay/payment.php?amount=${amount}&ref=${orderId}&cname=${encodeURIComponent(customer)}`;
+                                  window.location.href = url;
+                                }}
+                              >
+                                Early Repayment - R{repaymentAmounts?.fullSettlement.toLocaleString()}
+                              </Button>
+                            </div>
 
 
                           </div>

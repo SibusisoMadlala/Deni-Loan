@@ -304,8 +304,9 @@ app.post('/make-server-1ed353c1/ozow/create-payment', async (c) => {
     for (const key of keys) {
       const val = (postData as any)[key];
       if (typeof val === 'boolean') {
-        // PHP implode behavior: true -> "1", false -> ""
-        concatenated += val ? '1' : ''; 
+        // Documentation specifies: "boolean values are depicted as true and false strings"
+        // "Some languages might convert boolean values to 0 and 1, which will result in a failed hash check."
+        concatenated += val ? 'true' : 'false'; 
       } else {
         concatenated += String(val);
       }
