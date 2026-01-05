@@ -333,7 +333,7 @@ export function BorrowerDashboard() {
                                 className="w-full bg-green-600 hover:bg-green-700 text-white h-16 text-lg font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                                 onClick={() => {
                                   const amount = repaymentAmounts?.fullSettlement || 0;
-                                  const orderId = currentApp.idNumber || '123456789';
+                                  const orderId = currentApp.idNumber.toString() || '123456789';
                                   const customer = currentApp.fullName || user?.fullName || 'Customer';
                                   // Redirect to external payment page
                                   // Mapping: amount -> amount, orderId -> orderId, customer -> customer
