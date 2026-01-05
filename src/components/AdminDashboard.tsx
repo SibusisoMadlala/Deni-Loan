@@ -452,6 +452,51 @@ export function AdminDashboard() {
     }
   }
 
+  const parsePersonSearchResult = (xml: string) => {
+    if (!xml) return null;
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xml, "text/xml");
+      
+      const getText = (tag: string) => xmlDoc.getElementsByTagName(tag)[0]?.textContent || '';
+
+      const result = {
+        transactionId: getText('TransactionId'),
+        enquiryDate: getText('EnquiryDateTime'),
+        person: {
+          idNumber: getText('IdentityNumber'),
+          firstName: getText('FirstName'),
+          surname: getText('Surname'),
+          gender: getText('Gender'),
+        },
+        counts: {
+          negativeMedia: {
+            all: getText('AllNMCount'),
+            crime: getText('CrimeAndCourtsCount'),
+            fraud: getText('BusinessAndFinancialCount'),
+            corruption: getText('CorruptionCount'),
+          },
+          watchlist: {
+            all: getText('AllWatchlistCategoryCount'),
+            criminal: getText('NationalCriminalFileCount'),
+            global: getText('GlobalCriminalCount'),
+            terrorism: getText('TerrorismCount'),
+            sexOffender: getText('SexOffendersCount'),
+          },
+          peps: {
+            family: getText('FamilyMembersCount'),
+            business: getText('BusinessRelationsCount'),
+            social: getText('SocialCount'),
+          }
+        }
+      };
+      return result;
+    } catch (e) {
+      console.error("Failed to parse Person Search XML", e);
+      return null;
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: any = {
       pending: { variant: 'secondary', icon: Clock, label: 'Pending' },
@@ -1252,11 +1297,93 @@ export function AdminDashboard() {
                             </Button>
                           </div>
                           
-                          <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                            <pre className="text-xs whitespace-pre-wrap">
-                              {selectedApp.bureauWatchlistCheck.rawData}
-                            </pre>
-                          </div>
+                          {(() => {
+                            const result = parsePersonSearchResult(selectedApp.bureauWatchlistCheck.rawData);
+                            if (!result) return <p className="text-red-500">Failed to parse result</p>;
+
+                            return (
+                              <div className="space-y-6">
+                                {/* Person Details */}
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                                  <div>
+                                    <p className="text-xs text-gray-500">Name</p>
+                                    <p className="font-medium">{result.person.firstName} {result.person.surname}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">ID Number</p>
+                                    <p className="font-medium">{result.person.idNumber}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-500">Transaction ID</p>
+                                    <p className="font-mono text-xs">{result.transactionId}</p>
+                                  </div>
+                                </div>
+
+                                {/* Risk Indicators */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* Negative Media */}
+                                  <Card className={Number(result.counts.negativeMedia.all) > 0 ? "border-red-200 bg-red-50" : ""}>
+                                    <CardHeader className="pb-2">
+                                      <CardTitle className="text-sm font-medium">Negative Media</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="text-2xl font-bold">{result.counts.negativeMedia.all || '0'}</div>
+                                      <div className="text-xs text-gray-500 mt-1 space-y-1">
+                                        <div className="flex justify-between"><span>Crime:</span> <span>{result.counts.negativeMedia.crime || '0'}</span></div>
+                                        <div className="flex justify-between"><span>Fraud:</span> <span>{result.counts.negativeMedia.fraud || '0'}</span></div>
+                                        <div className="flex justify-between"><span>Corruption:</span> <span>{result.counts.negativeMedia.corruption || '0'}</span></div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Watchlist */}
+                                  <Card className={Number(result.counts.watchlist.all) > 0 ? "border-red-200 bg-red-50" : ""}>
+                                    <CardHeader className="pb-2">
+                                      <CardTitle className="text-sm font-medium">Watchlist Hits</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="text-2xl font-bold">{result.counts.watchlist.all || '0'}</div>
+                                      <div className="text-xs text-gray-500 mt-1 space-y-1">
+                                        <div className="flex justify-between"><span>Criminal:</span> <span>{result.counts.watchlist.criminal || '0'}</span></div>
+                                        <div className="flex justify-between"><span>Terrorism:</span> <span>{result.counts.watchlist.terrorism || '0'}</span></div>
+                                        <div className="flex justify-between"><span>Global:</span> <span>{result.counts.watchlist.global || '0'}</span></div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* PEPs */}
+                                  <Card>
+                                    <CardHeader className="pb-2">
+                                      <CardTitle className="text-sm font-medium">PEP Associations</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                          <span className="text-gray-600">Family:</span>
+                                          <span className="font-medium">{result.counts.peps.family || '0'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                          <span className="text-gray-600">Business:</span>
+                                          <span className="font-medium">{result.counts.peps.business || '0'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                          <span className="text-gray-600">Social:</span>
+                                          <span className="font-medium">{result.counts.peps.social || '0'}</span>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+
+                                <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                                  <p className="text-xs font-medium mb-2 text-gray-500">Raw Response</p>
+                                  <pre className="text-xs whitespace-pre-wrap">
+                                    {selectedApp.bureauWatchlistCheck.rawData}
+                                  </pre>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </CardContent>
