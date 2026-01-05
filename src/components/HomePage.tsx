@@ -184,9 +184,7 @@ export function HomePage() {
             <Card className="flex items-center justify-center p-8 hover:shadow-md transition-shadow h-40">
               <img src={ExperianLogo} alt="Experian Logo" className="h-full w-full object-contain" />
             </Card>
-            <Card className="flex items-center justify-center p-8 hover:shadow-md transition-shadow h-40">
-              <img src={MSECALogo} alt="MSECA Logo" className="h-full w-full object-contain" />
-            </Card>
+            
           </div>
         </div>
 
