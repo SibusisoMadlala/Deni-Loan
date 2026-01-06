@@ -523,6 +523,28 @@ export function AdminDashboard() {
   }
 };
 
+  const parseCreditReportXML = (xmlString: string) => {
+    try {
+      if (!xmlString) return null;
+      
+      // If it's already JSON (mocks), return it directly
+      if (xmlString.trim().startsWith('{')) {
+          return JSON.parse(xmlString);
+      }
+
+      // Extract JSON from XML returnData tag
+      // <returnData>{...}</returnData>
+      const match = xmlString.match(/<returnData>(.*?)<\/returnData>/);
+      if (match && match[1]) {
+        return JSON.parse(match[1]);
+      }
+      return null;
+    } catch (e) {
+      console.error("Failed to parse credit report XML", e);
+      return null;
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: any = {
       pending: { variant: 'secondary', icon: Clock, label: 'Pending' },
@@ -1237,8 +1259,7 @@ export function AdminDashboard() {
                                 Get Credit Score
                               </>
                             )}
-                          </Button>
-                        </div>
+                          </div>
                       ) : (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
@@ -1263,27 +1284,103 @@ export function AdminDashboard() {
                           
                           {(() => {
                             let report = null;
-                            try {
-                              const parsed = typeof selectedApp.creditScoreCheck.rawData === 'string' 
-                                ? JSON.parse(selectedApp.creditScoreCheck.rawData) 
-                                : selectedApp.creditScoreCheck.rawData;
-                              report = parsed.creditReport || parsed;
-                            } catch (e) {
-                              console.error("Failed to parse credit report", e);
+                            let rawData = selectedApp.creditScoreCheck.rawData;
+                            
+                            // Try to parse using our XML helper first
+                            report = parseCreditReportXML(rawData);
+
+                            // Fallback logic for previous JSON format
+                            if (!report) {
+                                try {
+                                  const parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                                  report = parsed.creditReport || parsed;
+                                } catch (e) {
+                                  // silent fail
+                                }
                             }
 
                             if (!report) {
                                 return (
                                   <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
                                     <pre className="text-xs whitespace-pre-wrap">
-                                      {typeof selectedApp.creditScoreCheck.rawData === 'string' 
-                                        ? selectedApp.creditScoreCheck.rawData 
-                                        : JSON.stringify(selectedApp.creditScoreCheck.rawData, null, 2)}
+                                      {typeof rawData === 'string' ? rawData : JSON.stringify(rawData, null, 2)}
                                     </pre>
                                   </div>
                                 );
                             }
 
+                            // Handle different report structures
+                            // Structure 1: Experian XML->JSON extracted (results array)
+                            if (report.results && Array.isArray(report.results)) {
+                                const cpaResult = report.results.find((r: any) => r.resultType === 'CPA') || {};
+                                const nlrResult = report.results.find((r: any) => r.resultType === 'NLR') || {};
+                                const score = parseInt(cpaResult.score || nlrResult.score || '0');
+                                
+                                return (
+                                  <div className="space-y-6">
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* CPA Score Card */}
+                                        <Card>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm font-medium text-gray-500">CPA Credit Score</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex items-baseline space-x-2">
+                                                    <span className={`text-3xl font-bold ${
+                                                        score >= 615 ? 'text-green-600' : 
+                                                        score >= 580 ? 'text-orange-600' : 'text-red-600'
+                                                    }`}>
+                                                        {cpaResult.score || 'N/A'}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-4 space-y-2">
+                                                    {cpaResult.reasons?.map((reason: any, idx: number) => (
+                                                        <div key={idx} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                                            {reason.reasonDescription}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* NLR Score Card */}
+                                        <Card>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm font-medium text-gray-500">NLR Score</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex items-baseline space-x-2">
+                                                    <span className="text-3xl font-bold text-gray-700">
+                                                        {nlrResult.score || 'N/A'}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-4 space-y-2">
+                                                    {nlrResult.reasons?.map((reason: any, idx: number) => (
+                                                        <div key={idx} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                                            {reason.reasonDescription}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                     </div>
+
+                                     {/* Raw Details Toggle */}
+                                    <div className="mt-4">
+                                      <details className="text-xs">
+                                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mb-2">View Raw Response</summary>
+                                        <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                                          <pre className="whitespace-pre-wrap">
+                                            {JSON.stringify(report, null, 2)}
+                                          </pre>
+                                        </div>
+                                      </details>
+                                    </div>
+                                  </div>
+                                )
+                            }
+
+                            // Structure 2: Previous/Mock format
                             return (
                               <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1312,7 +1409,7 @@ export function AdminDashboard() {
                                     </CardHeader>
                                     <CardContent>
                                       <div className="text-2xl font-bold">
-                                        {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(report.disposableIncome)}
+                                        {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(report.disposableIncome || 0)}
                                       </div>
                                       <p className="text-xs text-gray-500 mt-1">Monthly</p>
                                     </CardContent>
@@ -1379,8 +1476,7 @@ export function AdminDashboard() {
                                 Run Person Search
                               </>
                             )}
-                          </Button>
-                        </div>
+                          </div>
                       ) : (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
