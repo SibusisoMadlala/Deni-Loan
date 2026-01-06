@@ -989,7 +989,7 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
         console.log(`Sending New Application Alert email to Admin`);
         await transporter.sendMail({
           from: '"Deni Loans System" <admin@deniloans.co.za>',
-          to: 'sibumadlala03@gmail.com',
+          to: 'admin@deniloans.co.za',
           subject: "New Loan Application Submitted",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

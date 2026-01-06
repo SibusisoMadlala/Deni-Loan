@@ -452,50 +452,64 @@ export function AdminDashboard() {
     }
   }
 
-  const parsePersonSearchResult = (xml: string) => {
-    if (!xml) return null;
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xml, "text/xml");
-      
-      const getText = (tag: string) => xmlDoc.getElementsByTagName(tag)[0]?.textContent || '';
-
-      const result = {
-        transactionId: getText('TransactionId'),
-        enquiryDate: getText('EnquiryDateTime'),
-        person: {
-          idNumber: getText('IdentityNumber'),
-          firstName: getText('FirstName'),
-          surname: getText('Surname'),
-          gender: getText('Gender'),
-        },
-        counts: {
-          negativeMedia: {
-            all: getText('AllNMCount'),
-            crime: getText('CrimeAndCourtsCount'),
-            fraud: getText('BusinessAndFinancialCount'),
-            corruption: getText('CorruptionCount'),
-          },
-          watchlist: {
-            all: getText('AllWatchlistCategoryCount'),
-            criminal: getText('NationalCriminalFileCount'),
-            global: getText('GlobalCriminalCount'),
-            terrorism: getText('TerrorismCount'),
-            sexOffender: getText('SexOffendersCount'),
-          },
-          peps: {
-            family: getText('FamilyMembersCount'),
-            business: getText('BusinessRelationsCount'),
-            social: getText('SocialCount'),
-          }
-        }
-      };
-      return result;
-    } catch (e) {
-      console.error("Failed to parse Person Search XML", e);
+  const parsePersonSearchResult = (jsonData: any) => {
+  if (!jsonData) return null;
+  
+  try {
+    // Handle direct response from backend
+    const data = jsonData.data || jsonData;
+    
+    // Check for error response
+    if (data.response_status === "Failure") {
+      console.error("Experian API Error:", data.error_description);
       return null;
     }
-  };
+
+    // Extract data from REST JSON structure (pages 20-21 in documentation)
+    const returnData = data.return_data || {};
+    const searchResult = returnData.search_result || {};
+    const datasetCnt = returnData.dataset_cnt || {};
+    const nmCnt = datasetCnt.nm_cnt || {};
+    const wlsCnt = datasetCnt.wls_cnt || {};
+    const pepCnt = datasetCnt.pep_cnt || {};
+
+    const result = {
+      transactionId: returnData.transaction_id || '',
+      enquiryDate: returnData.enquiry_date_time || '',
+      person: {
+        idNumber: searchResult.identity_number || '',
+        firstName: searchResult.first_name || '',
+        surname: searchResult.surname || '',
+        gender: searchResult.gender || '',
+      },
+      counts: {
+        negativeMedia: {
+          all: nmCnt.all_nmcat_cnt || nmCnt.all || '0',
+          crime: nmCnt.crime_and_courts_cnt || '0',
+          fraud: nmCnt.business_and_financial_cnt || '0',
+          corruption: nmCnt.corruption_cnt || '0',
+        },
+        watchlist: {
+          all: wlsCnt.all_wlscat_cnt || wlsCnt.all || '0',
+          criminal: wlsCnt.national_criminal_file_cnt || '0',
+          global: wlsCnt.global_criminal_cnt || '0',
+          terrorism: wlsCnt.terrorism_cnt || '0',
+          sexOffender: wlsCnt.sex_offenders_cnt || '0',
+        },
+        peps: {
+          family: pepCnt.family_members_cnt || '0',
+          business: pepCnt.business_relations_cnt || '0',
+          social: pepCnt.social_cnt || '0',
+        }
+      }
+    };
+    
+    return result;
+  } catch (e) {
+    console.error("Failed to parse Person Search JSON", e, jsonData);
+    return null;
+  }
+};
 
   const getStatusBadge = (status: string) => {
     const variants: any = {
