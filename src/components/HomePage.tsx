@@ -8,6 +8,7 @@ import { calculateLoan } from '../utils/loanCalculator'
 import NCRLogo from '../assets/NCRlogoV.png'
 import ExperianLogo from '../assets/ExperianLogo.png'
 import MSECALogo from '../assets/MSECALogo.png'
+import CASALogo from '../assets/CASALogo.jpg';
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -185,7 +186,7 @@ export function HomePage() {
               <img src={ExperianLogo} alt="Experian Logo" className="h-full w-full object-contain" />
             </Card>
             <Card className="flex items-center justify-center p-8 hover:shadow-md transition-shadow h-40">
-              <img src={MSECALogo} alt="MSECA Logo" className="h-full w-full object-contain" />
+              <img src={CASALogo} alt="CASA Logo" className="h-full w-full object-contain" />
             </Card>
           </div>
         </div>
