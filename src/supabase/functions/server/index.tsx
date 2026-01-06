@@ -1920,68 +1920,72 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
     }
 
     // Configuration
-    // URL might be PersonSearch or PersonsSearch. Trying PersonSearch based on user prompt.
-    const url = "https://apis-uat.experian.co.za/PersonSearch"; 
+    const url = "https://apis-uat.experian.co.za/WatchListScreeningService/PersonsSearch"; 
     const username = "2903-uat";
     const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
     const version = "1.0";
 
-    // Construct the SOAP Envelope for PersonsSearch
-    const soapEnvelope = `
-      <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:api="http://api.experian.co.za/">
-        <soapenv:Header/>
-        <soapenv:Body>
-          <api:PersonsSearch>
-            <SystemSettings>
-              <Version>${version}</Version>
-              <OriginatingApplication>${myOrigin}</OriginatingApplication>
-              <OriginatingEnvironment>UAT</OriginatingEnvironment>
-              <ClientReference>${crypto.randomUUID()}</ClientReference>
-              <RequestTime>${new Date().toISOString().split('.')[0]}</RequestTime>
-            </SystemSettings>
-            <SearchCriteria>
-              <IdentityNumber>${identityNumber}</IdentityNumber>
-              <IdentityType>SID</IdentityType>
-              <WantWatchlist>Y</WantWatchlist>
-              <WantNegativeMedia>Y</WantNegativeMedia>
-              <WantPEPS>Y</WantPEPS>
-            </SearchCriteria>
-          </api:PersonsSearch>
-        </soapenv:Body>
-      </soapenv:Envelope>
-    `;
+    // Request Payload - REST JSON format based on documentation structure
+    const payload = {
+      "PersonsSearch": {
+        "SystemSettings": {
+          "Version": version,
+          "OriginatingApplication": myOrigin,
+          "OriginatingEnvironment": "UAT",
+          "ClientReference": crypto.randomUUID(),
+          "RequestTime": new Date().toISOString().split('.')[0]
+        },
+        "SearchCriteria": {
+          "IdentityNumber": identityNumber,
+          "IdentityType": "SID",
+          "WantWatchlist": "Y",
+          "WantNegativeMedia": "Y",
+          "WantPEPS": "Y"
+        }
+      }
+    };
 
-    console.log(`Sending Experian Bureau Watchlist Request for ID: ${identityNumber}`);
+    console.log(`Sending Experian Bureau Watchlist Request (REST) for ID: ${identityNumber}`);
+    console.log('Payload:', JSON.stringify(payload));
 
+    const authHeader = 'Basic ' + btoa(`${username}:${password}`);
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': '"http://api.experian.co.za/PersonsSearch"',
-        'Authorization': 'Basic ' + btoa(`${username}:${password}`)
+        'Content-Type': 'application/json',
+        'Authorization': authHeader
       },
-      body: soapEnvelope
+      body: JSON.stringify(payload)
     });
 
     const responseText = await response.text();
     
     // Log the response for debugging
     console.log('Experian Bureau Watchlist Response Status:', response.status);
+    console.log('Experian Bureau Watchlist Response Body:', responseText.substring(0, 200) + '...');
 
     // Store the result in the application record
-    const application = await kv.get(`loan_application:${applicationId}`);
-    if (application) {
-      const updatedApplication = {
-        ...application,
-        bureauWatchlistCheck: {
-          checkedAt: new Date().toISOString(),
-          rawData: responseText,
-          status: response.status
-        }
-      };
-      await kv.set(`loan_application:${applicationId}`, updatedApplication);
+    try {
+      const application = await kv.get(`loan_application:${applicationId}`);
+      if (application) {
+        // Since we are now getting JSON, let's keep it as is or stringify it if we were storing raw XML before
+        // The frontend expects `rawData` string to parse. If it's JSON now, we should store it as stringified JSON.
+        // However, the frontend parser `parsePersonSearchResult` expects XML. We might need to adjust the frontend too.
+        // For now, let's store the raw text response.
+        const updatedApplication = {
+          ...application,
+          bureauWatchlistCheck: {
+            checkedAt: new Date().toISOString(),
+            rawData: responseText,
+            status: response.status
+          }
+        };
+        await kv.set(`loan_application:${applicationId}`, updatedApplication);
+      }
+    } catch (kvError) {
+      console.error('Failed to update KV store:', kvError);
+      // Continue without failing the request
     }
 
     return c.json({ 
@@ -1994,7 +1998,6 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
     return c.json({ error: 'Failed to check bureau watchlist' }, 500);
   }
 });
-
 // Experian Financial Snapshot
 app.post('/make-server-1ed353c1/admin/financial-snapshot', requireAdmin, async (c) => {
   try {

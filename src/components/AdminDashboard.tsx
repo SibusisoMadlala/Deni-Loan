@@ -456,8 +456,20 @@ export function AdminDashboard() {
   if (!jsonData) return null;
   
   try {
-    // Handle direct response from backend
-    const data = jsonData.data || jsonData;
+    // If jsonData is a string (which it should be from the API), parse it
+    let parsedData = jsonData;
+    if (typeof jsonData === 'string') {
+      try {
+        parsedData = JSON.parse(jsonData);
+      } catch (e) {
+        console.error("Failed to parse JSON string in parsePersonSearchResult", e);
+        // If it's not JSON, maybe it's the old XML or something else, but we can't parse it as JSON
+        return null; 
+      }
+    }
+
+    // Handle direct response from backend structure
+    const data = parsedData.data || parsedData;
     
     // Check for error response
     if (data.response_status === "Failure") {
