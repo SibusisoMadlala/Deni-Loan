@@ -1259,7 +1259,8 @@ export function AdminDashboard() {
                                 Get Credit Score
                               </>
                             )}
-                          </div>
+                          </Button>
+                        </div>
                       ) : (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
@@ -1476,7 +1477,8 @@ export function AdminDashboard() {
                                 Run Person Search
                               </>
                             )}
-                          </div>
+                          </Button>
+                        </div>
                       ) : (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
