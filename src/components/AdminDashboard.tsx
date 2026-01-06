@@ -1261,11 +1261,91 @@ export function AdminDashboard() {
                             </Button>
                           </div>
                           
-                          <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                            <pre className="text-xs whitespace-pre-wrap">
-                              {selectedApp.creditScoreCheck.rawData}
-                            </pre>
-                          </div>
+                          {(() => {
+                            let report = null;
+                            try {
+                              const parsed = typeof selectedApp.creditScoreCheck.rawData === 'string' 
+                                ? JSON.parse(selectedApp.creditScoreCheck.rawData) 
+                                : selectedApp.creditScoreCheck.rawData;
+                              report = parsed.creditReport || parsed;
+                            } catch (e) {
+                              console.error("Failed to parse credit report", e);
+                            }
+
+                            if (!report) {
+                                return (
+                                  <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                                    <pre className="text-xs whitespace-pre-wrap">
+                                      {typeof selectedApp.creditScoreCheck.rawData === 'string' 
+                                        ? selectedApp.creditScoreCheck.rawData 
+                                        : JSON.stringify(selectedApp.creditScoreCheck.rawData, null, 2)}
+                                    </pre>
+                                  </div>
+                                );
+                            }
+
+                            return (
+                              <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* Credit Score */}
+                                  <Card>
+                                    <CardHeader className="pb-2">
+                                      <CardTitle className="text-sm font-medium text-gray-500">Credit Score</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="flex items-baseline space-x-2">
+                                        <span className={`text-3xl font-bold ${
+                                          report.creditScore >= 600 ? 'text-green-600' : 
+                                          report.creditScore >= 550 ? 'text-orange-600' : 'text-red-600'
+                                        }`}>
+                                          {report.creditScore}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-500 mt-1">Min required: 550</p>
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Disposable Income */}
+                                  <Card>
+                                    <CardHeader className="pb-2">
+                                      <CardTitle className="text-sm font-medium text-gray-500">Disposable Income</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="text-2xl font-bold">
+                                        {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(report.disposableIncome)}
+                                      </div>
+                                      <p className="text-xs text-gray-500 mt-1">Monthly</p>
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Status */}
+                                  <Card className={report.approved ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}>
+                                    <CardHeader className="pb-2">
+                                      <CardTitle className="text-sm font-medium text-gray-500">Assessment Result</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className={`text-xl font-bold ${report.approved ? 'text-green-700' : 'text-red-700'}`}>
+                                        {report.approved ? 'Approved' : 'Declined'}
+                                      </div>
+                                      <p className="text-xs mt-1 text-gray-600">{report.reason}</p>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+
+                                {/* Raw Details Toggle */}
+                                <div className="mt-4">
+                                  <details className="text-xs">
+                                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mb-2">View Raw Response</summary>
+                                    <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                                      <pre className="whitespace-pre-wrap">
+                                        {JSON.stringify(report, null, 2)}
+                                      </pre>
+                                    </div>
+                                  </details>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </CardContent>

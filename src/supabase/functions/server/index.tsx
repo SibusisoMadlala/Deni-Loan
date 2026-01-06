@@ -1919,6 +1919,17 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
       return c.json({ error: 'Identity number and Application ID are required' }, 400);
     }
 
+    // Retrieve application data to get the name
+    const application = await kv.get(`loan_application:${applicationId}`);
+    if (!application) {
+       return c.json({ error: 'Application not found' }, 404);
+    }
+
+    // Split fullName into first_name and surname
+    const names = (application.fullName || "").trim().split(" ");
+    const surname = names.length > 1 ? names.pop() : "";
+    const firstName = names.join(" ");
+
     // Configuration
     const url = "https://apis-uat.experian.co.za/WatchListScreeningService/PersonsSearch"; 
     const username = "2903-uat";
@@ -1926,23 +1937,25 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
     const myOrigin = "DeniLoans";
     const version = "1.0";
 
-    // Request Payload - REST JSON format based on documentation structure
+    // Request Payload - REST JSON format with snake_case
+    // Reverting to snake_case as it yielded BWS_101 (Application Error) instead of BWS_200 (System/Mapping Error)
+    // Adding optional fields as empty strings to satisfy "Not all string variables filled in"
     const payload = {
-      "PersonsSearch": {
-        "SystemSettings": {
-          "Version": version,
-          "OriginatingApplication": myOrigin,
-          "OriginatingEnvironment": "UAT",
-          "ClientReference": crypto.randomUUID(),
-          "RequestTime": new Date().toISOString().split('.')[0]
-        },
-        "SearchCriteria": {
-          "IdentityNumber": identityNumber,
-          "IdentityType": "SID",
-          "WantWatchlist": "Y",
-          "WantNegativeMedia": "Y",
-          "WantPEPS": "Y"
-        }
+      "system_settings": {
+        "version": version,
+        "originating_application": myOrigin,
+        "originating_environment": "UAT",
+        "client_reference": crypto.randomUUID(),
+        "request_time": new Date().toISOString().split('.')[0]
+      },
+      "search_criteria": {
+        "identity_number": identityNumber,
+        "identity_type": "SID",
+        "first_name": firstName || "Unknown",
+        "surname": surname || "Unknown",
+        "want_watchlist": "Y",
+        "want_negative_media": "Y",
+        "want_peps": "Y"
       }
     };
 
