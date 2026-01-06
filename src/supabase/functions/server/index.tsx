@@ -985,6 +985,24 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
             </div>
           `
         });
+
+        console.log(`Sending New Application Alert email to Admin`);
+        await transporter.sendMail({
+          from: '"Deni Loans System" <admin@deniloans.co.za>',
+          to: 'sibumadlala03@gmail.com',
+          subject: "New Loan Application Submitted",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">New Application Alert</h2>
+              <p>A new loan application has been submitted.</p>
+              <p><strong>Applicant:</strong> ${application.fullName}</p>
+              <p><strong>ID Number:</strong> ${application.idNumber}</p>
+              <p><strong>Phone:</strong> ${application.phone}</p>
+              <p><strong>Email:</strong> ${application.email}</p>
+              <p>Please log in to the admin dashboard to review it.</p>
+            </div>
+          `
+        });
       } catch (emailError) {
         console.error('Failed to send application received email:', emailError);
       }
