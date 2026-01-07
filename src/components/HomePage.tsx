@@ -67,30 +67,6 @@ export function HomePage() {
                 <span className="text-gray-600">Principal Amount</span>
                 <span>R{loanAmount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Interest (4.5%)</span>
-                <span>R{interest.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Initiation Fee</span>
-                <span>R{initiationFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Service Fee</span>
-                <span>R{serviceFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Insurance</span>
-                <span>R{insurance.toFixed(2)}</span>
-              </div>
-              <div className="border-t border-gray-200 pt-2 mt-2">
-                <div className="flex justify-between">
-                  <span>Total to Repay</span>
-                  <span className="text-xl text-blue-600">
-                    R{totalRepayable.toFixed(2)}
-                  </span>
-                </div>
-              </div>
             </div>
 
             <Button 
