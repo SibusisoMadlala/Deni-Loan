@@ -1764,7 +1764,7 @@ app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) 
     }
 
     // Configuration
-    const url = "https://apis-uat.experian.co.za/IDVService?wsdl";
+    const url = "https://apis.experian.co.za/IDVService?wsdl";
     const username = "2903-uat";
     const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
@@ -1853,7 +1853,7 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
     }
 
     // Configuration
-    const url = "https://apis-uat.experian.co.za/GetPersonScore";
+    const url = "https://apis.experian.co.za/GetPersonScore";
     const username = "2903-uat";
     const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
