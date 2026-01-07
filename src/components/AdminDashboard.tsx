@@ -861,6 +861,10 @@ export function AdminDashboard() {
                           <p className="text-sm">{selectedApp.employerName}</p>
                         </div>
                         <div>
+                          <Label className="text-xs text-gray-600">Employer Address</Label>
+                          <p className="text-sm">{selectedApp.employerAddress || 'Not specified'}</p>
+                        </div>
+                        <div>
                           <Label className="text-xs text-gray-600">Next Pay Date</Label>
                           <p className="text-sm font-medium">
                             {selectedApp.nextPayDate 

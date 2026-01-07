@@ -122,7 +122,7 @@ export function LoanApplicationPage() {
     }
 
     if (currentStep === 1) {
-      if (!applicationData.employerName || !applicationData.netSalary) {
+      if (!applicationData.employerName || !applicationData.employerAddress || !applicationData.netSalary) {
         setError('Please fill in all required fields')
         return
       }
