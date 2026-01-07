@@ -856,6 +856,29 @@ export function AdminDashboard() {
                           <Label className="text-xs text-gray-600">Email</Label>
                           <p className="text-sm">{selectedApp.email}</p>
                         </div>
+                        {selectedApp.nextOfKin && (
+                           <div className="col-span-1 md:col-span-2 border-t pt-2 mt-2">
+                            <h4 className="text-sm font-medium mb-2">Next of Kin</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-xs text-gray-600">Name</Label>
+                                <p className="text-sm">{selectedApp.nextOfKin.name} {selectedApp.nextOfKin.surname}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-gray-600">Relation</Label>
+                                <p className="text-sm">{selectedApp.nextOfKin.relation}</p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-gray-600">Phone</Label>
+                                <p className="text-sm">{selectedApp.nextOfKin.phoneNumber} ({selectedApp.nextOfKin.phoneType})</p>
+                              </div>
+                               <div>
+                                <Label className="text-xs text-gray-600">Email</Label>
+                                <p className="text-sm">{selectedApp.nextOfKin.email}</p>
+                              </div>
+                            </div>
+                           </div>
+                        )}
                         <div>
                           <Label className="text-xs text-gray-600">Employer</Label>
                           <p className="text-sm">{selectedApp.employerName}</p>
@@ -863,6 +886,10 @@ export function AdminDashboard() {
                         <div>
                           <Label className="text-xs text-gray-600">Employer Address</Label>
                           <p className="text-sm">{selectedApp.employerAddress || 'Not specified'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600">Employer Phone</Label>
+                          <p className="text-sm">{selectedApp.employerPhone || 'Not specified'}</p>
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">Next Pay Date</Label>

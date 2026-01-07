@@ -15,9 +15,19 @@ export interface LoanApplication {
   phone: string
   email: string
   
+  nextOfKin?: {
+    name: string
+    surname: string
+    relation: string
+    phoneNumber: string
+    phoneType: string // 'Mobile' | 'Home' | 'Work'
+    email: string
+  }
+  
   // Work & Income
   employerName: string
   employerAddress?: string
+  employerPhone?: string
   nextPayDate?: string
   paydayCycle: string
   netSalary: number

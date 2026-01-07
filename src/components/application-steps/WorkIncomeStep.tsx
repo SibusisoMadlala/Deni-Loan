@@ -91,6 +91,18 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="employerPhone">Employer Phone</Label>
+        <Input
+          id="employerPhone"
+          type="tel"
+          placeholder="011 123 4567"
+          value={data.employerPhone || ''}
+          onChange={(e) => updateData({ employerPhone: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="paydayCycle">Payday Cycle</Label>
         <Select
           value={data.paydayCycle}

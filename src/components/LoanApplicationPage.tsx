@@ -40,8 +40,17 @@ export function LoanApplicationPage() {
     maritalStatus: '',
     phone: '',
     email: '',
+    nextOfKin: {
+      name: '',
+      surname: '',
+      relation: '',
+      phoneNumber: '',
+      phoneType: 'Mobile',
+      email: ''
+    },
     employerName: '',
     employerAddress: '',
+    employerPhone: '',
     nextPayDate: '',
     paydayCycle: 'monthly',
     netSalary: 0,
@@ -115,6 +124,13 @@ export function LoanApplicationPage() {
         setError('Please fill in all required fields')
         return
       }
+      
+      const nok = applicationData.nextOfKin
+      if (!nok?.name || !nok?.surname || !nok?.relation || !nok?.phoneNumber || !nok?.email) {
+         setError('Please fill in all Next of Kin fields')
+         return
+      }
+      
       if (!applicationData.acceptPOPIA || !applicationData.acceptExperian) {
         setError('Please accept the required consents')
         return
@@ -122,7 +138,7 @@ export function LoanApplicationPage() {
     }
 
     if (currentStep === 1) {
-      if (!applicationData.employerName || !applicationData.employerAddress || !applicationData.netSalary) {
+      if (!applicationData.employerName || !applicationData.employerAddress || !applicationData.employerPhone || !applicationData.netSalary) {
         setError('Please fill in all required fields')
         return
       }

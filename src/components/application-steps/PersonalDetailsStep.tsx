@@ -104,6 +104,83 @@ export function PersonalDetailsStep({ data, updateData }: PersonalDetailsStepPro
         />
       </div>
 
+      <div className="border-t pt-2 mt-4">
+        <h3 className="text-md font-semibold mb-3">Next of Kin Details</h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nokName">Name</Label>
+              <Input
+                id="nokName"
+                value={data.nextOfKin?.name || ''}
+                onChange={(e) => updateData({ nextOfKin: { ...data.nextOfKin, name: e.target.value } })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nokSurname">Surname</Label>
+              <Input
+                id="nokSurname"
+                value={data.nextOfKin?.surname || ''}
+                onChange={(e) => updateData({ nextOfKin: { ...data.nextOfKin, surname: e.target.value } })}
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="nokRelation">Relation</Label>
+            <Input
+              id="nokRelation"
+              placeholder="e.g. Spouse, Parent, Sibling"
+              value={data.nextOfKin?.relation || ''}
+              onChange={(e) => updateData({ nextOfKin: { ...data.nextOfKin, relation: e.target.value } })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nokPhone">Phone Number</Label>
+              <Input
+                id="nokPhone"
+                type="tel"
+                value={data.nextOfKin?.phoneNumber || ''}
+                onChange={(e) => updateData({ nextOfKin: { ...data.nextOfKin, phoneNumber: e.target.value } })}
+                required
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="nokPhoneType">Type</Label>
+              <Select
+                value={data.nextOfKin?.phoneType || 'Mobile'}
+                onValueChange={(value) => updateData({ nextOfKin: { ...data.nextOfKin, phoneType: value } })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mobile">Mobile</SelectItem>
+                  <SelectItem value="Home">Home</SelectItem>
+                  <SelectItem value="Work">Work</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="nokEmail">Email</Label>
+            <Input
+              id="nokEmail"
+              type="email"
+              value={data.nextOfKin?.email || ''}
+              onChange={(e) => updateData({ nextOfKin: { ...data.nextOfKin, email: e.target.value } })}
+              required
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="border-t pt-4 mt-6 space-y-4">
         <div className="flex items-start space-x-2">
           <Checkbox
