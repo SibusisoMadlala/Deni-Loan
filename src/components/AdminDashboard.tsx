@@ -877,6 +877,10 @@ export function AdminDashboard() {
                           <p className="text-sm">{selectedApp.accountNumber}</p>
                         </div>
                         <div>
+                          <Label className="text-xs text-gray-600">Account Type</Label>
+                          <p className="text-sm">{selectedApp.accountType}</p>
+                        </div>
+                        <div>
                           <Label className="text-xs text-gray-600">Requested Amount</Label>
                           <p className="text-sm">R{selectedApp.requestedAmount?.toLocaleString()}</p>
                         </div>
