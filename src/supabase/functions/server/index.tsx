@@ -1194,8 +1194,8 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
     const updatedApplication = {
       ...application,
       status,
-      approvedAmount,
-      declineReason,
+      approvedAmount: approvedAmount ?? application.approvedAmount,
+      declineReason: declineReason ?? application.declineReason,
       decidedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1267,6 +1267,15 @@ app.post('/make-server-1ed353c1/admin/disburse', requireAdmin, async (c) => {
       return c.json({ error: 'Application not found' }, 404);
     }
 
+    const finalAmount = amount || application.approvedAmount || application.requestedAmount || 0;
+    
+    console.log(`Disbursing application ${applicationId}:`, { 
+      requested: amount, 
+      fromAppApproved: application.approvedAmount, 
+      fromAppRequested: application.requestedAmount,
+      final: finalAmount
+    });
+
     // Create a disbursement record
     const disbursement = {
       id: crypto.randomUUID(),
@@ -1275,7 +1284,7 @@ app.post('/make-server-1ed353c1/admin/disburse', requireAdmin, async (c) => {
       payshapId: payshapId || null,
       bankName: bankName || null,
       accountNumber: accountNumber || null,
-      amount: amount || application.approvedAmount || application.requestedAmount || 0,
+      amount: finalAmount,
       disbursedAt: new Date().toISOString(),
       disbursedBy: c.get('userId')
     };
