@@ -261,6 +261,8 @@ export function AdminDashboard() {
     if (selectedApp?.id) {
       loadDocuments(selectedApp.id)
       loadCreditReport(selectedApp)
+      // Initialize approved amount with current value or requested value
+      setApprovedAmount(selectedApp.approvedAmount || selectedApp.requestedAmount || 0)
     }
   }, [selectedApp])
 
