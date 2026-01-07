@@ -62,12 +62,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Principal Amount</span>
-                <span>R{loanAmount.toLocaleString()}</span>
-              </div>
-            </div>
+            
 
             <Button 
               size="lg" 
