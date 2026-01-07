@@ -1,6 +1,7 @@
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Checkbox } from '../ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
 interface PersonalDetailsStepProps {
   data: any
@@ -10,6 +11,29 @@ interface PersonalDetailsStepProps {
 export function PersonalDetailsStep({ data, updateData }: PersonalDetailsStepProps) {
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Select
+            value={data.title}
+            onValueChange={(value) => updateData({ title: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Mr">Mr</SelectItem>
+              <SelectItem value="Mrs">Mrs</SelectItem>
+              <SelectItem value="Ms">Ms</SelectItem>
+              <SelectItem value="Miss">Miss</SelectItem>
+              <SelectItem value="Dr">Dr</SelectItem>
+              <SelectItem value="Prof">Prof</SelectItem>
+              <SelectItem value="Rev">Rev</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
       <div className="space-y-2">
         <Label htmlFor="idNumber">South African ID Number</Label>
         <Input
@@ -34,6 +58,26 @@ export function PersonalDetailsStep({ data, updateData }: PersonalDetailsStepPro
           onChange={(e) => updateData({ fullName: e.target.value })}
           required
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="maritalStatus">Marital Status</Label>
+        <Select
+          value={data.maritalStatus}
+          onValueChange={(value) => updateData({ maritalStatus: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select Marital Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Single">Single</SelectItem>
+            <SelectItem value="Married (Community of Property)">Married (Community of Property)</SelectItem>
+            <SelectItem value="Married (Ante Nuptial Contract)">Married (Ante Nuptial Contract)</SelectItem>
+            <SelectItem value="Divorced">Divorced</SelectItem>
+            <SelectItem value="Widowed">Widowed</SelectItem>
+            <SelectItem value="Separated">Separated</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">

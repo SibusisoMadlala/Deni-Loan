@@ -34,8 +34,10 @@ export function LoanApplicationPage() {
   const [isDocumentsValid, setIsDocumentsValid] = useState(false)
   
   const [applicationData, setApplicationData] = useState<any>({
+    title: '',
     idNumber: '',
     fullName: '',
+    maritalStatus: '',
     phone: '',
     email: '',
     employerName: '',

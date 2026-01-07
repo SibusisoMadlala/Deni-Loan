@@ -757,7 +757,11 @@ export function AdminDashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-xs text-gray-600">Full Name</Label>
-                          <p className="text-sm">{selectedApp.fullName}</p>
+                          <p className="text-sm">{selectedApp.title} {selectedApp.fullName}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600">Marital Status</Label>
+                          <p className="text-sm">{selectedApp.maritalStatus || 'Not specified'}</p>
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">ID Number</Label>

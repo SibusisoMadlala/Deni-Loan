@@ -8,8 +8,10 @@ export interface LoanApplication {
   status?: 'draft' | 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid'
   
   // Personal Details
+  title?: string
   idNumber: string
   fullName: string
+  maritalStatus?: string
   phone: string
   email: string
   
