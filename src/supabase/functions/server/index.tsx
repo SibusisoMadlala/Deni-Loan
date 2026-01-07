@@ -1213,7 +1213,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #16a34a;">Loan Approved!</h2>
               <p>Dear ${application.fullName},</p>
-              <p>Congratulations! Your loan application for R${approvedAmount} has been approved.</p>
+              <p>Congratulations! Your loan application for R${updatedApplication.approvedAmount} has been approved.</p>
               <p>The funds will be disbursed to your account shortly.</p>
               <p>Best regards,<br>Deni Loans Team</p>
             </div>
