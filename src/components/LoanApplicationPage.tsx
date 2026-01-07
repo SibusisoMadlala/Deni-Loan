@@ -31,6 +31,7 @@ export function LoanApplicationPage() {
   const [hasActiveApprovedLoan, setHasActiveApprovedLoan] = useState(false)
   const [checkingApplications, setCheckingApplications] = useState(true)
   const [isFirstLoanInYear, setIsFirstLoanInYear] = useState(true) // Default to true
+  const [isDocumentsValid, setIsDocumentsValid] = useState(false)
   
   const [applicationData, setApplicationData] = useState<any>({
     idNumber: '',
@@ -152,6 +153,11 @@ export function LoanApplicationPage() {
 
     // Submit application after documents (Step 3)
     if (currentStep === 3) {
+      if (!isDocumentsValid) {
+        setError('Please upload all required documents (ID, Bank Statement, Proof of Residence, Payslip) before proceeding.')
+        return
+      }
+
       if (!applicationId) {
         setError('Application ID is missing')
         return
@@ -276,6 +282,7 @@ export function LoanApplicationPage() {
               <DocumentUploadStep 
                 applicationId={applicationId} 
                 accessToken={accessToken!}
+                onValidationChange={setIsDocumentsValid}
               />
             )}
             {currentStep === 4 && (

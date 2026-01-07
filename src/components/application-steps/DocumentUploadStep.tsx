@@ -9,9 +9,10 @@ import { CheckCircle, Upload, FileText, AlertCircle } from 'lucide-react'
 interface DocumentUploadStepProps {
   applicationId: string
   accessToken: string
+  onValidationChange?: (isValid: boolean) => void
 }
 
-export function DocumentUploadStep({ applicationId, accessToken }: DocumentUploadStepProps) {
+export function DocumentUploadStep({ applicationId, accessToken, onValidationChange }: DocumentUploadStepProps) {
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -19,6 +20,22 @@ export function DocumentUploadStep({ applicationId, accessToken }: DocumentUploa
   useEffect(() => {
     loadDocuments()
   }, [])
+  
+  // Check documents whenever list changes
+  useEffect(() => {
+    const hasId = documents.some(doc => doc.documentType === 'id')
+    const hasBank = documents.some(doc => doc.documentType === 'bank_statement')
+    const hasPor = documents.some(doc => doc.documentType === 'proof_of_residence')
+    const hasPayslip = documents.some(doc => doc.documentType === 'payslip')
+    
+    // Check if ALL required documents are present
+    const valid = hasId && hasBank && hasPor && hasPayslip
+    
+    // Notify parent component
+    if (onValidationChange) {
+      onValidationChange(valid)
+    }
+  }, [documents, onValidationChange])
 
   const loadDocuments = async () => {
     try {
@@ -50,7 +67,8 @@ export function DocumentUploadStep({ applicationId, accessToken }: DocumentUploa
   const allRequiredDocumentsUploaded = 
     hasDocument('id') && 
     hasDocument('bank_statement') && 
-    hasDocument('proof_of_residence')
+    hasDocument('proof_of_residence') &&
+    hasDocument('payslip')
 
   return (
     <div className="space-y-6">
@@ -152,17 +170,17 @@ export function DocumentUploadStep({ applicationId, accessToken }: DocumentUploa
         )}
       </div>
 
-      {/* Payslip (Optional) */}
-      <div className="border rounded-lg p-4 bg-gray-50">
+      {/* Payslip */}
+      <div className="border rounded-lg p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
               <FileText className="w-5 h-5 text-gray-600" />
-              <Label>Payslip (Optional)</Label>
+              <Label>Recent Payslip</Label>
               {hasDocument('payslip') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Recent payslip - optional if bank statements clearly show income
+              Most recent payslip. Required for income verification.
             </p>
             <Input
               type="file"
