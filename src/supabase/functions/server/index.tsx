@@ -1980,13 +1980,12 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
 `.trim();
 
     // 2. Construct the SOAP Envelope
-    // Using the user's provided structure
+    // Using the user's provided alternative structure and namespace
     const soapEnvelope = `
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
-                  xmlns:web="http://webservices.experian.co.za/">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <web:SubmitFile>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header/>
+  <soap:Body>
+    <SubmitFile xmlns="http://webservices.experian.co.za/">
       <pUsername>${username}</pUsername>
       <pPassword>${password}</pPassword>
       <pMyOrigin>${myOrigin}</pMyOrigin>
@@ -1994,9 +1993,9 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       <pSubmissionType>${submissionType}</pSubmissionType>
       <pWantEnhanced>Y</pWantEnhanced>
       <pFileContent><![CDATA[${innerXml}]]></pFileContent>
-    </web:SubmitFile>
-  </soapenv:Body>
-</soapenv:Envelope>
+    </SubmitFile>
+  </soap:Body>
+</soap:Envelope>
 `.trim();
 
     console.log(`Sending Experian Account Verification Request for App: ${applicationId}`);
@@ -2006,7 +2005,7 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
         'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': '""' // Or "http://webservices.experian.co.za/SubmitFile"
+        'SOAPAction': '"http://webservices.experian.co.za/SubmitFile"'
       },
       body: soapEnvelope
     });
