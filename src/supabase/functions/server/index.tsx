@@ -1980,12 +1980,12 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
 `.trim();
 
     // 2. Construct the SOAP Envelope
-    // Adjusted namespace to match other Compuscan services (IDV) as Experian namespace failed
+    // Using the user's provided alternative structure and namespace
     const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.experian.co.za/">
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Header/>
   <soap:Body>
-    <web:SubmitFile>
+    <SubmitFile xmlns="http://webservices.experian.co.za/">
       <pUsername>${username}</pUsername>
       <pPassword>${password}</pPassword>
       <pMyOrigin>${myOrigin}</pMyOrigin>
@@ -1993,7 +1993,7 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       <pSubmissionType>${submissionType}</pSubmissionType>
       <pWantEnhanced>Y</pWantEnhanced>
       <pFileContent><![CDATA[${innerXml}]]></pFileContent>
-    </web:SubmitFile>
+    </SubmitFile>
   </soap:Body>
 </soap:Envelope>
 `.trim();
@@ -2005,7 +2005,7 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
         'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': '""', // Empty SOAPAction for Compuscan services
+        'SOAPAction': '"http://webservices.experian.co.za/SubmitFile"',
         'User-Agent': 'PHP-SOAP/7.0'
       },
       body: soapEnvelope
