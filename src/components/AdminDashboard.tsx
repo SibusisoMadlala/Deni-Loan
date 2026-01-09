@@ -924,7 +924,7 @@ export function AdminDashboard() {
                                 );
                               })()}
                               
-// Raw Response removed
+                              {/* Raw Response removed */}
                             </div>
                           )}
                         </div>
@@ -1219,7 +1219,7 @@ export function AdminDashboard() {
                               </Button>
                             </div>
 
-// Raw Response removed
+                            {/* Raw Response removed */}
                           </div>
                         )}
                       </div>
@@ -1371,7 +1371,7 @@ export function AdminDashboard() {
                                 Get Credit Score
                               </>
                             )}
-                          </div>
+                          </Button>
                       ) : (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
@@ -1650,7 +1650,7 @@ export function AdminDashboard() {
                                     </div>
                                  </div>
 
-// Raw Response removed
+                                 {/* Raw Response removed */}
                                </div>
                              );
                           })()}
