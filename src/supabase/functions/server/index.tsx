@@ -1765,8 +1765,8 @@ app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) 
 
     // Configuration
     const url = "https://apis.experian.co.za/IDVService?wsdl";
-    const username = "2903-uat";
-    const password = '4O2@Rp43%$yi';
+    const username = "35184-int";
+    const password = '+#=Ol54cVRiL';
     const myOrigin = "DeniLoans";
     const version = "1.0";
     const identityType = "SID";
@@ -1854,8 +1854,8 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
 
     // Configuration
     const url = "https://apis.experian.co.za/GetPersonScore";
-    const username = "2903-uat";
-    const password = '4O2@Rp43%$yi';
+    const username = "35184-int";
+    const password = '+#=Ol54cVRiL';
     const myOrigin = "DeniLoans";
     const version = "1.0";
     const resultType = "json";
