@@ -1920,15 +1920,15 @@ app.post('/make-server-1ed353c1/admin/get-credit-score', requireAdmin, async (c)
   }
 });
 
-app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, async (c) => {
+// Experian Account Verification (AVS)
+app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async (c) => {
   try {
-    const { applicationId, identityNumber } = await c.req.json();
+    const { applicationId } = await c.req.json();
     
-    if (!identityNumber || !applicationId) {
-      return c.json({ error: 'Identity number and Application ID are required' }, 400);
+    if (!applicationId) {
+      return c.json({ error: 'Application ID is required' }, 400);
     }
 
-    // Retrieve application data to get the name
     const application = await kv.get(`loan_application:${applicationId}`);
     if (!application) {
        return c.json({ error: 'Application not found' }, 404);
@@ -1938,76 +1938,97 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
     const names = (application.fullName || "").trim().split(" ");
     const surname = names.length > 1 ? names.pop() : "";
     const firstName = names.join(" ");
+    const initials = firstName ? firstName.charAt(0).toUpperCase() : "";
+
+    // Map Account Type
+    // 1: Current/Cheque, 2: Savings, 3: Transmission, 4: Bond
+    let accType = "1";
+    const typeStr = (application.accountType || "").toLowerCase();
+    if (typeStr.includes('saving')) accType = "2";
+    else if (typeStr.includes('transmission')) accType = "3";
+    else if (typeStr.includes('bond')) accType = "4";
 
     // Configuration
-    const url = "https://apis-uat.experian.co.za/WatchListScreeningService/PersonsSearch"; 
-    const username = "2903-uat";
-    const password = '4O2@Rp43%$yi';
+    const url = "https://apis.experian.co.za/AVSService?wsdl"; // Live URL
+    const username = "35184-int";
+    const password = '+#=Ol54cVRiL';
     const myOrigin = "DeniLoans";
     const version = "1.0";
+    const submissionType = "RS";
 
-    // Request Payload - REST JSON format with snake_case
-    // Reverting to snake_case as it yielded BWS_101 (Application Error) instead of BWS_200 (System/Mapping Error)
-    // Adding optional fields as empty strings to satisfy "Not all string variables filled in"
-    const payload = {
-      "system_settings": {
-        "version": version,
-        "originating_application": myOrigin,
-        "originating_environment": "UAT",
-        "client_reference": crypto.randomUUID(),
-        "request_time": new Date().toISOString().split('.')[0]
-      },
-      "search_criteria": {
-        "identity_number": identityNumber,
-        "identity_type": "SID",
-        "first_name": firstName || "Unknown",
-        "surname": surname || "Unknown",
-        "want_watchlist": "Y",
-        "want_negative_media": "Y",
-        "want_peps": "Y"
-      }
-    };
+    const dateCreated = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
 
-    console.log(`Sending Experian Bureau Watchlist Request (REST) for ID: ${identityNumber}`);
-    console.log('Payload:', JSON.stringify(payload));
+    // 1. Generate the Inner XML (AVS_TRANSACTIONS)
+    const innerXml = `
+<AVS_TRANSACTIONS>
+  <VERSION>1.0</VERSION>
+  <DATE_CREATED>${dateCreated}</DATE_CREATED>
+  <RECORDS>
+    <RECORD num="1">
+      <REF_NO_1>${application.id.substring(0, 30)}</REF_NO_1>
+      <BANK_BRANCH_CD>${application.branchCode || "000000"}</BANK_BRANCH_CD>
+      <BANK_ACC>${application.accountNumber || ""}</BANK_ACC>
+      <BANK_ACC_TYPE>${accType}</BANK_ACC_TYPE>
+      <ID_NUMBER>${application.idNumber || ""}</ID_NUMBER>
+      <INITIALS>${initials}</INITIALS>
+      <SURNAME>${surname}</SURNAME>
+      <EMAIL>${application.email || ""}</EMAIL>
+      <PHONE_NUMBER>${application.phone || ""}</PHONE_NUMBER>
+    </RECORD>
+  </RECORDS>
+</AVS_TRANSACTIONS>
+`.trim();
 
-    const authHeader = 'Basic ' + btoa(`${username}:${password}`);
+    // 2. Construct the SOAP Envelope
+    // Using the user's provided structure
+    const soapEnvelope = `
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" 
+                  xmlns:web="http://webservices.experian.co.za/">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <web:SubmitFile>
+      <pUsername>${username}</pUsername>
+      <pPassword>${password}</pPassword>
+      <pMyOrigin>${myOrigin}</pMyOrigin>
+      <pVersion>${version}</pVersion>
+      <pSubmissionType>${submissionType}</pSubmissionType>
+      <pWantEnhanced>Y</pWantEnhanced>
+      <pFileContent><![CDATA[${innerXml}]]></pFileContent>
+    </web:SubmitFile>
+  </soapenv:Body>
+</soapenv:Envelope>
+`.trim();
+
+    console.log(`Sending Experian Account Verification Request for App: ${applicationId}`);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
+        'Content-Type': 'text/xml; charset=utf-8',
+        'Content-Length': String(soapEnvelope.length),
+        'SOAPAction': '""' // Or "http://webservices.experian.co.za/SubmitFile"
       },
-      body: JSON.stringify(payload)
+      body: soapEnvelope
     });
 
     const responseText = await response.text();
     
-    // Log the response for debugging
-    console.log('Experian Bureau Watchlist Response Status:', response.status);
-    console.log('Experian Bureau Watchlist Response Body:', responseText.substring(0, 200) + '...');
+    console.log('Experian AVS Response Status:', response.status);
+    console.log('Experian AVS Response snippet:', responseText.substring(0, 200));
 
     // Store the result in the application record
     try {
-      const application = await kv.get(`loan_application:${applicationId}`);
-      if (application) {
-        // Since we are now getting JSON, let's keep it as is or stringify it if we were storing raw XML before
-        // The frontend expects `rawData` string to parse. If it's JSON now, we should store it as stringified JSON.
-        // However, the frontend parser `parsePersonSearchResult` expects XML. We might need to adjust the frontend too.
-        // For now, let's store the raw text response.
-        const updatedApplication = {
-          ...application,
-          bureauWatchlistCheck: {
-            checkedAt: new Date().toISOString(),
-            rawData: responseText,
-            status: response.status
-          }
-        };
-        await kv.set(`loan_application:${applicationId}`, updatedApplication);
-      }
+      const updatedApplication = {
+        ...application,
+        accountVerification: {
+          checkedAt: new Date().toISOString(),
+          rawData: responseText,
+          status: response.status
+        }
+      };
+      await kv.set(`loan_application:${applicationId}`, updatedApplication);
     } catch (kvError) {
       console.error('Failed to update KV store:', kvError);
-      // Continue without failing the request
     }
 
     return c.json({ 
@@ -2016,8 +2037,8 @@ app.post('/make-server-1ed353c1/admin/check-bureau-watchlist', requireAdmin, asy
     });
 
   } catch (error) {
-    console.error('Experian Bureau Watchlist Error:', error);
-    return c.json({ error: 'Failed to check bureau watchlist' }, 500);
+    console.error('Experian Account Verification Error:', error);
+    return c.json({ error: 'Failed to verify account' }, 500);
   }
 });
 // Experian Financial Snapshot

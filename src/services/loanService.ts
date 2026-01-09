@@ -62,7 +62,7 @@ export interface LoanApplication {
     status: number
   }
 
-  bureauWatchlistCheck?: {
+  accountVerification?: {
     checkedAt: string
     rawData: string
     status: number

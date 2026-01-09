@@ -56,8 +56,8 @@ export function AdminDashboard() {
   const [gettingFinancialSnapshot, setGettingFinancialSnapshot] = useState(false)
   const [showFinancialSnapshotDetails, setShowFinancialSnapshotDetails] = useState(false)
 
-  // Bureau Watchlist state
-  const [checkingBureauWatchlist, setCheckingBureauWatchlist] = useState(false)
+  // Account Verification state
+  const [verifyingAccount, setVerifyingAccount] = useState(false)
 
   const parseCreditScoreResult = (xml: string) => {
     if (!xml) return [];
@@ -189,17 +189,17 @@ export function AdminDashboard() {
     }
   }
 
-  const handleCheckBureauWatchlist = async () => {
-    if (!selectedApp?.idNumber || !selectedApp?.id) return
+  const handleVerifyAccount = async () => {
+    if (!selectedApp?.id) return
     
-    setCheckingBureauWatchlist(true)
+    setVerifyingAccount(true)
     
     try {
-      const result = await adminService.checkBureauWatchlist(selectedApp.id, selectedApp.idNumber, accessToken!)
+      const result = await adminService.verifyAccount(selectedApp.id, accessToken!)
       
       const updatedApp = {
         ...selectedApp,
-        bureauWatchlistCheck: {
+        accountVerification: {
           checkedAt: new Date().toISOString(),
           rawData: result.data,
           status: result.status
@@ -209,14 +209,50 @@ export function AdminDashboard() {
       setSelectedApp(updatedApp);
       setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a));
       
-      toast.success('Bureau watchlist check completed')
+      toast.success('Account verification completed')
     } catch (err) {
-      console.error('Failed to check bureau watchlist:', err)
-      toast.error('Failed to check bureau watchlist')
+      console.error('Failed to verify account:', err)
+      toast.error('Failed to verify account')
     } finally {
-      setCheckingBureauWatchlist(false)
+      setVerifyingAccount(false)
     }
   }
+
+  const parseAccountVerificationResult = (xml: string) => {
+    if (!xml) return null;
+    try {
+       const parser = new DOMParser();
+       const xmlDoc = parser.parseFromString(xml, "text/xml");
+
+       // Helper to safely get text content
+       const getVal = (tag: string) => {
+          const els = xmlDoc.getElementsByTagName(tag);
+          return els.length > 0 ? els[0].textContent : null;
+       }
+
+       // Look for Result Code/Message
+       // Typically in AVS: <Result><code>00</code><message>Match</message></Result>
+       // Or under <Response>
+       
+       // Just returning structure to be displayed
+       const result = {
+         result: getVal('Result') || getVal('ResponseStatus') || 'N/A',
+         resultCode: getVal('ResultCode') || getVal('ResponseCode') || 'N/A',
+         accountFound: getVal('AccountFound') || 'N/A',
+         idMatch: getVal('IDNumberMatch') || getVal('IdMatch') || 'N/A',
+         surnameMatch: getVal('SurnameMatch') || 'N/A',
+         initialsMatch: getVal('InitialsMatch') || 'N/A',
+         accountOpen: getVal('AccountOpen') || 'N/A',
+         accountAcceptsCredits: getVal('AccountAcceptsCredits') || 'N/A',
+         accountAcceptsDebits: getVal('AccountAcceptsDebits') || 'N/A',
+         accountOpen90Days: getVal('AccountOpen90Days') || 'N/A'
+       };
+       return result;
+    } catch (e) {
+      console.error("Error parsing AVS XML", e);
+      return null;
+    }
+  };
 
   const handleGetFinancialSnapshot = async () => {
     if (!selectedApp?.idNumber || !selectedApp?.id) return
@@ -743,7 +779,7 @@ export function AdminDashboard() {
                   <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
                   <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
                   <TabsTrigger value="credit report" className="flex-shrink-0">Credit Report</TabsTrigger>
-                  <TabsTrigger value="person search" className="flex-shrink-0">Person Search</TabsTrigger>
+                  <TabsTrigger value="account verification" className="flex-shrink-0">Account Verification</TabsTrigger>
                   <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
                 </TabsList>
 
@@ -1491,31 +1527,31 @@ export function AdminDashboard() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="person search">
+                <TabsContent value="account verification">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Person Search</CardTitle>
+                      <CardTitle>Account Verification</CardTitle>
                       <CardDescription>
-                        Perform a Person Search (Watchlist, Negative Media, PEPS)
+                        Verify the applicant's bank account details
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {!selectedApp.bureauWatchlistCheck ? (
+                      {!selectedApp.accountVerification ? (
                         <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                          <p className="text-gray-600">No person search performed yet.</p>
+                          <p className="text-gray-600">No account verification performed yet.</p>
                           <Button 
-                            onClick={handleCheckBureauWatchlist}
-                            disabled={checkingBureauWatchlist}
+                            onClick={handleVerifyAccount}
+                            disabled={verifyingAccount}
                           >
-                            {checkingBureauWatchlist ? (
+                            {verifyingAccount ? (
                               <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Searching...
+                                Verifying...
                               </>
                             ) : (
                               <>
                                 <Shield className="w-4 h-4 mr-2" />
-                                Run Person Search
+                                Verify Account
                               </>
                             )}
                           </Button>
@@ -1526,108 +1562,89 @@ export function AdminDashboard() {
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                 <CheckCircle className="w-3 h-3 mr-1" />
-                                Searched
+                                Updated
                               </Badge>
                               <span className="text-xs text-gray-500">
-                                {new Date(selectedApp.bureauWatchlistCheck.checkedAt).toLocaleString()}
+                                {new Date(selectedApp.accountVerification.checkedAt).toLocaleString()}
                               </span>
                             </div>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={handleCheckBureauWatchlist}
-                              disabled={checkingBureauWatchlist}
+                              onClick={handleVerifyAccount}
+                              disabled={verifyingAccount}
                             >
-                              {checkingBureauWatchlist ? 'Refreshing...' : 'Refresh'}
+                              {verifyingAccount ? 'Refreshing...' : 'Refresh'}
                             </Button>
                           </div>
                           
                           {(() => {
-                            const result = parsePersonSearchResult(selectedApp.bureauWatchlistCheck.rawData);
-                            if (!result) return <p className="text-red-500">Failed to parse result</p>;
+                             const result = parseAccountVerificationResult(selectedApp.accountVerification.rawData);
+                             if (!result) return <p className="text-red-500">Failed to parse result</p>;
+                             
+                             const isMatch = (val: string) => val.toLowerCase() === 'match' || val.toLowerCase() === 'yes';
 
-                            return (
-                              <div className="space-y-6">
-                                {/* Person Details */}
-                                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                                  <div>
-                                    <p className="text-xs text-gray-500">Name</p>
-                                    <p className="font-medium">{result.person.firstName} {result.person.surname}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs text-gray-500">ID Number</p>
-                                    <p className="font-medium">{result.person.idNumber}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs text-gray-500">Transaction ID</p>
-                                    <p className="font-mono text-xs">{result.transactionId}</p>
-                                  </div>
-                                </div>
+                             return (
+                               <div className="space-y-6">
+                                 <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                                   <div>
+                                      <p className="text-xs text-gray-500">Result Code</p>
+                                      <p className="font-medium">{result.resultCode}</p>
+                                   </div>
+                                   <div>
+                                      <p className="text-xs text-gray-500">Account Found</p>
+                                      <Badge variant={isMatch(result.accountFound) ? 'default' : 'destructive'}>
+                                        {result.accountFound}
+                                      </Badge>
+                                   </div>
+                                 </div>
 
-                                {/* Risk Indicators */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  {/* Negative Media */}
-                                  <Card className={Number(result.counts.negativeMedia.all) > 0 ? "border-red-200 bg-red-50" : ""}>
-                                    <CardHeader className="pb-2">
-                                      <CardTitle className="text-sm font-medium">Negative Media</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <div className="text-2xl font-bold">{result.counts.negativeMedia.all || '0'}</div>
-                                      <div className="text-xs text-gray-500 mt-1 space-y-1">
-                                        <div className="flex justify-between"><span>Crime:</span> <span>{result.counts.negativeMedia.crime || '0'}</span></div>
-                                        <div className="flex justify-between"><span>Fraud:</span> <span>{result.counts.negativeMedia.fraud || '0'}</span></div>
-                                        <div className="flex justify-between"><span>Corruption:</span> <span>{result.counts.negativeMedia.corruption || '0'}</span></div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-
-                                  {/* Watchlist */}
-                                  <Card className={Number(result.counts.watchlist.all) > 0 ? "border-red-200 bg-red-50" : ""}>
-                                    <CardHeader className="pb-2">
-                                      <CardTitle className="text-sm font-medium">Watchlist Hits</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <div className="text-2xl font-bold">{result.counts.watchlist.all || '0'}</div>
-                                      <div className="text-xs text-gray-500 mt-1 space-y-1">
-                                        <div className="flex justify-between"><span>Criminal:</span> <span>{result.counts.watchlist.criminal || '0'}</span></div>
-                                        <div className="flex justify-between"><span>Terrorism:</span> <span>{result.counts.watchlist.terrorism || '0'}</span></div>
-                                        <div className="flex justify-between"><span>Global:</span> <span>{result.counts.watchlist.global || '0'}</span></div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-
-                                  {/* PEPs */}
-                                  <Card>
-                                    <CardHeader className="pb-2">
-                                      <CardTitle className="text-sm font-medium">PEP Associations</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <div className="space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                          <span className="text-gray-600">Family:</span>
-                                          <span className="font-medium">{result.counts.peps.family || '0'}</span>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-sm text-gray-700">Identity Matches</h4>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">ID Number</span>
+                                            <Badge variant={isMatch(result.idMatch) ? 'default' : 'outline'}>{result.idMatch}</Badge>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                          <span className="text-gray-600">Business:</span>
-                                          <span className="font-medium">{result.counts.peps.business || '0'}</span>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">Surname</span>
+                                            <Badge variant={isMatch(result.surnameMatch) ? 'default' : 'outline'}>{result.surnameMatch}</Badge>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                          <span className="text-gray-600">Social:</span>
-                                          <span className="font-medium">{result.counts.peps.social || '0'}</span>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">Initials</span>
+                                            <Badge variant={isMatch(result.initialsMatch) ? 'default' : 'outline'}>{result.initialsMatch}</Badge>
                                         </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                </div>
+                                    </div>
 
-                                <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                                  <p className="text-xs font-medium mb-2 text-gray-500">Raw Response</p>
-                                  <pre className="text-xs whitespace-pre-wrap">
-                                    {selectedApp.bureauWatchlistCheck.rawData}
-                                  </pre>
-                                </div>
-                              </div>
-                            );
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-sm text-gray-700">Account Status</h4>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">Account Open</span>
+                                            <span className="font-medium">{result.accountOpen}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">Open &gt; 90 Days</span>
+                                            <span className="font-medium">{result.accountOpen90Days}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">Accepts Credits</span>
+                                            <span className="font-medium">{result.accountAcceptsCredits}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-2 border-b">
+                                            <span className="text-sm text-gray-600">Accepts Debits</span>
+                                            <span className="font-medium">{result.accountAcceptsDebits}</span>
+                                        </div>
+                                    </div>
+                                 </div>
+
+                                 <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
+                                   <p className="text-xs font-medium mb-2 text-gray-500">Raw Response</p>
+                                   <pre className="text-xs whitespace-pre-wrap">
+                                     {selectedApp.accountVerification.rawData}
+                                   </pre>
+                                 </div>
+                               </div>
+                             );
                           })()}
                         </div>
                       )}

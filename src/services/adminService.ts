@@ -205,26 +205,26 @@ export const adminService = {
     }
   },
 
-  async checkBureauWatchlist(applicationId: string, identityNumber: string, accessToken: string) {
+  async verifyAccount(applicationId: string, accessToken: string) {
     try {
-      const response = await fetch(`${API_BASE}/admin/check-bureau-watchlist`, {
+      const response = await fetch(`${API_BASE}/admin/account-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ applicationId, identityNumber })
+        body: JSON.stringify({ applicationId })
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to check bureau watchlist')
+        throw new Error(data.error || 'Failed to verify account')
       }
 
       return data
     } catch (error: any) {
-      console.error('Check bureau watchlist error:', error)
+      console.error('Verify account error:', error)
       throw error
     }
   },
