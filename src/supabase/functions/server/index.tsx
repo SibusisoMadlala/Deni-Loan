@@ -1949,9 +1949,9 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
     else if (typeStr.includes('bond')) accType = "4";
 
     // Configuration
-    const url = "https://apis.experian.co.za/AVSService?wsdl"; // Live URL
-    const username = "35184-int";
-    const password = '+#=Ol54cVRiL';
+    const url = "https://apis-uat.experian.co.za/AVSService?wsdl";
+    const username = "2903-uat";
+    const password = '4O2@Rp43%$yi';
     const myOrigin = "DeniLoans";
     const version = "1.0";
     const submissionType = "RS";
@@ -1980,13 +1980,12 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
 `.trim();
 
     // 2. Construct the SOAP Envelope
-    // Using the user's provided alternative structure and namespace
-    // Added XML Declaration as per PHP example
+    // Adjusted namespace to match other Compuscan services (IDV) as Experian namespace failed
     const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Header/>
   <soap:Body>
-    <SubmitFile xmlns="http://webservices.experian.co.za/">
+    <SubmitFile xmlns="http://webservices.compuscan.co.za/">
       <pUsername>${username}</pUsername>
       <pPassword>${password}</pPassword>
       <pMyOrigin>${myOrigin}</pMyOrigin>
@@ -2006,8 +2005,8 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
         'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': '"http://webservices.experian.co.za/SubmitFile"',
-        'User-Agent': 'PHP-SOAP/7.0' // Mocking the PHP client as requested
+        'SOAPAction': '""', // Empty SOAPAction for Compuscan services
+        'User-Agent': 'PHP-SOAP/7.0'
       },
       body: soapEnvelope
     });
