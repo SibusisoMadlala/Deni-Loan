@@ -1981,7 +1981,8 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
 
     // 2. Construct the SOAP Envelope
     // Using the user's provided alternative structure and namespace
-    const soapEnvelope = `
+    // Added XML Declaration as per PHP example
+    const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Header/>
   <soap:Body>
@@ -2005,7 +2006,8 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
         'Content-Length': String(soapEnvelope.length),
-        'SOAPAction': '"http://webservices.experian.co.za/SubmitFile"'
+        'SOAPAction': '"http://webservices.experian.co.za/SubmitFile"',
+        'User-Agent': 'PHP-SOAP/7.0' // Mocking the PHP client as requested
       },
       body: soapEnvelope
     });
