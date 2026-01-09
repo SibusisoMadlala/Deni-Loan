@@ -873,14 +873,7 @@ export function AdminDashboard() {
                                 );
                               })()}
                               
-                              <div className="mt-4 pt-4 border-t">
-                                <details className="text-xs">
-                                  <summary className="cursor-pointer text-blue-600 hover:underline mb-2">View Raw Response</summary>
-                                  <pre className="bg-gray-100 p-2 rounded overflow-auto max-h-40 whitespace-pre-wrap">
-                                    {selectedApp.identityVerification!.rawData}
-                                  </pre>
-                                </details>
-                              </div>
+// Raw Response removed
                             </div>
                           )}
                         </div>
@@ -1175,16 +1168,7 @@ export function AdminDashboard() {
                               </Button>
                             </div>
 
-                            {showFinancialSnapshotDetails && (
-                              <div className="mt-4">
-                                <details className="text-xs" open>
-                                  <summary className="cursor-pointer text-blue-600 hover:underline mb-2">Raw Response</summary>
-                                  <pre className="bg-gray-100 p-2 rounded overflow-auto max-h-60 whitespace-pre-wrap">
-                                    {selectedApp.financialSnapshot.rawData}
-                                  </pre>
-                                </details>
-                              </div>
-                            )}
+// Raw Response removed
                           </div>
                         )}
                       </div>
@@ -1443,17 +1427,7 @@ export function AdminDashboard() {
                                         </Card>
                                      </div>
 
-                                     {/* Raw Details Toggle */}
-                                    <div className="mt-4">
-                                      <details className="text-xs">
-                                        <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mb-2">View Raw Response</summary>
-                                        <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                                          <pre className="whitespace-pre-wrap">
-                                            {JSON.stringify(report, null, 2)}
-                                          </pre>
-                                        </div>
-                                      </details>
-                                    </div>
+                                     {/* Raw Response removed */}
                                   </div>
                                 )
                             }
@@ -1462,7 +1436,6 @@ export function AdminDashboard() {
                             return (
                               <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  {/* Credit Score */}
                                   <Card>
                                     <CardHeader className="pb-2">
                                       <CardTitle className="text-sm font-medium text-gray-500">Credit Score</CardTitle>
@@ -1507,17 +1480,7 @@ export function AdminDashboard() {
                                   </Card>
                                 </div>
 
-                                {/* Raw Details Toggle */}
-                                <div className="mt-4">
-                                  <details className="text-xs">
-                                    <summary className="cursor-pointer text-gray-500 hover:text-gray-700 mb-2">View Raw Response</summary>
-                                    <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                                      <pre className="whitespace-pre-wrap">
-                                        {JSON.stringify(report, null, 2)}
-                                      </pre>
-                                    </div>
-                                  </details>
-                                </div>
+                                {/* Raw Details Toggle Removed */}
                               </div>
                             );
                           })()}
@@ -1637,12 +1600,7 @@ export function AdminDashboard() {
                                     </div>
                                  </div>
 
-                                 <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                                   <p className="text-xs font-medium mb-2 text-gray-500">Raw Response</p>
-                                   <pre className="text-xs whitespace-pre-wrap">
-                                     {selectedApp.accountVerification.rawData}
-                                   </pre>
-                                 </div>
+// Raw Response removed
                                </div>
                              );
                           })()}
