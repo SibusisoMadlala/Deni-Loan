@@ -1820,6 +1820,7 @@ app.post('/make-server-1ed353c1/admin/verify-identity', requireAdmin, async (c) 
     if (application) {
       const updatedApplication = {
         ...application,
+        idNumber: identityNumber, // Update the ID number in case it was corrected
         identityVerification: {
           verifiedAt: new Date().toISOString(),
           rawData: responseText,

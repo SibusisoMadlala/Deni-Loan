@@ -24,7 +24,8 @@ import {
   AlertCircle,
   TrendingDown,
   Bell,
-  Shield
+  Shield,
+  Pencil
 } from 'lucide-react'
 
 export function AdminDashboard() {
@@ -47,6 +48,8 @@ export function AdminDashboard() {
   // Identity verification state
   const [verifyingIdentity, setVerifyingIdentity] = useState(false)
   const [showVerificationDetails, setShowVerificationDetails] = useState(false)
+  const [isEditingId, setIsEditingId] = useState(false)
+  const [tempIdNumber, setTempIdNumber] = useState('')
 
   // Credit Score state
   const [checkingCreditScore, setCheckingCreditScore] = useState(false)
@@ -301,6 +304,12 @@ export function AdminDashboard() {
       setApprovedAmount(selectedApp.approvedAmount || selectedApp.requestedAmount || 0)
     }
   }, [selectedApp])
+
+  useEffect(() => {
+    if (selectedApp) {
+      setTempIdNumber(selectedApp.idNumber)
+    }
+  }, [selectedApp?.idNumber])
 
   const loadApplications = async () => {
     try {
@@ -645,6 +654,18 @@ export function AdminDashboard() {
     return today < dueDate
   }
 
+  const handleSaveId = () => {
+    if (selectedApp && tempIdNumber) {
+      setSelectedApp({ 
+        ...selectedApp, 
+        idNumber: tempIdNumber,
+        // Reset verification if ID changed so user can verify again
+        identityVerification: tempIdNumber !== selectedApp.idNumber ? undefined : selectedApp.identityVerification 
+      });
+      setIsEditingId(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -802,8 +823,38 @@ export function AdminDashboard() {
                         <div>
                           <Label className="text-xs text-gray-600">ID Number</Label>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-medium">{selectedApp.idNumber}</p>
-                            {!selectedApp.identityVerification ? (
+                            {isEditingId ? (
+                              <div className="flex items-center gap-2">
+                                <Input 
+                                  value={tempIdNumber}
+                                  onChange={(e) => setTempIdNumber(e.target.value)}
+                                  className="h-8 w-40 text-sm"
+                                />
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveId}>
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setIsEditingId(false)}>
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">{selectedApp.idNumber}</p>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600" 
+                                  onClick={() => {
+                                    setTempIdNumber(selectedApp.idNumber);
+                                    setIsEditingId(true);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+
+                            {!isEditingId && !selectedApp.identityVerification ? (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -817,7 +868,7 @@ export function AdminDashboard() {
                                 )}
                                 Verify Identity
                               </Button>
-                            ) : (
+                            ) : !isEditingId && (
                               <div className="flex gap-2">
                                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                   <CheckCircle className="w-3 h-3 mr-1" />
@@ -1320,8 +1371,7 @@ export function AdminDashboard() {
                                 Get Credit Score
                               </>
                             )}
-                          </Button>
-                        </div>
+                          </div>
                       ) : (
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
