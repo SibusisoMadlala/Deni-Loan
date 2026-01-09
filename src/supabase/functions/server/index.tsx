@@ -1968,7 +1968,7 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       <REF_NO_1>${application.id.substring(0, 30)}</REF_NO_1>
       <BANK_BRANCH_CD>${application.branchCode || "000000"}</BANK_BRANCH_CD>
       <BANK_ACC>${application.accountNumber || ""}</BANK_ACC>
-      <BANK_ACC_TYPE>${accType}</BANK_ACC_TYPE>
+      <BANK_ACC_TYPE>${accType || 1}</BANK_ACC_TYPE>
       <ID_NUMBER>${application.idNumber || ""}</ID_NUMBER>
       <INITIALS>${initials}</INITIALS>
       <SURNAME>${surname}</SURNAME>
@@ -1982,10 +1982,10 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
     // 2. Construct the SOAP Envelope
     // Adjusted namespace to match other Compuscan services (IDV) as Experian namespace failed
     const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://webservices.experian.co.za/">
   <soap:Header/>
   <soap:Body>
-    <SubmitFile xmlns="http://webservices.compuscan.co.za/">
+    <web:SubmitFile>
       <pUsername>${username}</pUsername>
       <pPassword>${password}</pPassword>
       <pMyOrigin>${myOrigin}</pMyOrigin>
@@ -1993,7 +1993,7 @@ app.post('/make-server-1ed353c1/admin/account-verification', requireAdmin, async
       <pSubmissionType>${submissionType}</pSubmissionType>
       <pWantEnhanced>Y</pWantEnhanced>
       <pFileContent><![CDATA[${innerXml}]]></pFileContent>
-    </SubmitFile>
+    </web:SubmitFile>
   </soap:Body>
 </soap:Envelope>
 `.trim();
