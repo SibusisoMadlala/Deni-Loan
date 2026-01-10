@@ -15,6 +15,7 @@ import { PaymentCancel } from './components/paymentCancel';
 import { TermsOfService } from './components/TermsOfService';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
+import { ApplicationSuccessPage } from './components/ApplicationSuccessPage';
 
 // Add these routes
 
@@ -35,6 +36,15 @@ export default function App() {
           <Route path="/payment/cancel" element={<PaymentCancel />} />
           <Route path="/terms" element={<TermsOfService />} />
           
+          <Route
+            path="/application-success"
+            element={
+              <ProtectedRoute>
+                <ApplicationSuccessPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/apply"
             element={

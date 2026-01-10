@@ -18,8 +18,7 @@ const STEPS = [
   'Personal Details',
   'Work & Income',
   'Banking Details',
-  'Upload Documents',
-  'Application Sent'
+  'Upload Documents'
 ]
 
 export function LoanApplicationPage() {
@@ -190,7 +189,7 @@ export function LoanApplicationPage() {
           accessToken!
         )
         setLoading(false)
-        setCurrentStep(4) // Explicitly move to success step
+        navigate('/application-success', { state: { email: applicationData.email } })
         return
       } catch (err: any) {
         setError(err.message || 'Failed to submit application')
@@ -210,11 +209,11 @@ export function LoanApplicationPage() {
     }
   }
 
-  const handleComplete = () => {
-    navigate('/dashboard')
+  const calculateProgress = () => {
+    return ((currentStep + 1) / STEPS.length) * 100
   }
 
-  const progress = ((currentStep + 1) / STEPS.length) * 100
+  const progress = calculateProgress()
 
   // Show loading while checking for active loans
   if (checkingApplications) {
@@ -302,22 +301,6 @@ export function LoanApplicationPage() {
                 accessToken={accessToken!}
                 onValidationChange={setIsDocumentsValid}
               />
-            )}
-            {currentStep === 4 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                  <CheckCircle className="h-10 w-10 text-green-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Application Sent!</h3>
-                <p className="text-gray-600 mb-8 max-w-md">
-                  Your loan application has been successfully submitted. 
-                  We have sent a confirmation email to <span className="font-medium text-gray-900">{applicationData.email}</span>.
-                  Our team will review your documents and get back to you shortly.
-                </p>
-                <Button onClick={handleComplete} size="lg" className="w-full max-w-xs">
-                  Go to Dashboard
-                </Button>
-              </div>
             )}
 
             <div className="flex justify-between mt-6">
