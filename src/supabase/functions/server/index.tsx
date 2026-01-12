@@ -1110,7 +1110,17 @@ app.get('/make-server-1ed353c1/documents/:applicationId', requireAuth, async (c)
 // ============ CREDIT CHECK ROUTE ============
 app.post('/make-server-1ed353c1/credit-check', requireAuth, async (c)=>{
   try {
-    const { idNumber, income, existingDebts } = await c.req.json();
+    const { idNumber, income, existingDebts, applicationId } = await c.req.json();
+
+    // Check if we already have a report for this application
+    if (applicationId) {
+      const existingApp = await kv.get(`loan_application:${applicationId}`);
+      if (existingApp && existingApp.creditReport) {
+        console.log(`Returning persisted credit report for app ${applicationId}`);
+        return c.json({ creditReport: existingApp.creditReport });
+      }
+    }
+
     const creditScore = Math.floor(Math.random() * 400) + 400;
     const monthlyIncome = parseFloat(income);
     const monthlyDebts = parseFloat(existingDebts || 0);
@@ -1128,6 +1138,16 @@ app.post('/make-server-1ed353c1/credit-check', requireAuth, async (c)=>{
       reason: approved ? 'Meets affordability requirements' : creditScore < 550 ? 'Credit score below minimum threshold' : 'Insufficient disposable income',
       checkedAt: new Date().toISOString()
     };
+
+    // Persist the report if attached to an application
+    if (applicationId) {
+      const existingApp = await kv.get(`loan_application:${applicationId}`);
+      if (existingApp) {
+        await kv.set(`loan_application:${applicationId}`, { ...existingApp, creditReport });
+        console.log(`Persisted credit report for app ${applicationId}`);
+      }
+    }
+
     return c.json({
       creditReport
     });

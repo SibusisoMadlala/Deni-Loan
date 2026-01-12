@@ -211,7 +211,8 @@ export const loanService = {
     accessToken: string,
     firstName?: string,
     lastName?: string,
-    dateOfBirth?: string
+    dateOfBirth?: string,
+    applicationId?: string
   ): Promise<CreditReport> {
     try {
       const response = await fetch(`${API_BASE}/credit-check`, {
@@ -226,7 +227,8 @@ export const loanService = {
           lastName,
           dateOfBirth,
           income,
-          existingDebts
+          existingDebts,
+          applicationId
         })
       })
 

@@ -357,19 +357,15 @@ export function AdminDashboard() {
         accessToken!,
         firstName,
         lastName,
-        app.dateOfBirth
+        app.dateOfBirth,
+        app.id // Pass application ID to enable server-side persistence
       )
       setCreditReport(report)
       
-      // Persist the report to the database so we don't need to fetch it again
-      if (app.id) {
-        await loanService.updateApplication(app.id, { creditReport: report }, accessToken!)
-        
-        // Update local state to reflect the persisted report
-        setApplications(prev => prev.map(a => 
-          a.id === app.id ? { ...a, creditReport: report } : a
-        ))
-      }
+      // Update local state to reflect the persisted report
+      setApplications(prev => prev.map(a => 
+        a.id === app.id ? { ...a, creditReport: report } : a
+      ))
     } catch (err) {
       console.error('Failed to load credit report:', err)
       setCreditReport(null)
