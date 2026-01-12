@@ -13,6 +13,7 @@ import { DocumentUploadStep } from './application-steps/DocumentUploadStep'
 import { Alert, AlertDescription } from './ui/alert'
 import { CheckCircle } from 'lucide-react'
 import { AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 const STEPS = [
   'Personal Details',
@@ -65,6 +66,7 @@ export function LoanApplicationPage() {
   const [applicationId, setApplicationId] = useState<string | null>(null)
   const [creditReport, setCreditReport] = useState<any>(null)
   const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({})
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   // Prepopulate form with user profile data
   useEffect(() => {
@@ -121,48 +123,52 @@ export function LoanApplicationPage() {
 
   const handleNext = async () => {
     setError('')
+    setFieldErrors({})
+    const errors: Record<string, string> = {}
     
     // Validate current step before proceeding
     if (currentStep === 0) {
-      if (!applicationData.idNumber || !applicationData.fullName || !applicationData.phone || !applicationData.email) {
-        setError('Please fill in all required fields')
-        return
-      }
+      if (!applicationData.idNumber) errors.idNumber = 'ID Number is required'
+      if (!applicationData.fullName) errors.fullName = 'Full Name is required'
+      if (!applicationData.phone) errors.phone = 'Phone Number is required'
+      if (!applicationData.email) errors.email = 'Email is required'
       
       const nok = applicationData.nextOfKin
-      if (!nok?.name || !nok?.surname || !nok?.relation || !nok?.phoneNumber || !nok?.email) {
-         setError('Please fill in all Next of Kin fields')
-         return
-      }
+      if (!nok?.name) errors.nokName = 'Next of Kin Name is required'
+      if (!nok?.surname) errors.nokSurname = 'Next of Kin Surname is required'
+      if (!nok?.relation) errors.nokRelation = 'Next of Kin Relation is required'
+      if (!nok?.phoneNumber) errors.nokPhone = 'Next of Kin Phone is required'
+      if (!nok?.email) errors.nokEmail = 'Next of Kin Email is required'
       
-      if (!applicationData.acceptPOPIA || !applicationData.acceptExperian) {
-        setError('Please accept the required consents')
-        return
-      }
+      if (!applicationData.acceptPOPIA) errors.acceptPOPIA = 'You must accept the POPIA consent'
+      if (!applicationData.acceptExperian) errors.acceptExperian = 'You must accept the Credit Check consent'
     }
 
     if (currentStep === 1) {
-      if (!applicationData.employerName || !applicationData.employerAddress || !applicationData.employerPhone || !applicationData.netSalary) {
-        setError('Please fill in all required fields')
-        return
-      }
-      if (applicationData.netSalary < 2000) {
-        setError('Minimum net salary requirement is R2000')
-        return
-      }
+      if (!applicationData.employerName) errors.employerName = 'Employer Name is required'
+      if (!applicationData.employerAddress) errors.employerAddress = 'Employer Address is required'
+      if (!applicationData.employerPhone) errors.employerPhone = 'Employer Phone is required'
+      if (!applicationData.netSalary) errors.netSalary = 'Net Salary is required'
+      else if (applicationData.netSalary < 2000) errors.netSalary = 'Minimum net salary requirement is R2000'
     }
 
     if (currentStep === 2) {
-      if (!applicationData.bankName || !applicationData.accountNumber || !applicationData.branchCode) {
-        setError('Please fill in all banking details')
-        return
-      }
+      if (!applicationData.bankName) errors.bankName = 'Bank Name is required'
+      if (!applicationData.accountNumber) errors.accountNumber = 'Account Number is required'
+      if (!applicationData.branchCode) errors.branchCode = 'Branch Code is required'
+    }
+
+    // Check if there are any errors
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      toast.error('Please fix the highlighted errors before proceeding')
+      return
     }
 
     // Submit application after documents (Step 3)
     if (currentStep === 3) {
       if (!isDocumentsValid) {
-        setError('Please upload all required documents (ID, Bank Statement, Proof of Residence, Payslip) before proceeding.')
+        toast.error('Please upload all required documents (ID, Bank Statement, Proof of Residence, Payslip) before proceeding.')
         return
       }
 
@@ -282,13 +288,25 @@ export function LoanApplicationPage() {
             )}
 
             {currentStep === 0 && (
-              <PersonalDetailsStep data={applicationData} updateData={updateData} />
+              <PersonalDetailsStep 
+                data={applicationData} 
+                updateData={updateData} 
+                errors={fieldErrors}
+              />
             )}
             {currentStep === 1 && (
-              <WorkIncomeStep data={applicationData} updateData={updateData} />
+              <WorkIncomeStep 
+                data={applicationData} 
+                updateData={updateData} 
+                errors={fieldErrors}
+              />
             )}
             {currentStep === 2 && (
-              <BankingDetailsStep data={applicationData} updateData={updateData} />
+              <BankingDetailsStep 
+                data={applicationData} 
+                updateData={updateData} 
+                errors={fieldErrors}
+              />
             )}
             {currentStep === 3 && (
               <DocumentUploadStep 

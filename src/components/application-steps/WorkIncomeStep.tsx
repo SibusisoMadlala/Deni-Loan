@@ -11,9 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 interface WorkIncomeStepProps {
   data: any
   updateData: (data: any) => void
+  errors?: Record<string, string>
 }
 
-export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
+export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStepProps) {
   const expenseCategories = [
     "Rent / Mortgage",
     "Transport / Fuel",
@@ -67,7 +68,7 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="employerName">Employer Name</Label>
+        <Label htmlFor="employerName" className={errors.employerName ? 'text-red-500' : ''}>Employer Name</Label>
         <Input
           id="employerName"
           type="text"
@@ -75,11 +76,12 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
           value={data.employerName}
           onChange={(e) => updateData({ employerName: e.target.value })}
           required
+          className={errors.employerName ? 'border-red-500' : ''}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="employerAddress">Employer Address</Label>
+        <Label htmlFor="employerAddress" className={errors.employerAddress ? 'text-red-500' : ''}>Employer Address</Label>
         <Input
           id="employerAddress"
           type="text"
@@ -87,11 +89,12 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
           value={data.employerAddress || ''}
           onChange={(e) => updateData({ employerAddress: e.target.value })}
           required
+          className={errors.employerAddress ? 'border-red-500' : ''}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="employerPhone">Employer Phone</Label>
+        <Label htmlFor="employerPhone" className={errors.employerPhone ? 'text-red-500' : ''}>Employer Phone</Label>
         <Input
           id="employerPhone"
           type="tel"
@@ -99,6 +102,7 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
           value={data.employerPhone || ''}
           onChange={(e) => updateData({ employerPhone: e.target.value })}
           required
+          className={errors.employerPhone ? 'border-red-500' : ''}
         />
       </div>
 
@@ -147,14 +151,14 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="netSalary">Net Salary (After Deductions)</Label>
+        <Label htmlFor="netSalary" className={errors.netSalary ? 'text-red-500' : ''}>Net Salary (After Deductions)</Label>
         <div className="relative">
           <span className="absolute left-3 top-2.5 text-gray-500">R</span>
           <Input
             id="netSalary"
             type="number"
             placeholder="5000"
-            className="pl-8"
+            className={`pl-8 ${errors.netSalary ? 'border-red-500' : ''}`}
             value={data.netSalary || ''}
             onChange={(e) => updateData({ netSalary: parseFloat(e.target.value) || 0 })}
             min="0"
@@ -162,7 +166,7 @@ export function WorkIncomeStep({ data, updateData }: WorkIncomeStepProps) {
             required
           />
         </div>
-        <p className="text-xs text-gray-500">
+        <p className={`text-xs ${errors.netSalary ? 'text-red-500' : 'text-gray-500'}`}>
           Your take-home pay after all deductions (tax, UIF, pension, etc.)
         </p>
       </div>

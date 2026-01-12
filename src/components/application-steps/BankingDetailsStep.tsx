@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 interface BankingDetailsStepProps {
   data: any
   updateData: (data: any) => void
+  errors?: Record<string, string>
 }
 
 const SA_BANKS = [
@@ -20,7 +21,7 @@ const SA_BANKS = [
   'Other'
 ]
 
-export function BankingDetailsStep({ data, updateData }: BankingDetailsStepProps) {
+export function BankingDetailsStep({ data, updateData, errors = {} }: BankingDetailsStepProps) {
   return (
     <div className="space-y-4">
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
@@ -30,12 +31,12 @@ export function BankingDetailsStep({ data, updateData }: BankingDetailsStepProps
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bankName">Bank Name</Label>
+        <Label htmlFor="bankName" className={errors.bankName ? 'text-red-500' : ''}>Bank Name</Label>
         <Select
           value={data.bankName}
           onValueChange={(value) => updateData({ bankName: value })}
         >
-          <SelectTrigger>
+          <SelectTrigger className={errors.bankName ? 'border-red-500' : ''}>
             <SelectValue placeholder="Select your bank" />
           </SelectTrigger>
           <SelectContent>
@@ -65,7 +66,7 @@ export function BankingDetailsStep({ data, updateData }: BankingDetailsStepProps
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="branchCode">Branch Code</Label>
+        <Label htmlFor="branchCode" className={errors.branchCode ? 'text-red-500' : ''}>Branch Code</Label>
         <Input
           id="branchCode"
           type="text"
@@ -74,6 +75,7 @@ export function BankingDetailsStep({ data, updateData }: BankingDetailsStepProps
           onChange={(e) => updateData({ branchCode: e.target.value })}
           maxLength={6}
           required
+          className={errors.branchCode ? 'border-red-500' : ''}
         />
         <p className="text-xs text-gray-500">
           6-digit branch code (also called Universal Branch Code)
@@ -81,7 +83,7 @@ export function BankingDetailsStep({ data, updateData }: BankingDetailsStepProps
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accountNumber">Account Number</Label>
+        <Label htmlFor="accountNumber" className={errors.accountNumber ? 'text-red-500' : ''}>Account Number</Label>
         <Input
           id="accountNumber"
           type="text"
@@ -89,6 +91,7 @@ export function BankingDetailsStep({ data, updateData }: BankingDetailsStepProps
           value={data.accountNumber}
           onChange={(e) => updateData({ accountNumber: e.target.value })}
           required
+          className={errors.accountNumber ? 'border-red-500' : ''}
         />
       </div>
 
