@@ -334,7 +334,13 @@ export function AdminDashboard() {
     }
   }
 
-  const loadCreditReport = async (app: LoanApplication) => {
+  const loadCreditReport = async (app: LoanApplication & { cachedCreditReport?: CreditReport }) => {
+    // Check if we already have a cached report for this session
+    if (app.cachedCreditReport) {
+      setCreditReport(app.cachedCreditReport)
+      return
+    }
+
     setCreditReportLoading(true)
     try {
       // Extract names from fullName
@@ -351,9 +357,14 @@ export function AdminDashboard() {
         accessToken!,
         firstName,
         lastName,
-        app.dateOfBirth // This might need to be added to LoanApplication
+        app.dateOfBirth
       )
       setCreditReport(report)
+      
+      // Cache the report in the applications state
+      setApplications(prev => prev.map(a => 
+        a.id === app.id ? { ...a, cachedCreditReport: report } : a
+      ))
     } catch (err) {
       console.error('Failed to load credit report:', err)
       setCreditReport(null)
