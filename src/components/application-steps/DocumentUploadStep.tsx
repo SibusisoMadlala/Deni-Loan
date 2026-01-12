@@ -7,26 +7,36 @@ import { Alert, AlertDescription } from '../ui/alert'
 import { CheckCircle, Upload, FileText, AlertCircle } from 'lucide-react'
 
 interface DocumentUploadStepProps {
-  applicationId: string
+  applicationId?: string | null
   accessToken: string
   onValidationChange?: (isValid: boolean) => void
+  selectedFiles?: Record<string, File>
+  onFileSelect?: (file: File, type: string) => void
 }
 
-export function DocumentUploadStep({ applicationId, accessToken, onValidationChange }: DocumentUploadStepProps) {
+export function DocumentUploadStep({ 
+  applicationId, 
+  accessToken, 
+  onValidationChange,
+  selectedFiles = {},
+  onFileSelect
+}: DocumentUploadStepProps) {
   const [documents, setDocuments] = useState<Document[]>([])
   const [uploading, setUploading] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    loadDocuments()
-  }, [])
+    if (applicationId) {
+      loadDocuments()
+    }
+  }, [applicationId])
   
-  // Check documents whenever list changes
+  // Check documents whenever list changes or selectedFiles changes
   useEffect(() => {
-    const hasId = documents.some(doc => doc.documentType === 'id')
-    const hasBank = documents.some(doc => doc.documentType === 'bank_statement')
-    const hasPor = documents.some(doc => doc.documentType === 'proof_of_residence')
-    const hasPayslip = documents.some(doc => doc.documentType === 'payslip')
+    const hasId = hasDocument('id')
+    const hasBank = hasDocument('bank_statement')
+    const hasPor = hasDocument('proof_of_residence')
+    const hasPayslip = hasDocument('payslip')
     
     // Check if ALL required documents are present
     const valid = hasId && hasBank && hasPor && hasPayslip
@@ -35,9 +45,10 @@ export function DocumentUploadStep({ applicationId, accessToken, onValidationCha
     if (onValidationChange) {
       onValidationChange(valid)
     }
-  }, [documents, onValidationChange])
+  }, [documents, selectedFiles, onValidationChange])
 
   const loadDocuments = async () => {
+    if (!applicationId) return
     try {
       const docs = await documentService.getDocuments(applicationId, accessToken)
       setDocuments(docs)
@@ -48,6 +59,15 @@ export function DocumentUploadStep({ applicationId, accessToken, onValidationCha
 
   const handleUpload = async (file: File, documentType: string) => {
     setError('')
+
+    // If no application ID, just store the file locally via callback
+    if (!applicationId) {
+      if (onFileSelect) {
+        onFileSelect(file, documentType)
+      }
+      return
+    }
+
     setUploading(documentType)
 
     try {
@@ -61,7 +81,11 @@ export function DocumentUploadStep({ applicationId, accessToken, onValidationCha
   }
 
   const hasDocument = (type: string) => {
-    return documents.some(doc => doc.documentType === type)
+    // Check server documents
+    if (documents.some(doc => doc.documentType === type)) return true
+    // Check locally selected files if we are in "offline" mode
+    if (!applicationId && selectedFiles[type]) return true
+    return false
   }
 
   const allRequiredDocumentsUploaded = 

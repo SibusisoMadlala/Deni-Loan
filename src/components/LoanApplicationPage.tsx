@@ -64,6 +64,7 @@ export function LoanApplicationPage() {
 
   const [applicationId, setApplicationId] = useState<string | null>(null)
   const [creditReport, setCreditReport] = useState<any>(null)
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({})
 
   // Prepopulate form with user profile data
   useEffect(() => {
@@ -114,6 +115,10 @@ export function LoanApplicationPage() {
     setApplicationData({ ...applicationData, ...newData })
   }
 
+  const handleFileSelect = (file: File, type: string) => {
+    setSelectedFiles(prev => ({ ...prev, [type]: file }))
+  }
+
   const handleNext = async () => {
     setError('')
     
@@ -154,20 +159,6 @@ export function LoanApplicationPage() {
       }
     }
 
-    // Create application after step 3 (before documents)
-    if (currentStep === 2 && !applicationId) {
-      setLoading(true)
-      try {
-        const result = await loanService.createApplication(applicationData, accessToken!)
-        setApplicationId(result.application.id)
-      } catch (err: any) {
-        setError(err.message || 'Failed to create application')
-        setLoading(false)
-        return
-      }
-      setLoading(false)
-    }
-
     // Submit application after documents (Step 3)
     if (currentStep === 3) {
       if (!isDocumentsValid) {
@@ -175,16 +166,20 @@ export function LoanApplicationPage() {
         return
       }
 
-      if (!applicationId) {
-        setError('Application ID is missing')
-        return
-      }
-
       setLoading(true)
       try {
-        // Just update status to pending to trigger email
+        // 1. Create Application
+        const result = await loanService.createApplication(applicationData, accessToken!)
+        const newAppId = result.application.id
+
+        // 2. Upload Documents
+        for (const [type, file] of Object.entries(selectedFiles)) {
+           await documentService.uploadDocument(file, newAppId, type, accessToken!)
+        }
+
+        // 3. Update status to pending
         await loanService.updateApplication(
-          applicationId,
+          newAppId,
           { status: 'pending' },
           accessToken!
         )
@@ -295,11 +290,13 @@ export function LoanApplicationPage() {
             {currentStep === 2 && (
               <BankingDetailsStep data={applicationData} updateData={updateData} />
             )}
-            {currentStep === 3 && applicationId && (
+            {currentStep === 3 && (
               <DocumentUploadStep 
-                applicationId={applicationId} 
+                applicationId={null} 
                 accessToken={accessToken!}
                 onValidationChange={setIsDocumentsValid}
+                selectedFiles={selectedFiles}
+                onFileSelect={handleFileSelect}
               />
             )}
 
