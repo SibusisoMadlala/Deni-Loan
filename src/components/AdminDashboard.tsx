@@ -6,6 +6,7 @@ import { LoanApplication, CreditReport } from '../services/loanService'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+import { ScrollArea, ScrollBar } from './ui/scroll-area'
 import { Badge } from './ui/badge'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
@@ -795,14 +796,17 @@ export function AdminDashboard() {
           <div className="lg:col-span-2">
             {selectedApp ? (
               <Tabs defaultValue="details" className="space-y-4">
-                <TabsList className="flex w-full justify-start overflow-x-auto h-auto pb-2 gap-2">
-                  <TabsTrigger value="details" className="flex-shrink-0">Details</TabsTrigger>
-                  <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
-                  <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
-                  <TabsTrigger value="credit report" className="flex-shrink-0">Credit Report</TabsTrigger>
-                  <TabsTrigger value="account verification" className="flex-shrink-0">Account Verification</TabsTrigger>
-                  <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
-                </TabsList>
+                <ScrollArea className="w-full whitespace-nowrap pb-2">
+                  <TabsList className="flex w-full justify-start h-auto gap-2 bg-transparent p-0">
+                    <TabsTrigger value="details" className="flex-shrink-0">Details</TabsTrigger>
+                    <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
+                    <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
+                    <TabsTrigger value="credit report" className="flex-shrink-0">Credit Report</TabsTrigger>
+                    <TabsTrigger value="account verification" className="flex-shrink-0">Account Verification</TabsTrigger>
+                    <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
+                  </TabsList>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 <TabsContent value="details">
                   <Card>
