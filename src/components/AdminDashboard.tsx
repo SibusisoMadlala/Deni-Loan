@@ -796,8 +796,8 @@ export function AdminDashboard() {
           <div className="lg:col-span-2">
             {selectedApp ? (
               <Tabs defaultValue="details" className="space-y-4">
-                <ScrollArea className="w-full whitespace-nowrap pb-2">
-                  <TabsList className="flex w-full justify-start h-auto gap-2 bg-transparent p-0">
+                <ScrollArea className="w-full whitespace-nowrap pb-2.5">
+                  <TabsList className="flex w-full justify-start h-auto gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg">
                     <TabsTrigger value="details" className="flex-shrink-0">Details</TabsTrigger>
                     <TabsTrigger value="documents" className="flex-shrink-0">Documents</TabsTrigger>
                     <TabsTrigger value="affordability" className="flex-shrink-0">Affordability</TabsTrigger>
@@ -805,7 +805,7 @@ export function AdminDashboard() {
                     <TabsTrigger value="account verification" className="flex-shrink-0">Account Verification</TabsTrigger>
                     <TabsTrigger value="decision" className="flex-shrink-0">Decision</TabsTrigger>
                   </TabsList>
-                  <ScrollBar orientation="horizontal" />
+                  <ScrollBar orientation="horizontal" className="flex" />
                 </ScrollArea>
 
                 <TabsContent value="details">
