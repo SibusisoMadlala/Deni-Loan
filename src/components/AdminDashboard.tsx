@@ -334,10 +334,10 @@ export function AdminDashboard() {
     }
   }
 
-  const loadCreditReport = async (app: LoanApplication & { cachedCreditReport?: CreditReport }) => {
-    // Check if we already have a cached report for this session
-    if (app.cachedCreditReport) {
-      setCreditReport(app.cachedCreditReport)
+  const loadCreditReport = async (app: LoanApplication) => {
+    // Check if we already have a persisted report
+    if (app.creditReport) {
+      setCreditReport(app.creditReport)
       return
     }
 
@@ -361,10 +361,15 @@ export function AdminDashboard() {
       )
       setCreditReport(report)
       
-      // Cache the report in the applications state
-      setApplications(prev => prev.map(a => 
-        a.id === app.id ? { ...a, cachedCreditReport: report } : a
-      ))
+      // Persist the report to the database so we don't need to fetch it again
+      if (app.id) {
+        await loanService.updateApplication(app.id, { creditReport: report }, accessToken!)
+        
+        // Update local state to reflect the persisted report
+        setApplications(prev => prev.map(a => 
+          a.id === app.id ? { ...a, creditReport: report } : a
+        ))
+      }
     } catch (err) {
       console.error('Failed to load credit report:', err)
       setCreditReport(null)

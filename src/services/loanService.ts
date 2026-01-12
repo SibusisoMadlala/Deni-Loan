@@ -87,6 +87,8 @@ export interface LoanApplication {
     rawData: string
     status: number
   }
+
+  creditReport?: CreditReport // Persisted credit report
   
   createdAt?: string
   updatedAt?: string
