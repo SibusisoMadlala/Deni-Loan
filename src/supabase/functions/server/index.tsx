@@ -975,6 +975,7 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
           from: '"Deni Loans" <admin@deniloans.co.za>', // Update this sender email
           to: application.email,
           subject: "Application Received - Deni Loans",
+          text: `Dear ${application.fullName},\n\nWe have received your loan application and it is currently under review.\nOur team will assess your application and you will be notified of the outcome shortly.\n\nBest regards,\nDeni Loans Team`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2563eb;">Application Received</h2>
@@ -991,6 +992,7 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
           from: '"Deni Loans System" <admin@deniloans.co.za>',
           to: 'admin@deniloans.co.za',
           subject: "New Loan Application Submitted",
+          text: `A new loan application has been submitted.\n\nApplicant: ${application.fullName}\nID Number: ${application.idNumber}\nPhone: ${application.phone}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #2563eb;">New Application Alert</h2>
@@ -1229,6 +1231,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
           from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Approved - Deni Loans",
+          text: `Dear ${application.fullName},\n\nCongratulations! Your loan application for R${updatedApplication.approvedAmount} has been approved.\nThe funds will be disbursed to your account shortly.\n\nBest regards,\nDeni Loans Team`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #16a34a;">Loan Approved!</h2>
@@ -1245,6 +1248,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
           from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Application Update - Deni Loans",
+          text: `Dear ${application.fullName},\n\nThank you for your application. After careful review, we regret to inform you that we are unable to approve your loan at this time.\nReason: ${declineReason || 'Did not meet credit criteria'}\n\nYou may apply again in 30 days.\n\nBest regards,\nDeni Loans Team`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #dc2626;">Application Update</h2>
@@ -1396,6 +1400,7 @@ app.post('/make-server-1ed353c1/admin/send-payment-reminder', requireAdmin, asyn
         from: '"Deni Loans" <admin@deniloans.co.za>',
         to: application.email,
         subject: "Payment Reminder - Deni Loans",
+        text: `Dear ${application.fullName},\n\nThis is a reminder that your loan payment is due on ${application.nextPayDate}.\nPlease ensure you have sufficient funds or make a payment via the dashboard.\n\nBest regards,\nDeni Loans Team`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb;">Payment Reminder</h2>
