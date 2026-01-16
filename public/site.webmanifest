@@ -3,12 +3,12 @@
     "short_name": "DeniLoans",
     "icons": [
         {
-            "src": "/faviconDeni.jpg",
+            "src": "/croped favicon.jpg",
             "sizes": "192x192",
             "type": "image/jpeg"
         },
         {
-            "src": "/faviconDeni.jpg",
+            "src": "/croped favicon.jpg",
             "sizes": "512x512",
             "type": "image/jpeg"
         }
