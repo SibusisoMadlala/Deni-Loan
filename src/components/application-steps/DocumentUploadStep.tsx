@@ -10,8 +10,8 @@ interface DocumentUploadStepProps {
   applicationId?: string | null
   accessToken: string
   onValidationChange?: (isValid: boolean) => void
-  selectedFiles?: Record<string, File>
-  onFileSelect?: (file: File, type: string) => void
+  selectedFiles?: Record<string, File | File[]>
+  onFileSelect?: (file: File | File[], type: string) => void
 }
 
 export function DocumentUploadStep({ 
@@ -57,13 +57,13 @@ export function DocumentUploadStep({
     }
   }
 
-  const handleUpload = async (file: File, documentType: string) => {
+  const handleUpload = async (files: File | File[], documentType: string) => {
     setError('')
 
     // If no application ID, just store the file locally via callback
     if (!applicationId) {
       if (onFileSelect) {
-        onFileSelect(file, documentType)
+        onFileSelect(files, documentType)
       }
       return
     }
@@ -71,7 +71,13 @@ export function DocumentUploadStep({
     setUploading(documentType)
 
     try {
-      await documentService.uploadDocument(file, applicationId, documentType, accessToken)
+      if (Array.isArray(files)) {
+        for (const file of files) {
+          await documentService.uploadDocument(file, applicationId, documentType, accessToken)
+        }
+      } else {
+        await documentService.uploadDocument(files, applicationId, documentType, accessToken)
+      }
       await loadDocuments()
     } catch (err: any) {
       setError(err.message || 'Failed to upload document')
@@ -148,14 +154,18 @@ export function DocumentUploadStep({
               {hasDocument('bank_statement') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Recent 3 months of bank statements (PDF or images). Required for NCR affordability assessment.
+              Recent 3 months of bank statements (PDF or images). Required for NCR affordability assessment. You can select multiple files.
             </p>
             <Input
               type="file"
               accept="image/*,.pdf"
+              multiple
               onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) handleUpload(file, 'bank_statement')
+                const files = e.target.files
+                if (files && files.length > 0) {
+                  // Convert FileList to Array
+                  handleUpload(Array.from(files), 'bank_statement')
+                }
               }}
               disabled={uploading === 'bank_statement'}
             />

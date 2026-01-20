@@ -65,7 +65,7 @@ export function LoanApplicationPage() {
 
   const [applicationId, setApplicationId] = useState<string | null>(null)
   const [creditReport, setCreditReport] = useState<any>(null)
-  const [selectedFiles, setSelectedFiles] = useState<Record<string, File>>({})
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, File | File[]>>({})
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   // Prepopulate form with user profile data
@@ -117,7 +117,7 @@ export function LoanApplicationPage() {
     setApplicationData({ ...applicationData, ...newData })
   }
 
-  const handleFileSelect = (file: File, type: string) => {
+  const handleFileSelect = (file: File | File[], type: string) => {
     setSelectedFiles(prev => ({ ...prev, [type]: file }))
   }
 
@@ -179,8 +179,14 @@ export function LoanApplicationPage() {
         const newAppId = result.application.id
 
         // 2. Upload Documents
-        for (const [type, file] of Object.entries(selectedFiles)) {
-           await documentService.uploadDocument(file, newAppId, type, accessToken!)
+        for (const [type, files] of Object.entries(selectedFiles)) {
+           if (Array.isArray(files)) {
+             for (const file of files) {
+               await documentService.uploadDocument(file, newAppId, type, accessToken!)
+             }
+           } else {
+             await documentService.uploadDocument(files as File, newAppId, type, accessToken!)
+           }
         }
 
         // 3. Update status to pending
