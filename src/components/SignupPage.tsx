@@ -20,13 +20,26 @@ export function SignupPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    termsAccepted: false
+    termsAccepted: false,
+    workFax: '' // Honeypot field
   })
 
   // In your SignupPage component, update the handleSubmit function:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Honeypot check
+    if (formData.workFax) {
+      console.log('Bot detected via honeypot')
+      setLoading(true)
+      // Simulate success to fool the bot
+      setTimeout(() => {
+        setLoading(false)
+        navigate('/verify-email', { state: { email: formData.email } })
+      }, 1500)
+      return
+    }
 
     if (!formData.termsAccepted) {
       setError('You must accept the Terms of Service to create an account')
@@ -86,6 +99,20 @@ export function SignupPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Honeypot field - Invisible to humans */}
+            <div style={{ opacity: 0, position: 'absolute', top: 0, left: 0, height: 0, width: 0, zIndex: -1 }}>
+              <Label htmlFor="work_fax_number">Fax Number</Label>
+              <Input
+                id="work_fax_number"
+                type="text"
+                name="work_fax_number"
+                tabIndex={-1}
+                autoComplete="off"
+                value={formData.workFax}
+                onChange={(e) => setFormData({ ...formData, workFax: e.target.value })}
+              />
+            </div>
+
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
