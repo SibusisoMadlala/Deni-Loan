@@ -93,6 +93,7 @@ export interface LoanApplication {
   createdAt?: string
   updatedAt?: string
   decidedAt?: string
+  adminNotes?: string
 }
 
 export interface CreditReport {

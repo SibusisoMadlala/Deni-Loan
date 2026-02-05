@@ -64,6 +64,34 @@ export function AdminDashboard() {
   // Account Verification state
   const [verifyingAccount, setVerifyingAccount] = useState(false)
 
+  // Admin Notes state
+  const [adminNote, setAdminNote] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+
+  useEffect(() => {
+    if (selectedApp) {
+      setAdminNote(selectedApp.adminNotes || '')
+    }
+  }, [selectedApp?.id])
+
+  const handleSaveNote = async () => {
+    if (!selectedApp?.id) return
+    setSavingNote(true)
+    try {
+      await adminService.updateApplication(selectedApp.id, { adminNotes: adminNote }, accessToken!)
+      
+      const updatedApp = { ...selectedApp, adminNotes: adminNote }
+      setSelectedApp(updatedApp)
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a))
+      toast.success('Note saved')
+    } catch (err) {
+      console.error('Failed to save note:', err)
+      toast.error('Failed to save note')
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
   const parseCreditScoreResult = (xml: string) => {
     if (!xml) return [];
     console.log("Raw XML to parse:", xml);
@@ -876,7 +904,15 @@ export function AdminDashboard() {
                           <p className="text-xs text-gray-500">{app.email}</p>
                         </div>
                       </div>
-                      {getStatusBadge(app.status)}
+                      <div className="flex flex-col items-end gap-1">
+                        {getStatusBadge(app.status)}
+                        {app.adminNotes && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 border-yellow-200 bg-yellow-50 text-yellow-700">
+                            <FileText className="w-2 h-2 mr-1" />
+                            Note
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <p className="text-lg">R{(app.requestedAmount || 0).toLocaleString()}</p>
                     <div className="flex justify-between items-center mt-1">
@@ -917,6 +953,40 @@ export function AdminDashboard() {
                 </ScrollArea>
 
                 <TabsContent value="details">
+                  <Card className="mb-4 bg-yellow-50/50 border-yellow-200">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2 text-yellow-800">
+                          <FileText className="h-4 w-4" />
+                          Internal Notes
+                        </CardTitle>
+                        {selectedApp.adminNotes && selectedApp.adminNotes !== adminNote && (
+                          <span className="text-xs text-yellow-600 italic">Unsaved changes</span>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <Textarea 
+                          value={adminNote}
+                          onChange={(e) => setAdminNote(e.target.value)}
+                          placeholder="Add internal notes..."
+                          className="bg-white min-h-[80px] text-sm resize-none focus-visible:ring-yellow-400"
+                        />
+                        <div className="flex justify-end">
+                          <Button 
+                            size="sm" 
+                            onClick={handleSaveNote}
+                            disabled={savingNote}
+                            className="h-8 bg-yellow-600 hover:bg-yellow-700 text-white border-none shadow-sm"
+                          >
+                            {savingNote ? 'Saving...' : 'Save Note'}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card>
                     <CardHeader>
                       <CardTitle>Application Details</CardTitle>
