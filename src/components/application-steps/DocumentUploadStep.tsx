@@ -94,6 +94,42 @@ export function DocumentUploadStep({
     return false
   }
 
+  const renderFileList = (type: string) => {
+    // Online mode: show server documents
+    if (applicationId) {
+      const typeDocs = documents.filter(d => d.documentType === type)
+      if (typeDocs.length === 0) return null
+      return (
+        <ul className="mt-2 text-sm text-gray-600 space-y-1 bg-gray-50 p-2 rounded">
+          {typeDocs.map((doc, idx) => (
+             <li key={doc.id || idx} className="flex items-center text-xs">
+               <CheckCircle className="w-3 h-3 text-green-600 mr-2" />
+               <span className="truncate max-w-[250px]">{doc.fileName || `Document ${idx + 1}`}</span>
+             </li>
+          ))}
+        </ul>
+      )
+    } 
+    
+    // Offline mode: show local selection
+    const files = selectedFiles[type]
+    if (!files) return null
+    
+    const fileArray = Array.isArray(files) ? files : [files]
+    if (fileArray.length === 0) return null
+    
+    return (
+      <ul className="mt-2 text-sm text-gray-600 space-y-1 bg-gray-50 p-2 rounded">
+        {fileArray.map((file, idx) => (
+            <li key={idx} className="flex items-center text-xs">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+              <span className="truncate max-w-[250px]">{file.name}</span>
+            </li>
+        ))}
+      </ul>
+    )
+  }
+
   const allRequiredDocumentsUploaded = 
     hasDocument('id') && 
     hasDocument('bank_statement') && 
@@ -137,6 +173,7 @@ export function DocumentUploadStep({
               }}
               disabled={uploading === 'id'}
             />
+            {renderFileList('id')}
           </div>
         </div>
         {uploading === 'id' && (
@@ -169,6 +206,7 @@ export function DocumentUploadStep({
               }}
               disabled={uploading === 'bank_statement'}
             />
+            {renderFileList('bank_statement')}
           </div>
         </div>
         {uploading === 'bank_statement' && (
@@ -197,6 +235,7 @@ export function DocumentUploadStep({
               }}
               disabled={uploading === 'proof_of_residence'}
             />
+            {renderFileList('proof_of_residence')}
           </div>
         </div>
         {uploading === 'proof_of_residence' && (
@@ -225,6 +264,7 @@ export function DocumentUploadStep({
               }}
               disabled={uploading === 'payslip'}
             />
+            {renderFileList('payslip')}
           </div>
         </div>
         {uploading === 'payslip' && (
