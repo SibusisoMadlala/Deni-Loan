@@ -978,7 +978,7 @@ export function AdminDashboard() {
                             size="sm" 
                             onClick={handleSaveNote}
                             disabled={savingNote}
-                            className="h-8 bg-yellow-600 hover:bg-yellow-700 text-white border-none shadow-sm"
+                            className="h-8 bg-yellow-600 hover:bg-yellow-700 text-black border-none shadow-sm"
                           >
                             {savingNote ? 'Saving...' : 'Save Note'}
                           </Button>
