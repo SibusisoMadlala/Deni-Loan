@@ -867,10 +867,10 @@ export function AdminDashboard() {
                 >
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className="h-6 min-w-8 px-1 flex items-center justify-center bg-gray-100">
+                      <div className="flex gap-3 items-center">
+                        <span className="inline-flex items-center justify-center h-6 min-w-[2rem] px-1.5 rounded bg-slate-100 text-slate-600 text-xs font-mono font-medium">
                           #{app.originalIndex}
-                        </Badge>
+                        </span>
                         <div>
                           <p className="text-sm">{app.fullName}</p>
                           <p className="text-xs text-gray-500">{app.email}</p>
