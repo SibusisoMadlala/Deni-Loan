@@ -38,6 +38,7 @@ export function AdminDashboard() {
   const [creditReportLoading, setCreditReportLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
+  const [dateFilter, setDateFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Decision modal state
@@ -625,16 +626,51 @@ export function AdminDashboard() {
     )
   }
 
-  const filteredApplications = applications.filter(app => {
+  const isToday = (dateString: string) => {
+    const today = new Date()
+    const date = new Date(dateString)
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+  }
+
+  const isThisWeek = (dateString: string) => {
+    const today = new Date()
+    const date = new Date(dateString)
+    const diff = today.getTime() - date.getTime()
+    const days = diff / (1000 * 3600 * 24)
+    return days <= 7
+  }
+
+  const isThisMonth = (dateString: string) => {
+    const today = new Date()
+    const date = new Date(dateString)
+    return date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+  }
+
+  const filteredApplications = applications
+    .map((app, index) => ({...app, originalIndex: index + 1}))
+    .filter(app => {
+    // Status Filter
     const matchesStatus = filter === 'all' || app.status === filter
-    const searchLower = searchQuery.toLowerCase()
+    
+    // Search Filter
+    const searchLower = searchQuery.toLowerCase().replace('#', '')
     const matchesSearch = 
       (app.email?.toLowerCase().includes(searchLower)) ||
       (app.id?.toLowerCase().includes(searchLower)) ||
       (app.fullName?.toLowerCase().includes(searchLower)) ||
-      (app.idNumber?.includes(searchLower))
+      (app.idNumber?.includes(searchLower)) ||
+      (app.originalIndex.toString().includes(searchLower))
+
+    // Date Filter
+    let matchesDate = true
+    if (dateFilter === 'today') matchesDate = isToday(app.createdAt)
+    if (dateFilter === 'week') matchesDate = isThisWeek(app.createdAt)
+    if (dateFilter === 'month') matchesDate = isThisMonth(app.createdAt)
     
-    return matchesStatus && matchesSearch
+    return matchesStatus && matchesSearch && matchesDate
   })
 
   // Statistics
@@ -642,7 +678,15 @@ export function AdminDashboard() {
     total: applications.length,
     pending: applications.filter(app => app.status === 'pending').length,
     approved: applications.filter(app => app.status === 'approved').length,
-    disbursed: applications.filter(app => app.status === 'disbursed').length
+    disbursed: applications.filter(app => app.status === 'disbursed').length,
+    totalDisbursed: applications
+      .filter(app => app.status === 'disbursed' || app.status === 'repaid') // include repaid as they were disbursed
+      .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0),
+    totalRepaid: applications // This assumes we have a way to track repayments. 
+      // For now, let's assume fully repaid loans count towards this, 
+      // or we'd need a 'repaidAmount' field. Using approvedAmount for 'repaid' status as a proxy.
+      .filter(app => app.status === 'repaid')
+      .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0)
   }
 
   const handleSendReminder = async (e: React.MouseEvent, app: LoanApplication) => {
@@ -693,7 +737,7 @@ export function AdminDashboard() {
         <h1 className="text-3xl mb-6">Admin Dashboard</h1>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -734,10 +778,38 @@ export function AdminDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Disbursed</p>
+                  <p className="text-sm text-gray-600">Disbursed Count</p>
                   <p className="text-2xl">{stats.disbursed}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-blue-400" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Funds Disbursed</p>
+                  <p className="text-2xl">
+                    {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(stats.totalDisbursed)}
+                  </p>
+                </div>
+                <DollarSign className="w-8 h-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Funds Repaid</p>
+                  <p className="text-2xl">
+                    {new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(stats.totalRepaid)}
+                  </p>
+                </div>
+                <TrendingDown className="w-8 h-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
@@ -747,24 +819,38 @@ export function AdminDashboard() {
           {/* Applications List */}
           <div className="space-y-4">
             <div className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg">Applications</h3>
-                <Select value={filter} onValueChange={setFilter}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="declined">Declined</SelectItem>
-                    <SelectItem value="disbursed">Disbursed</SelectItem>
-                    <SelectItem value="repaid">Repaid</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg">Applications ({filteredApplications.length})</h3>
+                <div className="flex gap-2">
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue placeholder="Date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="week">This Week</SelectItem>
+                      <SelectItem value="month">This Month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={filter} onValueChange={setFilter}>
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="declined">Declined</SelectItem>
+                      <SelectItem value="disbursed">Disbursed</SelectItem>
+                      <SelectItem value="repaid">Repaid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Input 
-                placeholder="Search by email, ID, name..." 
+                placeholder="Search by #, email, ID, name..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -781,9 +867,14 @@ export function AdminDashboard() {
                 >
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-sm">{app.fullName}</p>
-                        <p className="text-xs text-gray-500">{app.email}</p>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="h-6 min-w-8 px-1 flex items-center justify-center bg-gray-100">
+                          #{app.originalIndex}
+                        </Badge>
+                        <div>
+                          <p className="text-sm">{app.fullName}</p>
+                          <p className="text-xs text-gray-500">{app.email}</p>
+                        </div>
                       </div>
                       {getStatusBadge(app.status)}
                     </div>
@@ -801,6 +892,11 @@ export function AdminDashboard() {
                   </CardContent>
                 </Card>
               ))}
+              {filteredApplications.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No applications found matching your criteria
+                </div>
+              )}
             </div>
           </div>
 
