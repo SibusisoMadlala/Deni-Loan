@@ -117,18 +117,8 @@ export function LoanApplicationPage() {
     setApplicationData({ ...applicationData, ...newData })
   }
 
-  const handleFileSelect = (newFiles: File | File[], type: string) => {
-    setSelectedFiles(prev => {
-      // For bank statements, append the new files to existing ones
-      if (type === 'bank_statement') {
-        const existing = prev[type]
-        const existingArray = Array.isArray(existing) ? existing : (existing ? [existing] : [])
-        const newArray = Array.isArray(newFiles) ? newFiles : [newFiles]
-        return { ...prev, [type]: [...existingArray, ...newArray] }
-      }
-      // For other documents, replace
-      return { ...prev, [type]: newFiles }
-    })
+  const handleFileSelect = (file: File | File[], type: string) => {
+    setSelectedFiles(prev => ({ ...prev, [type]: file }))
   }
 
   const handleNext = async () => {
