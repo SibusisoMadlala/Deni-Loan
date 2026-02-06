@@ -40,6 +40,7 @@ export function AdminDashboard() {
   const [filter, setFilter] = useState<string>('all')
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchNumber, setSearchNumber] = useState('')
 
   // Decision modal state
   const [showDecisionModal, setShowDecisionModal] = useState(false)
@@ -684,13 +685,16 @@ export function AdminDashboard() {
     const matchesStatus = filter === 'all' || app.status === filter
     
     // Search Filter
-    const searchLower = searchQuery.toLowerCase().replace('#', '')
+    const searchLower = searchQuery.toLowerCase()
+    
+    // Number Filter
+    const matchesNumber = searchNumber === '' || app.originalIndex.toString().includes(searchNumber.replace('#', ''))
+
     const matchesSearch = 
       (app.email?.toLowerCase().includes(searchLower)) ||
       (app.id?.toLowerCase().includes(searchLower)) ||
       (app.fullName?.toLowerCase().includes(searchLower)) ||
-      (app.idNumber?.includes(searchLower)) ||
-      (app.originalIndex.toString().includes(searchLower))
+      (app.idNumber?.includes(searchLower))
 
     // Date Filter
     let matchesDate = true
@@ -698,7 +702,7 @@ export function AdminDashboard() {
     if (dateFilter === 'week') matchesDate = isThisWeek(app.createdAt)
     if (dateFilter === 'month') matchesDate = isThisMonth(app.createdAt)
     
-    return matchesStatus && matchesSearch && matchesDate
+    return matchesStatus && matchesSearch && matchesDate && matchesNumber
   })
 
   // Statistics
@@ -877,11 +881,23 @@ export function AdminDashboard() {
                   </Select>
                 </div>
               </div>
-              <Input 
-                placeholder="Search by #, email, ID, name..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div className="flex gap-2">
+                <div className="relative w-24 flex-shrink-0">
+                  <span className="absolute left-2.5 top-2.5 text-gray-400 text-sm font-mono">#</span>
+                  <Input 
+                    placeholder="No." 
+                    value={searchNumber}
+                    onChange={(e) => setSearchNumber(e.target.value)}
+                    className="pl-6"
+                  />
+                </div>
+                <Input 
+                  placeholder="Search by email, name, ID..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
             </div>
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto">

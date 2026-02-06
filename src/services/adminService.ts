@@ -252,4 +252,28 @@ export const adminService = {
       throw error
     }
   },
+
+  async updateApplication(applicationId: string, updates: Partial<LoanApplication>, accessToken: string) {
+    try {
+      const response = await fetch(`${API_BASE}/loan-application/${applicationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(updates)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update application')
+      }
+
+      return data.application
+    } catch (error: any) {
+      console.error('Update application error:', error)
+      throw error
+    }
+  },
 }
