@@ -94,6 +94,8 @@ export interface LoanApplication {
   updatedAt?: string
   decidedAt?: string
   adminNotes?: string
+  assignedTo?: string
+  assignedToEmail?: string
 }
 
 export interface CreditReport {

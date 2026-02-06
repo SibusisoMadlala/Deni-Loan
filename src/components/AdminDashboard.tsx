@@ -22,15 +22,16 @@ import {
   DollarSign,
   Users,
   TrendingUp,
-  AlertCircle,
   TrendingDown,
   Bell,
   Shield,
-  Pencil
+  Pencil,
+  UserPlus,
+  UserCheck
 } from 'lucide-react'
 
 export function AdminDashboard() {
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
   const [applications, setApplications] = useState<LoanApplication[]>([])
   const [selectedApp, setSelectedApp] = useState<LoanApplication | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
@@ -65,6 +66,9 @@ export function AdminDashboard() {
   // Account Verification state
   const [verifyingAccount, setVerifyingAccount] = useState(false)
 
+  // Assignment state
+  const [assigning, setAssigning] = useState(false)
+
   // Admin Notes state
   const [adminNote, setAdminNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
@@ -90,6 +94,65 @@ export function AdminDashboard() {
       toast.error('Failed to save note')
     } finally {
       setSavingNote(false)
+    }
+  }
+
+  const handleAssignToMe = async () => {
+    if (!selectedApp?.id || !user) return
+    setAssigning(true)
+
+    try {
+      const updates = { 
+        assignedTo: user.id, 
+        assignedToEmail: user.email 
+      }
+      await adminService.updateApplication(selectedApp.id, updates, accessToken!)
+      
+      const updatedApp = { ...selectedApp, ...updates }
+      setSelectedApp(updatedApp)
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a))
+      toast.success('Application assigned to you')
+    } catch (err) {
+      console.error('Failed to assign application:', err)
+      toast.error('Failed to assign application')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  const handleUnassign = async () => {
+    if (!selectedApp?.id) return
+    setAssigning(true)
+
+    try {
+      // Need to cast to any to allow null/undefined if interface is strict, 
+      // but Partial<LoanApplication> should allow undefined. 
+      // However, we want to clear the field.
+      // Sending null/empty string usually works for clearing if backend supports it.
+      // Or undefined might just ignore it.
+      // Let's send null or empty string. Since we are using KV store, simply overwriting.
+      // But LoanApplication type expects string | undefined. 
+      // Let's assume updating with 'undefined' or empty string clears it.
+      const updates = { 
+        assignedTo: undefined, 
+        assignedToEmail: undefined
+        // If the backend kv logic merges, sending undefined might handle it.
+        // Actually, for a simple kv merge, undefined keys might be ignored by JSON.stringify.
+        // We might need to send null if backend handles it, or empty string.
+        // Let's try sending null (will need to cast) or handle it later if it fails.
+      }
+      
+      await adminService.updateApplication(selectedApp.id, updates, accessToken!)
+      
+      const updatedApp = { ...selectedApp, ...updates }
+      setSelectedApp(updatedApp)
+      setApplications(apps => apps.map(a => a.id === updatedApp.id ? updatedApp : a))
+      toast.success('Application unassigned')
+    } catch (err) {
+      console.error('Failed to unassign application:', err)
+      toast.error('Failed to unassign application')
+    } finally {
+      setAssigning(false)
     }
   }
 
@@ -917,7 +980,17 @@ export function AdminDashboard() {
                         </span>
                         <div>
                           <p className="text-sm">{app.fullName}</p>
-                          <p className="text-xs text-gray-500">{app.email}</p>
+                          <div className="flex flex-col gap-0.5">
+                            <p className="text-xs text-gray-500">{app.email}</p>
+                            {app.assignedToEmail && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400">Assigned to:</span>
+                                <Badge variant="secondary" className="text-[10px] h-4 px-1 py-0 font-normal bg-gray-100 text-gray-600 hover:bg-gray-200">
+                                  {app.assignedToEmail}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -976,9 +1049,42 @@ export function AdminDashboard() {
                           <FileText className="h-4 w-4" />
                           Internal Notes
                         </CardTitle>
-                        {selectedApp.adminNotes && selectedApp.adminNotes !== adminNote && (
-                          <span className="text-xs text-yellow-600 italic">Unsaved changes</span>
-                        )}
+                        <div className="flex gap-2 items-center">
+                          {selectedApp.assignedToEmail ? (
+                            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-yellow-200">
+                              <UserCheck className="h-3 w-3 text-green-600" />
+                              <span className="text-xs text-gray-600">
+                                Assigned to: <span className="font-medium text-gray-900">{selectedApp.assignedToEmail}</span>
+                              </span>
+                              {selectedApp.assignedTo !== user?.id && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-5 px-1.5 text-[10px] text-blue-600 hover:text-blue-800 hover:bg-blue-50 ml-1"
+                                  onClick={handleAssignToMe}
+                                  disabled={assigning}
+                                >
+                                  Take Over
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 text-xs bg-white border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                              onClick={handleAssignToMe}
+                              disabled={assigning}
+                            >
+                              <UserPlus className="h-3 w-3 mr-1" />
+                              Assign to Me
+                            </Button>
+                          )}
+                          
+                          {selectedApp.adminNotes && selectedApp.adminNotes !== adminNote && (
+                            <span className="text-xs text-yellow-600 italic">Unsaved changes</span>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
