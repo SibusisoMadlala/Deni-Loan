@@ -688,7 +688,7 @@ export function AdminDashboard() {
     const searchLower = searchQuery.toLowerCase()
     
     // Number Filter
-    const matchesNumber = searchNumber === '' || app.originalIndex.toString().includes(searchNumber.replace('#', ''))
+    const matchesNumber = searchNumber === '' || app.originalIndex.toString() === searchNumber.replace('#', '').trim()
 
     const matchesSearch = 
       (app.email?.toLowerCase().includes(searchLower)) ||
