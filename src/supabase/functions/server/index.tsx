@@ -947,6 +947,8 @@ app.get('/make-server-1ed353c1/my-applications', requireAuth, async (c)=>{
 app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>{
   try {
     const userId = c.get('userId');
+    const userMetadata = c.get('userMetadata');
+    const isAdmin = userMetadata?.role === 'admin';
     const applicationId = c.req.param('id');
     const updates = await c.req.json();
     const application = await kv.get(`loan_application:${applicationId}`);
@@ -955,7 +957,9 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
         error: 'Application not found'
       }, 404);
     }
-    if (application.userId !== userId) {
+    
+    // Allow if user owns the application OR is an admin
+    if (application.userId !== userId && !isAdmin) {
       return c.json({
         error: 'Forbidden'
       }, 403);

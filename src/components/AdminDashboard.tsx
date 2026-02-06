@@ -678,7 +678,7 @@ export function AdminDashboard() {
   }
 
   const filteredApplications = applications
-    .map((app, index) => ({...app, originalIndex: index + 1}))
+    .map((app, index) => ({...app, originalIndex: applications.length - index})) // Oldest is #1, Newest is #Max
     .filter(app => {
     // Status Filter
     const matchesStatus = filter === 'all' || app.status === filter
