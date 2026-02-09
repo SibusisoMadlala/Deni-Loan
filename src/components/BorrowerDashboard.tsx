@@ -206,12 +206,11 @@ export function BorrowerDashboard() {
           </Card>
         ) : (
           <>
-            {hasActiveApprovedLoan && (
+            {!canApply && (
               <Alert variant="destructive" className="mb-6">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Active Loan in Progress:</strong> You have an active approved or disbursed loan. 
-                  Please complete payment of your current loan by the next pay day before applying for a new one.
+                  <strong>Notice:</strong> {restrictionReason}
                 </AlertDescription>
               </Alert>
             )}
