@@ -57,13 +57,29 @@ export function DocumentUploadStep({
     }
   }
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const validateFiles = (files: File | File[]): File | File[] | null => {
+    const fileList = Array.isArray(files) ? files : [files]
+    const invalidFiles = fileList.filter(file => file.size > MAX_FILE_SIZE)
+
+    if (invalidFiles.length > 0) {
+      setError(`File(s) exceed 10MB limit: ${invalidFiles.map(f => f.name).join(', ')}`)
+      return null
+    }
+    return files
+  }
+
   const handleUpload = async (files: File | File[], documentType: string) => {
     setError('')
+    
+    const validFiles = validateFiles(files)
+    if (!validFiles) return
 
     // If no application ID, just store the file locally via callback
     if (!applicationId) {
       if (onFileSelect) {
-        onFileSelect(files, documentType)
+        onFileSelect(validFiles, documentType)
       }
       return
     }
@@ -71,12 +87,9 @@ export function DocumentUploadStep({
     setUploading(documentType)
 
     try {
-      if (Array.isArray(files)) {
-        for (const file of files) {
-          await documentService.uploadDocument(file, applicationId, documentType, accessToken)
-        }
-      } else {
-        await documentService.uploadDocument(files, applicationId, documentType, accessToken)
+      const filesToUpload = Array.isArray(validFiles) ? validFiles : [validFiles]
+      for (const file of filesToUpload) {
+        await documentService.uploadDocument(file, applicationId, documentType, accessToken)
       }
       await loadDocuments()
     } catch (err: any) {
@@ -126,7 +139,7 @@ export function DocumentUploadStep({
               {hasDocument('id') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Photo of your ID card or ID book (both sides)
+              Photo of your ID card or ID book (both sides, max 10MB)
             </p>
             <Input
               type="file"
@@ -154,7 +167,7 @@ export function DocumentUploadStep({
               {hasDocument('bank_statement') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Recent 3 months of bank statements (PDF or images). Required for NCR affordability assessment. You can select multiple files.
+              Recent 3 months of bank statements (PDF or images, max 10MB each). Required for NCR affordability assessment. You can select multiple files.
             </p>
             <Input
               type="file"
@@ -186,7 +199,7 @@ export function DocumentUploadStep({
               {hasDocument('proof_of_residence') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Utility bill, lease agreement, or municipal rates letter (not older than 3 months)
+              Utility bill, lease agreement, or municipal rates letter (not older than 3 months, max 10MB)
             </p>
             <Input
               type="file"
@@ -214,7 +227,7 @@ export function DocumentUploadStep({
               {hasDocument('payslip') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Most recent payslip. Required for income verification.
+              Most recent payslip (max 10MB). Required for income verification.
             </p>
             <Input
               type="file"

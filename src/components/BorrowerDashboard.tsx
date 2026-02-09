@@ -120,11 +120,40 @@ export function BorrowerDashboard() {
   };
 
   // Check if user has active approved/disbursed loan
-  const hasActiveApprovedLoan = applications.some(app => 
-    app.status === 'approved' || app.status === 'disbursed'
-  );
+  const checkForEligibility = () => {
+    if (applications.length === 0) return { canApply: true };
 
-  const canApplyForNewLoan = !hasActiveApprovedLoan;
+    // Get latest application (already sorted by date desc in loadApplications)
+    const lastApp = applications[0];
+
+    // Rule A: Active Loan Check
+    const activeStatuses = ['pending', 'reviewing', 'approved', 'disbursed'];
+    if (activeStatuses.includes(lastApp.status || 'pending')) {
+      return { 
+        canApply: false, 
+        reason: 'You have an active application. Please wait for a decision or settle your current loan.' 
+      };
+    }
+
+    // Rule B: 30-Day Cooling Off (if declined)
+    if (lastApp.status === 'declined') {
+      const decidedDate = new Date(lastApp.updatedAt || lastApp.createdAt!);
+      const today = new Date();
+      const diffTime = Math.abs(today.getTime() - decidedDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 30) {
+        return { 
+          canApply: false, 
+          reason: `Cooling off period active. You can apply again in ${30 - diffDays} days.` 
+        };
+      }
+    }
+
+    return { canApply: true };
+  };
+
+  const { canApply, reason: restrictionReason } = checkForEligibility();
 
   const currentApp = applications.find(app => app.id === selectedApplication)
   const repaymentAmounts = currentApp ? calculateRepaymentAmounts(currentApp) : null;
@@ -145,14 +174,21 @@ export function BorrowerDashboard() {
             <h1 className="text-3xl mb-2">Welcome back, {user?.fullName}</h1>
             <p className="text-gray-600">Manage your loans and documents</p>
           </div>
-          <Button 
-            onClick={() => navigate('/apply')}
-            disabled={!canApplyForNewLoan}
-            title={!canApplyForNewLoan ? 'Complete your current loan payment before applying for a new one' : ''}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Application
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            <Button 
+              onClick={() => navigate('/apply')}
+              disabled={!canApply}
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              New Application
+            </Button>
+            {!canApply && (
+              <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100 max-w-[250px] text-right shadow-sm">
+                <Clock className="w-3 h-3 inline-block mr-1" />
+                {restrictionReason}
+              </span>
+            )}
+          </div>
         </div>
 
         {applications.length === 0 ? (

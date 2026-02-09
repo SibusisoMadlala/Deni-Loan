@@ -877,6 +877,47 @@ app.post('/make-server-1ed353c1/resend-verification', async (c)=>{
 app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
   try {
     const userId = c.get('userId');
+
+    // --- 30-DAY COOLING OFF & ACTIVE LOAN CHECK ---
+    // 1. Fetch user's existing applications
+    const applicationIds = await kv.getByPrefix(`user_applications:${userId}:`);
+    const applications = await Promise.all(applicationIds.map((id)=>kv.get(`loan_application:${id}`)));
+
+    // 2. Sort by date (newest first)
+    // Filter out nulls just in case and sort
+    const sortedApps = applications
+      .filter(app => app !== null && app !== undefined)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const lastApp = sortedApps[0];
+
+    if (lastApp) {
+      // Rule A: Prevent multiple active loans
+      // Ensure specific checked statuses match your system's statuses
+      const activeStatuses = ['pending', 'approved', 'disbursed'];
+      if (activeStatuses.includes(lastApp.status)) {
+         return c.json({
+          error: 'You already have an active application or loan. Please settle it or wait for a decision before applying again.'
+        }, 400);
+      }
+
+      // Rule B: 30-Day Cooling Period for Declined Applications
+      if (lastApp.status === 'declined') {
+        const decidedDate = new Date(lastApp.updatedAt || lastApp.createdAt);
+        const today = new Date();
+        const diffTime = Math.abs(today.getTime() - decidedDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 30) {
+          const daysRemaining = 30 - diffDays;
+           return c.json({
+            error: `Your previous application was declined. You can apply again in ${daysRemaining} days.`
+          }, 400);
+        }
+      }
+    }
+    // ---------------------------------------------------
+
     const applicationData = await c.req.json();
     const application = {
       id: crypto.randomUUID(),
