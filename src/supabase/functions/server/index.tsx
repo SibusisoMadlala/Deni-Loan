@@ -891,11 +891,16 @@ app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
 
     const lastApp = sortedApps[0];
 
+    // Debug active loan check
+    console.log(`Checking loan eligibility for user ${userId}. Last App:`, lastApp ? { id: lastApp.id, status: lastApp.status, date: lastApp.createdAt } : 'None');
+
     if (lastApp) {
       // Rule A: Prevent multiple active loans
       // Ensure specific checked statuses match your system's statuses
-      const activeStatuses = ['pending', 'approved', 'disbursed'];
+      // 'review' or any other intermediate status should also block
+      const activeStatuses = ['draft', 'pending', 'review', 'approved', 'disbursed'];
       if (activeStatuses.includes(lastApp.status)) {
+         console.log(`Blocked: Active loan found with status ${lastApp.status}`);
          return c.json({
           error: 'You already have an active application or loan. Please settle it or wait for a decision before applying again.'
         }, 400);
@@ -903,15 +908,24 @@ app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
 
       // Rule B: 30-Day Cooling Period for Declined Applications
       if (lastApp.status === 'declined') {
-        const decidedDate = new Date(lastApp.updatedAt || lastApp.createdAt);
+        // Use updatedAt for declined date if available, else createdAt
+        // Ensure accurate date parsing
+        const decidedDateStr = lastApp.updatedAt || lastApp.createdAt;
+        const decidedDate = new Date(decidedDateStr);
         const today = new Date();
-        const diffTime = Math.abs(today.getTime() - decidedDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Calculate difference in milliseconds
+        const diffTime = today.getTime() - decidedDate.getTime();
+        
+        // Convert to days (rounding down to be safe, or direct division)
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        console.log(`Last app declined on ${decidedDateStr}. Days passed: ${diffDays}`);
 
         if (diffDays < 30) {
           const daysRemaining = 30 - diffDays;
            return c.json({
-            error: `Your previous application was declined. You can apply again in ${daysRemaining} days.`
+            error: `Your previous application was declined on ${decidedDate.toLocaleDateString()}. You can apply again in ${daysRemaining} days.`
           }, 400);
         }
       }
