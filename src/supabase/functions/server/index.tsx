@@ -933,21 +933,11 @@ app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
     // ---------------------------------------------------
 
     const applicationData = await c.req.json();
-    
-    // Generate sequential application number
-    let currentSeq = await kv.get('global_application_sequence');
-    if (typeof currentSeq !== 'number') {
-      currentSeq = 0;
-    }
-    const nextNumber = currentSeq + 1;
-    await kv.set('global_application_sequence', nextNumber);
-
     const application = {
       id: crypto.randomUUID(),
       userId,
       ...applicationData,
       status: 'draft',
-      applicationNumber: nextNumber,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1088,55 +1078,6 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
     return c.json({
       error: 'Failed to update application'
     }, 500);
-  }
-});
-
-// ============ MIGRATION ROUTES ============
-app.post('/make-server-1ed353c1/migrate-sequences', requireAdmin, async (c) => {
-  try {
-    // 1. Get all loan applications
-    // getByPrefix returns the VALUES
-    const allApps = await kv.getByPrefix('loan_application:');
-    
-    // 2. Sort explicitly by creation date to maintain historical order
-    allApps.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    
-    let counter = 0;
-    let updates = 0;
-
-    // 3. Assign numbers
-    for (const app of allApps) {
-      if (app && typeof app === 'object') {
-        if (typeof app.applicationNumber === 'number') {
-          // If it already has a number, respect it and ensure counter matches or exceeds
-          if (app.applicationNumber > counter) {
-            counter = app.applicationNumber;
-          }
-        } else {
-          // Assign next number
-          counter++;
-          app.applicationNumber = counter;
-          await kv.set(`loan_application:${app.id}`, app);
-          updates++;
-        }
-      }
-    }
-    
-    // 4. Update global sequence
-    const currentGlobal = await kv.get('global_application_sequence');
-    if (typeof currentGlobal !== 'number' || currentGlobal < counter) {
-      await kv.set('global_application_sequence', counter);
-    }
-
-    return c.json({
-      success: true,
-      total: allApps.length,
-      updated: updates,
-      lastSequence: counter
-    });
-  } catch(e) {
-    console.error('Migration error:', e);
-    return c.json({ error: e.message }, 500);
   }
 });
 
