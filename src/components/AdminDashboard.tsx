@@ -894,7 +894,7 @@ export function AdminDashboard() {
         if (searchLower) {
           const matchesSearch = 
             (app.email?.toLowerCase() || '').includes(searchLower) ||
-            (app.originalIndex?.toString() || '').includes(searchLower) ||
+            ((app as any).fixedOriginalIndex?.toString() || '').includes(searchLower) ||
             (app.fullName?.toLowerCase() || '').includes(searchLower) ||
             (app.idNumber?.includes(searchLower) || false)
             
