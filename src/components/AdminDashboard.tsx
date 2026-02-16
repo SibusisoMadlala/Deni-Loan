@@ -789,15 +789,15 @@ export function AdminDashboard() {
 
 
   const handleSearch = () => {
-    setActiveSearchQuery(searchQuery)
-    setActiveSearchNumber(searchNumber)
+    // Only update if current values are different 
+    setActiveSearchQuery(searchQuery.trim()) 
+    setActiveSearchNumber(searchNumber.trim())
     setActiveFilter(filter)
     setActiveDateFilter(dateFilter)
     
-    // Reset selected app if it's filtered out? 
-    // Or keep it. Usually resetting is safer to avoid confusion.
-    setSelectedApp(null)
+    // Always reset to page 1 on search
     setCurrentPage(1)
+    setSelectedApp(null)
   }
 
   // Trigger search when pressing Enter
@@ -834,25 +834,31 @@ export function AdminDashboard() {
       if (activeFilter !== 'all') {
         const appStatus = app.status?.toLowerCase().trim() || 'pending';
         const filterStatus = activeFilter.toLowerCase().trim();
+        // If the application has no status, it defaults to 'pending' above.
+        // We only filter out if it doesn't match the selected filter.
         if (appStatus !== filterStatus) return false;
       }
       
       // Search Filter
       if (activeSearchQuery) {
-        const searchLower = activeSearchQuery.toLowerCase()
-        const matchesSearch = 
-          (app.email?.toLowerCase() || '').includes(searchLower) ||
-          (app.id?.toLowerCase() || '').includes(searchLower) ||
-          (app.fullName?.toLowerCase() || '').includes(searchLower) ||
-          (app.idNumber?.includes(searchLower) || false)
-          
-        if (!matchesSearch) return false
+        const searchLower = activeSearchQuery.toLowerCase().trim()
+        if (searchLower) {
+          const matchesSearch = 
+            (app.email?.toLowerCase() || '').includes(searchLower) ||
+            (app.id?.toLowerCase() || '').includes(searchLower) ||
+            (app.fullName?.toLowerCase() || '').includes(searchLower) ||
+            (app.idNumber?.includes(searchLower) || false)
+            
+          if (!matchesSearch) return false
+        }
       }
       
       // Number Filter
       if (activeSearchNumber) {
         const num = activeSearchNumber.replace('#', '').trim()
-        if (num && app.originalIndex?.toString() !== num) return false
+        if (num) {
+          if (app.originalIndex?.toString() !== num) return false
+        }
       }
 
       // Date Filter
