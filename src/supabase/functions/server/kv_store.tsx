@@ -81,8 +81,8 @@ export const getByPrefix = async (prefix: string): Promise<any[]> => {
   const supabase = client();
   let allRows: any[] = [];
   let from = 0;
-  const PAGE_SIZE = 1000;
   let fetchMore = true;
+  const PAGE_SIZE = 1000;
 
   while (fetchMore) {
     const { data, error } = await supabase.from("kv_store_1ed353c1")
