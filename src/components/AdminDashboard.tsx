@@ -433,10 +433,17 @@ export function AdminDashboard() {
       
       const apps = await adminService.getAllApplications(accessToken)
       
-      // Deduplicate applications based on ID (keep first occurrence)
-      const uniqueApps = Array.from(new Map(apps.map(item => [item.id, item])).values());
+      // Deduplicate applications based on ID (keep most recent)
+      // Sort by date ascending so the Map constructor keeps the LAST one (newest)
+      const sortedRaw = [...apps].sort((a: any, b: any) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeA - timeB || (a.id || '').localeCompare(b.id || '');
+      });
+
+      const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id, item])).values());
       
-      // Safe sort with 0 fallback for missing dates to prevent NaN
+      // Safe sort with 0 fallback for missing dates to prevent NaN (Descending for display)
       setApplications(uniqueApps.sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
