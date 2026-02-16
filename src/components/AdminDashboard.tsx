@@ -916,8 +916,8 @@ export function AdminDashboard() {
     return {
       total: applications.length,
       pending: applications.filter(app => getStatus(app) === 'pending').length,
-      approved: applications.filter(app => ['approved', 'disbursed', 'repaid'].includes(getStatus(app))).length,
-      disbursed: applications.filter(app => getStatus(app) === 'disbursed').length,
+      approved: applications.filter(app => getStatus(app) === 'approved').length,
+      disbursed: applications.filter(app => ['disbursed', 'repaid'].includes(getStatus(app))).length,
       totalDisbursed: applications
         .filter(app => ['disbursed', 'repaid'].includes(getStatus(app)))
         .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0),
@@ -1004,7 +1004,7 @@ export function AdminDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Approved</p>
+                  <p className="text-sm text-gray-600">Approved (Waiting)</p>
                   <p className="text-2xl">{stats.approved}</p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-400" />
@@ -1016,7 +1016,7 @@ export function AdminDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Disbursed Count</p>
+                  <p className="text-sm text-gray-600">Disbursed (Total)</p>
                   <p className="text-2xl">{stats.disbursed}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-blue-400" />
