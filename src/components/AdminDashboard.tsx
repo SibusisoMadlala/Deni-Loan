@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { adminService } from '../services/adminService'
 import { documentService, Document } from '../services/documentService'
@@ -487,13 +487,27 @@ export function AdminDashboard() {
         decisionStatus === 'declined' ? declineReason : undefined,
         accessToken!
       )
+      
+      // Update local state immediately to reflect changes in UI
+      const updatedStatus = decisionStatus;
+      const updatedApp = { 
+        ...selectedApp, 
+        status: updatedStatus as any, // Cast to match LoanApplication type if needed
+        approvedAmount: decisionStatus === 'approved' ? approvedAmount : selectedApp.approvedAmount,
+        declineReason: decisionStatus === 'declined' ? declineReason : selectedApp.declineReason
+      };
+
+      setApplications(prevApps => 
+        prevApps.map(app => app.id === selectedApp.id ? updatedApp : app)
+      );
+      setSelectedApp(updatedApp as LoanApplication);
+
       setShowDecisionModal(false)
-      await loadApplications()
-      // Update selected app
-      const updatedApp = applications.find(app => app.id === selectedApp.id)
-      if (updatedApp) setSelectedApp(updatedApp)
+      // Background refresh
+      loadApplications()
     } catch (err) {
       console.error('Failed to update loan status:', err)
+      toast.error('Failed to update status')
     }
   }
 
@@ -508,10 +522,15 @@ export function AdminDashboard() {
         undefined,
         accessToken!
       )
+      
+      // Update local state immediately
+      const updatedApp = { ...selectedApp, status: 'disbursed' as const };
+      setApplications(prevApps => 
+        prevApps.map(app => app.id === selectedApp.id ? updatedApp : app)
+      );
+      setSelectedApp(updatedApp as LoanApplication);
+      
       await loadApplications()
-      // Update selected app view
-      const updated = { ...selectedApp, status: 'disbursed' }
-      setSelectedApp(updated as LoanApplication)
     } catch (err) {
       console.error('Failed to disburse loan:', err)
     }
@@ -528,10 +547,15 @@ export function AdminDashboard() {
         undefined,
         accessToken!
       )
+      
+      // Update local state immediately
+      const updatedApp = { ...selectedApp, status: 'repaid' as const };
+      setApplications(prevApps => 
+        prevApps.map(app => app.id === selectedApp.id ? updatedApp : app)
+      );
+      setSelectedApp(updatedApp as LoanApplication);
+
       await loadApplications()
-      // Update selected app view
-      const updated = { ...selectedApp, status: 'repaid' }
-      setSelectedApp(updated as LoanApplication)
       toast.success('Loan marked as repaid')
     } catch (err) {
       console.error('Failed to mark as repaid:', err)
@@ -741,7 +765,8 @@ export function AdminDashboard() {
       date.getFullYear() === today.getFullYear()
   }
 
-  const filteredApplications = applications
+  const filteredApplications = useMemo(() => {
+    return applications
     .map((app, index) => ({...app, originalIndex: applications.length - index})) // Oldest is #1, Newest is #Max
     .filter(app => {
     // Status Filter
@@ -767,6 +792,7 @@ export function AdminDashboard() {
     
     return matchesStatus && matchesSearch && matchesDate && matchesNumber
   })
+  }, [applications, filter, searchQuery, searchNumber, dateFilter])
 
   // Statistics
   const stats = {
