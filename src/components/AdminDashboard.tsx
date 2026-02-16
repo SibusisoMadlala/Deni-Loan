@@ -447,28 +447,20 @@ export function AdminDashboard() {
       // Since sortedRaw is sorted Oldest -> Newest, the FIRST occurrence establishes the position (index).
       // Subsequent occurrences (updates) overwrite the value but keep the position.
       // This ensures Badge Numbers (based on index) are stable relative to the *original creation time*.
-      
-      // User Update 2026-02-16: User confirmed that "Approved" count should be 106, but we show 66.
-      // This implies 40 records are being hidden by deduplication.
-      // The user likely wans to see ALL records even if they share an ID (which implies they might not be true duplicates in the user's view, or the user wants the raw count).
-      // Reverting to RAW list but keeping the ID-based Sort Stability.
-      // We will append a unique suffix to the ID to ensure React keys works.
-      
-      const processedApps = sortedRaw.map((app, index) => {
-          // If we are NOT deduplicating, we need to ensure unique ID for rendering if IDs are reused.
-          // Checks if ID appears multiple times?
-          // For now, let's trust the user wants the raw list. 
-          return app;
+      const uniqueAppsMap = new Map();
+      sortedRaw.forEach(app => {
+        uniqueAppsMap.set(app.id, app);
       });
+      // Convert back to array
+      const processedApps = Array.from(uniqueAppsMap.values());
       
-      console.log('Using raw applications count:', processedApps.length);
+      console.log('Using deduplicated applications count:', processedApps.length);
       
       const appsWithFixedIndex = processedApps
         .map((app, index) => ({ 
             ...app, 
-            // Ensure ID is unique for React Key by appending index.
-            // This allows duplicates to be rendered as distinct cards.
-            _renderId: `${app.id}-${index}`, 
+            // Since we deduplicated, ID should be unique.
+            _renderId: app.id, 
             fixedOriginalIndex: index + 1 
         }));
 
