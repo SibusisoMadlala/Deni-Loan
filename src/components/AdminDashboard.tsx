@@ -440,23 +440,23 @@ export function AdminDashboard() {
        * @param sortedRaw - Array of application items to deduplicate
        * @returns Array of unique application items with no duplicates
        */
-      const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id || `temp-${Math.random()}`, item])).values());
-      console.log('Unique applications count:', uniqueApps.length)
+     // const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id || `temp-${Math.random()}`, item])).values());
+     // console.log('Unique applications count:', uniqueApps.length)
       
-      const appsWithFixedIndex = uniqueApps
-        .sort((a: any, b: any) => {
-           const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-           return timeA - timeB; // Ascending (Oldest First)
-        })
-        .map((app, index) => ({ ...app, fixedOriginalIndex: index + 1 }));
+      // const appsWithFixedIndex = uniqueApps
+      //   .sort((a: any, b: any) => {
+      //      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      //      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      //      return timeA - timeB; // Ascending (Oldest First)
+      //   })
+      //   .map((app, index) => ({ ...app, fixedOriginalIndex: index + 1 }));
 
       // Safe sort with 0 fallback for missing dates to prevent NaN (Descending for display)
-      setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
-      }))
+      // setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
+      //   const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      //   const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      //   return timeB - timeA;
+      // }))
     } catch (err) {
       console.error('Failed to load applications:', err)
     } finally {
