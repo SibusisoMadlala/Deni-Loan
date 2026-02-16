@@ -440,8 +440,8 @@ export function AdminDashboard() {
        * @param sortedRaw - Array of application items to deduplicate
        * @returns Array of unique application items with no duplicates
        */
-     // const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id || `temp-${Math.random()}`, item])).values());
-     // console.log('Unique applications count:', uniqueApps.length)
+      const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id || `temp-${Math.random()}`, item])).values());
+      console.log('Unique applications count:', uniqueApps.length)
       
       const appsWithFixedIndex = uniqueApps
         .sort((a: any, b: any) => {
