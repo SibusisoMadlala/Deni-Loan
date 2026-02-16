@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { adminService } from '../services/adminService'
 import { documentService, Document } from '../services/documentService'
@@ -49,6 +50,7 @@ import {
 
 export function AdminDashboard() {
   const { accessToken, user } = useAuth()
+  const navigate = useNavigate()
   const [applications, setApplications] = useState<LoanApplication[]>([])
   const [selectedApp, setSelectedApp] = useState<LoanApplication | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
