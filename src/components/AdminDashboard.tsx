@@ -27,7 +27,8 @@ import {
   Shield,
   Pencil,
   UserPlus,
-  UserCheck
+  UserCheck,
+  Search // Import the Search icon
 } from 'lucide-react'
 
 export function AdminDashboard() {
@@ -42,6 +43,10 @@ export function AdminDashboard() {
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchNumber, setSearchNumber] = useState('')
+  const [activeSearchQuery, setActiveSearchQuery] = useState('')
+  const [activeSearchNumber, setActiveSearchNumber] = useState('')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [activeDateFilter, setActiveDateFilter] = useState<string>('all')
 
   // Decision modal state
   const [showDecisionModal, setShowDecisionModal] = useState(false)
@@ -766,6 +771,39 @@ export function AdminDashboard() {
   }
 
 
+  const handleSearch = () => {
+    setActiveSearchQuery(searchQuery)
+    setActiveSearchNumber(searchNumber)
+    setActiveFilter(filter)
+    setActiveDateFilter(dateFilter)
+    
+    // Reset selected app if it's filtered out? 
+    // Or keep it. Usually resetting is safer to avoid confusion.
+    setSelectedApp(null)
+  }
+
+  // Trigger search when pressing Enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
+
+  // Also allow automatic filtering when dropdowns change, or require button press for ALL filters?
+  // "click enter or search" usually implies text inputs. Dropdowns usually auto-apply.
+  // But purely consistent UI might require "Apply" button.
+  // The user says "make it in such a way that the admin needs to click enter or search".
+  // This strongly implies manual triggering.
+  // So we will stick to manual triggering for all filter inputs as requested.
+
+  useEffect(() => {
+    // Only run once on mount or when loading finishes to set initial state
+    if (!loading) {
+       // We can initialize active states here if needed, 
+       // but useState default values handle the initial empty state.
+    }
+  }, [loading])
+
   const filteredApplications = useMemo(() => {
     if (!applications) return []
     
@@ -775,11 +813,11 @@ export function AdminDashboard() {
       if (!app) return false
       
       // Status Filter
-      if (filter !== 'all' && app.status !== filter) return false
+      if (activeFilter !== 'all' && app.status !== activeFilter) return false
       
       // Search Filter
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase()
+      if (activeSearchQuery) {
+        const searchLower = activeSearchQuery.toLowerCase()
         const matchesSearch = 
           (app.email?.toLowerCase() || '').includes(searchLower) ||
           (app.id?.toLowerCase() || '').includes(searchLower) ||
@@ -790,22 +828,22 @@ export function AdminDashboard() {
       }
       
       // Number Filter
-      if (searchNumber) {
-        const num = searchNumber.replace('#', '').trim()
+      if (activeSearchNumber) {
+        const num = activeSearchNumber.replace('#', '').trim()
         if (num && app.originalIndex?.toString() !== num) return false
       }
 
       // Date Filter
-      if (dateFilter !== 'all') {
+      if (activeDateFilter !== 'all') {
          if (!app.createdAt) return false
-         if (dateFilter === 'today' && !isToday(app.createdAt)) return false
-         if (dateFilter === 'week' && !isThisWeek(app.createdAt)) return false
-         if (dateFilter === 'month' && !isThisMonth(app.createdAt)) return false
+         if (activeDateFilter === 'today' && !isToday(app.createdAt)) return false
+         if (activeDateFilter === 'week' && !isThisWeek(app.createdAt)) return false
+         if (activeDateFilter === 'month' && !isThisMonth(app.createdAt)) return false
       }
       
       return true
     })
-  }, [applications, filter, searchQuery, searchNumber, dateFilter])
+  }, [applications, activeFilter, activeSearchQuery, activeSearchNumber, activeDateFilter])
 
   // Statistics
   const stats = {
@@ -956,7 +994,17 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-lg">Applications ({filteredApplications.length})</h3>
                 <div className="flex gap-2">
-                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <Select value={dateFilter} onValueChange={(val) => {
+                      setDateFilter(val)
+                      // Optionally auto-apply dropdowns? 
+                      // User said "click enter or search". 
+                      // But dropdowns usually apply immediately.
+                      // Let's make them require search for consistency if strict requirement.
+                      // Or apply immediately. "Click enter or search" usually refers to text inputs.
+                      // Let's try applying immediately for dropdowns as it's better UX, 
+                      // but specifically keep text inputs manual.
+                      setActiveDateFilter(val) // Apply immediately for dropdown
+                  }}>
                     <SelectTrigger className="w-[110px]">
                       <SelectValue placeholder="Date" />
                     </SelectTrigger>
@@ -968,7 +1016,10 @@ export function AdminDashboard() {
                     </SelectContent>
                   </Select>
                   
-                  <Select value={filter} onValueChange={setFilter}>
+                  <Select value={filter} onValueChange={(val) => {
+                      setFilter(val)
+                      setActiveFilter(val) // Apply immediately for dropdown
+                  }}>
                     <SelectTrigger className="w-[110px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -990,15 +1041,22 @@ export function AdminDashboard() {
                     placeholder="No." 
                     value={searchNumber}
                     onChange={(e) => setSearchNumber(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="pl-6"
                   />
                 </div>
-                <Input 
-                  placeholder="Search by email, name, ID..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
+                <div className="flex-1 flex gap-2">
+                  <Input 
+                    placeholder="Search by email, name, ID..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSearch} size="icon" variant="secondary">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
