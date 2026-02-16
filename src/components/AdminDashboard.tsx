@@ -971,9 +971,9 @@ export function AdminDashboard() {
       total: sourceApps.length,
       pending: sourceApps.filter(app => getStatus(app) === 'pending').length,
       approved: sourceApps.filter(app => getStatus(app) === 'approved').length,
-      disbursed: sourceApps.filter(app => ['disbursed'].includes(getStatus(app))).length,
+      disbursed: sourceApps.filter(app => ['disbursed', 'approved'].includes(getStatus(app))).length,
       totalDisbursed: sourceApps
-        .filter(app => ['disbursed'].includes(getStatus(app)))
+        .filter(app => ['disbursed', 'approved'].includes(getStatus(app)))
         .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0),
       totalRepaid: sourceApps
         .filter(app => getStatus(app) === 'repaid')
