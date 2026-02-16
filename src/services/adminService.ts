@@ -60,6 +60,21 @@ export const adminService = {
     }
   },
 
+  async migrateSequences(accessToken: string) {
+    const response = await fetch(`${API_BASE}/migrate-sequences`, {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    const data = await response.json()
+    if (!response.ok) {
+       throw new Error(data.error || 'Failed to migrate sequences');
+    }
+    return data;
+  },
+
   async verifyDocument(documentId: string, verified: boolean, notes: string, accessToken: string) {
     try {
       const response = await fetch(`${API_BASE}/admin/verify-document`, {
