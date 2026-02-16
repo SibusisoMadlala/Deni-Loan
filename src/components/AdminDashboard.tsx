@@ -477,11 +477,6 @@ export function AdminDashboard() {
         // Let's use Ascending ID as tie breaker
         return (a.id || '').localeCompare(b.id || '');
       }))
-      setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
-      }))
     } catch (err) {
       console.error('Failed to load applications:', err)
     } finally {
