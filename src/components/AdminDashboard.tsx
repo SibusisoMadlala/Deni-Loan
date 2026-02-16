@@ -425,8 +425,6 @@ export function AdminDashboard() {
     }
   }
 
-  useEffect(() => {
-    if (!loading && !accessToken) {
   const loadApplications = async () => {
     try {
       if (!accessToken) return;
