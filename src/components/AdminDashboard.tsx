@@ -443,8 +443,16 @@ export function AdminDashboard() {
       const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id || `temp-${Math.random()}`, item])).values());
       console.log('Unique applications count:', uniqueApps.length)
       
+      const appsWithFixedIndex = uniqueApps
+        .sort((a: any, b: any) => {
+           const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+           return timeA - timeB; // Ascending (Oldest First)
+        })
+        .map((app, index) => ({ ...app, fixedOriginalIndex: index + 1 }));
+
       // Safe sort with 0 fallback for missing dates to prevent NaN (Descending for display)
-      setApplications(uniqueApps.sort((a: any, b: any) => {
+      setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return timeB - timeA;
@@ -867,7 +875,7 @@ export function AdminDashboard() {
     if (!applications) return []
     
     return applications
-    .map((app, index) => ({...app, originalIndex: applications.length - index})) // Calculate descending index
+    .map((app) => ({...app})) // Create copy to avoid mutation issues
     .filter(app => {
       if (!app) return false
       
@@ -886,7 +894,7 @@ export function AdminDashboard() {
         if (searchLower) {
           const matchesSearch = 
             (app.email?.toLowerCase() || '').includes(searchLower) ||
-            (app.id?.toLowerCase() || '').includes(searchLower) ||
+            (app.originalIndex?.toString() || '').includes(searchLower) ||
             (app.fullName?.toLowerCase() || '').includes(searchLower) ||
             (app.idNumber?.includes(searchLower) || false)
             
@@ -898,7 +906,8 @@ export function AdminDashboard() {
       if (activeSearchNumber) {
         const num = activeSearchNumber.replace('#', '').trim()
         if (num) {
-          if (app.originalIndex?.toString() !== num) return false
+          // Use fixedOriginalIndex which is stable
+          if ((app as any).fixedOriginalIndex?.toString() !== num) return false
         }
       }
 
@@ -1160,7 +1169,7 @@ export function AdminDashboard() {
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex gap-2 items-start">
                           <span className="text-xs font-mono text-gray-400 mt-1 select-none">
-                            #{app.originalIndex}
+                            #{(app as any).fixedOriginalIndex}
                           </span>
                           <div>
                             <p className="text-sm">{app.fullName}</p>
