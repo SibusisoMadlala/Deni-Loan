@@ -101,18 +101,6 @@ export function AdminDashboard() {
     }
   }, [selectedApp?.id])
 
-  const handleMigrate = async () => {
-    if(!confirm("This will assign persistent sequence numbers to all applications lacking them. Proceed?")) return;
-    try {
-      const res = await adminService.migrateSequences(accessToken!);
-      toast.success(`Sequences updated: ${res.updated}`);
-      loadApplications();
-    } catch(e: any) {
-      console.error(e);
-      toast.error(e.message || 'Migration failed');
-    }
-  }
-
   const handleDeleteApplication = async () => {
     if (!deleteId) return
     try {
@@ -1126,10 +1114,6 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-lg">Applications ({filteredApplications.length})</h3>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleMigrate} title="Fix Badge Numbers">
-                    <Shield className="w-4 h-4 mr-1" />
-                    Fix Badges
-                  </Button>
                   <Select value={dateFilter} onValueChange={(val) => {
                       setDateFilter(val)
                       // Only clear text searches, keep status filter
