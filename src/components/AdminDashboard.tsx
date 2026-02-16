@@ -909,21 +909,24 @@ export function AdminDashboard() {
     })
   }, [applications, activeFilter, activeSearchQuery, activeSearchNumber, activeDateFilter])
 
-  // Statistics
-  const stats = {
-    total: applications.length,
-    pending: applications.filter(app => app.status === 'pending').length,
-    approved: applications.filter(app => ['approved', 'disbursed', 'repaid'].includes(app.status || '')).length,
-    disbursed: applications.filter(app => app.status === 'disbursed').length,
-    totalDisbursed: applications
-      .filter(app => app.status === 'disbursed' || app.status === 'repaid') // include repaid as they were disbursed
-      .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0),
-    totalRepaid: applications // This assumes we have a way to track repayments. 
-      // For now, let's assume fully repaid loans count towards this, 
-      // or we'd need a 'repaidAmount' field. Using approvedAmount for 'repaid' status as a proxy.
-      .filter(app => app.status === 'repaid')
-      .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0)
-  }
+  // Statistics - Memoized for consistency
+  const stats = useMemo(() => {
+    // Helper to normalize status
+    const getStatus = (app: any) => (app.status || 'pending').toLowerCase().trim();
+
+    return {
+      total: applications.length,
+      pending: applications.filter(app => getStatus(app) === 'pending').length,
+      approved: applications.filter(app => ['approved', 'disbursed', 'repaid'].includes(getStatus(app))).length,
+      disbursed: applications.filter(app => getStatus(app) === 'disbursed').length,
+      totalDisbursed: applications
+        .filter(app => ['disbursed', 'repaid'].includes(getStatus(app)))
+        .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0),
+      totalRepaid: applications
+        .filter(app => getStatus(app) === 'repaid')
+        .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0)
+    };
+  }, [applications]);
 
   const handleSendReminder = async (e: React.MouseEvent, app: LoanApplication) => {
     e.stopPropagation()
