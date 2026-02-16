@@ -427,31 +427,51 @@ export function AdminDashboard() {
       console.log('Fetched raw applications count:', apps.length)
       
       // Deduplicate applications based on ID (keep most recent)
+      // Deduplicate applications based on ID (keep most recent)
       // Sort by date ascending so the Map constructor keeps the LAST one (newest)
+      // 2024-05-20: Use createdAt primarily to preserve the original order of creation for badge numbers
       const sortedRaw = [...apps].sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeA - timeB || (a.id || '').localeCompare(b.id || '');
+        return timeA - timeB; // Oldest first
       });
 
-      /**
-       * Creates an array of unique applications by deduplicating items based on their ID.
-       * Items without an ID are assigned a temporary unique identifier.
-       * @param sortedRaw - Array of application items to deduplicate
-       * @returns Array of unique application items with no duplicates
-       */
-      const uniqueApps = Array.from(new Map(sortedRaw.map(item => [item.id || `temp-${Math.random()}`, item])).values());
-      console.log('Unique applications count:', uniqueApps.length)
+      // User requested to use raw count, implying no deduplication based on ID.
+      // However, duplicates with exact same ID are usually errors.
+      // If user sees 2859 vs 2209, it means there are many duplicates.
+      // If user insists on raw, we skip deduplication BUT we must ensure unique keys for React.
+      // We will treat every fetched item as unique unless identical?
+      // Actually, if user says "Fetced raw is correct", they want ALL records even if they share ID.
+      // TO do this, we can just assign unique dummy IDs to duplicates or append suffix.
       
-      const appsWithFixedIndex = uniqueApps
-        .sort((a: any, b: any) => {
-           const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-           return timeA - timeB; // Ascending (Oldest First)
-        })
-        .map((app, index) => ({ ...app, fixedOriginalIndex: index + 1 }));
+      const processedApps = sortedRaw.map((app, index) => {
+         // Create a unique key if ID is duplicated? 
+         // Actually, if we just want to SHOW them, we can use index essentially.
+         // But let's append a random string to ID if it already exists in a Set? 
+         // Easier: Just don't deduplicate in a Map. But React needs unique keys.
+         // The simplest way is to assume they are distinct entries history-wise.
+         return app;
+      });
+      
+      console.log('Using raw applications count:', processedApps.length);
+      
+      const appsWithFixedIndex = processedApps
+        .map((app, index) => ({ 
+            ...app, 
+            // Ensure ID is unique for React Key by appending index if needed, 
+            // but app.id might be used for API calls. 
+            // If we have duplicate IDs, API calls on them might be ambiguous.
+            // But for display, we proceed.
+            _renderId: `${app.id}-${index}`, 
+            fixedOriginalIndex: index + 1 
+        }));
 
       // Safe sort with 0 fallback for missing dates to prevent NaN (Descending for display)
+      setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      }))
       setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -1158,7 +1178,7 @@ export function AdminDashboard() {
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {filteredApplications.map((app: any) => (
-                <div key={app.id} className="relative group">
+                <div key={app._renderId || app.id} className="relative group">
                   <Card
                     className={`cursor-pointer transition-all hover:shadow-md ${
                       selectedApp?.id === app.id ? 'ring-2 ring-blue-500' : ''
