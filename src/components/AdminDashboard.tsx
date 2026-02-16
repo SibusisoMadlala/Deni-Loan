@@ -14,6 +14,17 @@ import { Textarea } from './ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { toast } from 'sonner'
 import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from './ui/alert-dialog'
+import { 
   CheckCircle, 
   XCircle, 
   AlertCircle,
@@ -32,7 +43,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Trash2
 } from 'lucide-react'
 
 export function AdminDashboard() {
@@ -86,11 +98,31 @@ export function AdminDashboard() {
   const [adminNote, setAdminNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
 
+  // Deletion state
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  
   useEffect(() => {
     if (selectedApp) {
       setAdminNote(selectedApp.adminNotes || '')
     }
   }, [selectedApp?.id])
+
+  const handleDeleteApplication = async () => {
+    if (!deleteId) return
+    try {
+      await adminService.deleteApplication(deleteId, accessToken!)
+      setApplications(prev => prev.filter(app => app.id !== deleteId))
+      if (selectedApp?.id === deleteId) {
+        setSelectedApp(null)
+      }
+      toast.success('Application deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete application:', err)
+      toast.error('Failed to delete application')
+    } finally {
+      setDeleteId(null)
+    }
+  }
 
   const handleSaveNote = async () => {
     if (!selectedApp?.id) return
@@ -1111,59 +1143,74 @@ export function AdminDashboard() {
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {filteredApplications.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((app: any) => (
-                <Card
-                  key={app.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    selectedApp?.id === app.id ? 'ring-2 ring-blue-500' : ''
-                  }`}
-                  onClick={() => setSelectedApp(app)}
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex gap-2 items-start">
-                        <span className="text-xs font-mono text-gray-400 mt-1 select-none">
-                          #{app.originalIndex}
-                        </span>
-                        <div>
-                          <p className="text-sm">{app.fullName}</p>
-                          <div className="flex flex-col gap-0.5">
-                            <p className="text-xs text-gray-500">{app.email}</p>
-                            {app.assignedToEmail && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] text-gray-400">Assigned to:</span>
-                                <Badge variant="secondary" className="text-[10px] h-4 px-1 py-0 font-normal bg-gray-100 text-gray-600 hover:bg-gray-200">
-                                  {app.assignedToEmail}
-                                </Badge>
-                              </div>
-                            )}
+                <div key={app.id} className="relative group">
+                  <Card
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      selectedApp?.id === app.id ? 'ring-2 ring-blue-500' : ''
+                    }`}
+                    onClick={() => setSelectedApp(app)}
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex gap-2 items-start">
+                          <span className="text-xs font-mono text-gray-400 mt-1 select-none">
+                            #{app.originalIndex}
+                          </span>
+                          <div>
+                            <p className="text-sm">{app.fullName}</p>
+                            <div className="flex flex-col gap-0.5">
+                              <p className="text-xs text-gray-500">{app.email}</p>
+                              {app.assignedToEmail && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-gray-400">Assigned to:</span>
+                                  <Badge variant="secondary" className="text-[10px] h-4 px-1 py-0 font-normal bg-gray-100 text-gray-600 hover:bg-gray-200">
+                                    {app.assignedToEmail}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {getStatusBadge(app.status)}
+                          {app.adminNotes && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1 border-yellow-200 bg-yellow-50 text-yellow-700">
+                              <FileText className="w-2 h-2 mr-1" />
+                              Note
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {getStatusBadge(app.status)}
-                        {app.adminNotes && (
-                          <Badge variant="outline" className="text-[10px] h-4 px-1 border-yellow-200 bg-yellow-50 text-yellow-700">
-                            <FileText className="w-2 h-2 mr-1" />
-                            Note
-                          </Badge>
+                      <p className="text-lg">R{(app.requestedAmount || 0).toLocaleString()}</p>
+                      <div className="flex justify-between items-center mt-1">
+                        <p className="text-xs text-gray-500">
+                          {app.createdAt && !isNaN(new Date(app.createdAt).getTime()) 
+                            ? new Date(app.createdAt).toLocaleDateString() 
+                            : 'No Date'}
+                        </p>
+                        {app.nextPayDate && !isNaN(new Date(app.nextPayDate).getTime()) && (
+                          <p className="text-xs font-medium text-blue-600">
+                            Due: {new Date(app.nextPayDate).toLocaleDateString()}
+                          </p>
                         )}
                       </div>
-                    </div>
-                    <p className="text-lg">R{(app.requestedAmount || 0).toLocaleString()}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-xs text-gray-500">
-                        {app.createdAt && !isNaN(new Date(app.createdAt).getTime()) 
-                          ? new Date(app.createdAt).toLocaleDateString() 
-                          : 'No Date'}
-                      </p>
-                      {app.nextPayDate && !isNaN(new Date(app.nextPayDate).getTime()) && (
-                        <p className="text-xs font-medium text-blue-600">
-                          Due: {new Date(app.nextPayDate).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                  {app.status === 'pending' && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteId(app.id)
+                      }}
+                      title="Delete Application"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               ))}
               {filteredApplications.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
@@ -2149,9 +2196,25 @@ export function AdminDashboard() {
                   </p>
                 </CardContent>
               </Card>
-            )}
-          </div>
-        </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the loan application.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteApplication} className="bg-red-600 hover:bg-red-700">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
       </div>
     </div>
   )

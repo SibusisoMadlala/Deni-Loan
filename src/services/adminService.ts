@@ -34,6 +34,32 @@ export const adminService = {
     }
   },
 
+  async deleteApplication(applicationId: string, accessToken: string) {
+    try {
+      // Use DELETE verb which Supabase functions typically support for resource endpoints if mapped.
+      // If the URL structure is RESTful, this should work.
+      const response = await fetch(`${API_BASE}/admin/applications/${applicationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+
+      if (!response.ok) {
+        // If DELETE verb fails, fallback to specific delete endpoint if one exists,
+        // or check if we need to call a different function.
+        // Assuming REST endpoint for now.
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete application')
+      }
+
+      return true
+    } catch (error: any) {
+      console.error('Delete application error:', error)
+      throw error
+    }
+  },
+
   async verifyDocument(documentId: string, verified: boolean, notes: string, accessToken: string) {
     try {
       const response = await fetch(`${API_BASE}/admin/verify-document`, {
