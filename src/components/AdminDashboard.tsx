@@ -430,10 +430,15 @@ export function AdminDashboard() {
       // Deduplicate applications based on ID (keep most recent)
       // Sort by date ascending so the Map constructor keeps the LAST one (newest)
       // 2024-05-20: Use createdAt primarily to preserve the original order of creation for badge numbers
+      // Added secondary sort by ID to ensure deterministic order if timestamps are identical
       const sortedRaw = [...apps].sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeA - timeB; // Oldest first
+        if (timeA !== timeB) {
+            return timeA - timeB; // Oldest first
+        }
+        // Tie breaker: ID (alphabetical) for deterministic order
+        return (a.id || '').localeCompare(b.id || '');
       });
 
       // User requested to use raw count, implying no deduplication based on ID.
