@@ -465,19 +465,8 @@ export function AdminDashboard() {
     if (selectedApp?.id) {
       loadDocuments(selectedApp.id)
       loadCreditReport(selectedApp)
-        0, // existingDebts - we can enhance this later
-        accessToken!,
-        firstName,
-        lastName,
-        app.dateOfBirth,
-        app.id // Pass application ID to enable server-side persistence
-      )
-      setCreditReport(report)
-      
-      // Update local state to reflect the persisted report
-      setApplications(prev => prev.map(a => 
-        a.id === app.id ? { ...a, creditReport: report } : a
-      ))
+    }
+  }, [selectedApp])
     } catch (err) {
       console.error('Failed to load credit report:', err)
       setCreditReport(null)
