@@ -441,41 +441,41 @@ export function AdminDashboard() {
         return (a.id || '').localeCompare(b.id || '');
       });
 
-      // User requested to use raw count, implying no deduplication based on ID.
-      // However, duplicates with exact same ID are usually errors.
-      // If user sees 2859 vs 2209, it means there are many duplicates.
-      // If user insists on raw, we skip deduplication BUT we must ensure unique keys for React.
-      // We will treat every fetched item as unique unless identical?
-      // Actually, if user says "Fetced raw is correct", they want ALL records even if they share ID.
-      // TO do this, we can just assign unique dummy IDs to duplicates or append suffix.
-      
-      const processedApps = sortedRaw.map((app, index) => {
-         // Create a unique key if ID is duplicated? 
-         // Actually, if we just want to SHOW them, we can use index essentially.
-         // But let's append a random string to ID if it already exists in a Set? 
-         // Easier: Just don't deduplicate in a Map. But React needs unique keys.
-         // The simplest way is to assume they are distinct entries history-wise.
-         return app;
+      // 2024-05-20: Deduplicate applications based on ID. 
+      // We use a Map to keep one entry per application ID.
+      // Important: Map preserves the insertion order of the *first* time a key is set.
+      // Since sortedRaw is sorted Oldest -> Newest, the FIRST occurrence establishes the position (index).
+      // Subsequent occurrences (updates) overwrite the value but keep the position.
+      // This ensures Badge Numbers (based on index) are stable relative to the *original creation time*.
+      const uniqueAppsMap = new Map();
+      sortedRaw.forEach(app => {
+        uniqueAppsMap.set(app.id, app);
       });
+      // Convert back to array
+      const processedApps = Array.from(uniqueAppsMap.values());
       
-      console.log('Using raw applications count:', processedApps.length);
+      console.log('Using deduplicated applications count:', processedApps.length);
       
       const appsWithFixedIndex = processedApps
         .map((app, index) => ({ 
             ...app, 
-            // Ensure ID is unique for React Key by appending index if needed, 
-            // but app.id might be used for API calls. 
-            // If we have duplicate IDs, API calls on them might be ambiguous.
-            // But for display, we proceed.
-            _renderId: `${app.id}-${index}`, 
+            // Since we deduplicated, ID should be unique.
+            _renderId: app.id, 
             fixedOriginalIndex: index + 1 
         }));
 
       // Safe sort with 0 fallback for missing dates to prevent NaN (Descending for display)
+      // Updated 2024-05-20: Also apply stable sort logic to display (if times match, sort by ID)
       setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeB - timeA;
+        
+        if (timeA !== timeB) {
+             return timeB - timeA; // Newest first
+        }
+        // Tie breaker for display: ID (Desc or Asc? Doesn't matter as long as stable)
+        // Let's use Ascending ID as tie breaker
+        return (a.id || '').localeCompare(b.id || '');
       }))
       setApplications(appsWithFixedIndex.sort((a: any, b: any) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
