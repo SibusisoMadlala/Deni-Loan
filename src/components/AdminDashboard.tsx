@@ -413,9 +413,12 @@ export function AdminDashboard() {
   const loadApplications = async () => {
     try {
       const apps = await adminService.getAllApplications(accessToken!)
-      setApplications(apps.sort((a: any, b: any) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ))
+      // Safe sort with 0 fallback for missing dates to prevent NaN
+      setApplications(apps.sort((a: any, b: any) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      }))
     } catch (err) {
       console.error('Failed to load applications:', err)
     } finally {
@@ -747,25 +750,31 @@ export function AdminDashboard() {
     )
   }
 
-  const isToday = (dateString: string) => {
+  const isToday = (dateString?: string) => {
+    if (!dateString) return false
     const today = new Date()
     const date = new Date(dateString)
+    if (isNaN(date.getTime())) return false
     return date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
   }
 
-  const isThisWeek = (dateString: string) => {
+  const isThisWeek = (dateString?: string) => {
+    if (!dateString) return false
     const today = new Date()
     const date = new Date(dateString)
+    if (isNaN(date.getTime())) return false
     const diff = today.getTime() - date.getTime()
     const days = diff / (1000 * 3600 * 24)
-    return days <= 7
+    return days >= 0 && days <= 7
   }
 
-  const isThisMonth = (dateString: string) => {
+  const isThisMonth = (dateString?: string) => {
+    if (!dateString) return false
     const today = new Date()
     const date = new Date(dateString)
+    if (isNaN(date.getTime())) return false
     return date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear()
   }
@@ -813,7 +822,11 @@ export function AdminDashboard() {
       if (!app) return false
       
       // Status Filter
-      if (activeFilter !== 'all' && app.status !== activeFilter) return false
+      if (activeFilter !== 'all') {
+        const appStatus = app.status?.toLowerCase().trim() || 'pending';
+        const filterStatus = activeFilter.toLowerCase().trim();
+        if (appStatus !== filterStatus) return false;
+      }
       
       // Search Filter
       if (activeSearchQuery) {
@@ -996,14 +1009,7 @@ export function AdminDashboard() {
                 <div className="flex gap-2">
                   <Select value={dateFilter} onValueChange={(val) => {
                       setDateFilter(val)
-                      // Optionally auto-apply dropdowns? 
-                      // User said "click enter or search". 
-                      // But dropdowns usually apply immediately.
-                      // Let's make them require search for consistency if strict requirement.
-                      // Or apply immediately. "Click enter or search" usually refers to text inputs.
-                      // Let's try applying immediately for dropdowns as it's better UX, 
-                      // but specifically keep text inputs manual.
-                      setActiveDateFilter(val) // Apply immediately for dropdown
+                      // Only update local state, require manual trigger
                   }}>
                     <SelectTrigger className="w-[110px]">
                       <SelectValue placeholder="Date" />
@@ -1018,7 +1024,7 @@ export function AdminDashboard() {
                   
                   <Select value={filter} onValueChange={(val) => {
                       setFilter(val)
-                      setActiveFilter(val) // Apply immediately for dropdown
+                      // Only update local state, require manual trigger
                   }}>
                     <SelectTrigger className="w-[110px]">
                       <SelectValue placeholder="Status" />
@@ -1103,9 +1109,11 @@ export function AdminDashboard() {
                     <p className="text-lg">R{(app.requestedAmount || 0).toLocaleString()}</p>
                     <div className="flex justify-between items-center mt-1">
                       <p className="text-xs text-gray-500">
-                        {new Date(app.createdAt).toLocaleDateString()}
+                        {app.createdAt && !isNaN(new Date(app.createdAt).getTime()) 
+                          ? new Date(app.createdAt).toLocaleDateString() 
+                          : 'No Date'}
                       </p>
-                      {app.nextPayDate && (
+                      {app.nextPayDate && !isNaN(new Date(app.nextPayDate).getTime()) && (
                         <p className="text-xs font-medium text-blue-600">
                           Due: {new Date(app.nextPayDate).toLocaleDateString()}
                         </p>
