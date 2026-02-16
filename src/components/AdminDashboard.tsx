@@ -766,32 +766,43 @@ export function AdminDashboard() {
   }
 
   const filteredApplications = useMemo(() => {
-    return applications
-    .map((app, index) => ({...app, originalIndex: applications.length - index})) // Oldest is #1, Newest is #Max
-    .filter(app => {
-    // Status Filter
-    const matchesStatus = filter === 'all' || app.status === filter
+    if (!applications) return []
     
-    // Search Filter
-    const searchLower = searchQuery.toLowerCase()
-    
-    // Number Filter
-    const matchesNumber = searchNumber === '' || app.originalIndex.toString() === searchNumber.replace('#', '').trim()
+    // Create base array with indices first
+    const mappedApps = applications.map((app, index) => ({
+      ...app, 
+      originalIndex: applications.length - index
+    }));
 
-    const matchesSearch = 
-      (app.email?.toLowerCase() || '').includes(searchLower) ||
-      (app.id?.toLowerCase() || '').includes(searchLower) ||
-      (app.fullName?.toLowerCase() || '').includes(searchLower) ||
-      (app.idNumber?.includes(searchLower) || false)
+    return mappedApps.filter(app => {
+      if (!app) return false
+      // Status Filter
+      const matchesStatus = filter === 'all' || (app.status && app.status === filter)
+      
+      // Search Filter
+      const searchLower = searchQuery.toLowerCase()
+      
+      // Number Filter
+      const matchesNumber = searchNumber === '' || (app.originalIndex && app.originalIndex.toString() === searchNumber.replace('#', '').trim())
 
-    // Date Filter
-    let matchesDate = true
-    if (dateFilter === 'today') matchesDate = isToday(app.createdAt)
-    if (dateFilter === 'week') matchesDate = isThisWeek(app.createdAt)
-    if (dateFilter === 'month') matchesDate = isThisMonth(app.createdAt)
-    
-    return matchesStatus && matchesSearch && matchesDate && matchesNumber
-  })
+      const matchesSearch = 
+        (app.email?.toLowerCase() || '').includes(searchLower) ||
+        (app.id?.toLowerCase() || '').includes(searchLower) ||
+        (app.fullName?.toLowerCase() || '').includes(searchLower) ||
+        (app.idNumber?.includes(searchLower) || false)
+
+      // Date Filter
+      let matchesDate = true
+      if (app.createdAt) {
+         if (dateFilter === 'today') matchesDate = isToday(app.createdAt)
+         if (dateFilter === 'week') matchesDate = isThisWeek(app.createdAt)
+         if (dateFilter === 'month') matchesDate = isThisMonth(app.createdAt)
+      } else if (dateFilter !== 'all') {
+         matchesDate = false
+      }
+      
+      return matchesStatus && matchesSearch && matchesDate && matchesNumber
+    })
   }, [applications, filter, searchQuery, searchNumber, dateFilter])
 
   // Statistics
