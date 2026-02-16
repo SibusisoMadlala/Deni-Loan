@@ -789,7 +789,7 @@ export function AdminDashboard() {
 
 
   const handleSearch = () => {
-    // Only update if current values are different 
+    // Apply all current values (one of which has likely been cleared by user action)
     setActiveSearchQuery(searchQuery.trim()) 
     setActiveSearchNumber(searchNumber.trim())
     setActiveFilter(filter)
@@ -1024,6 +1024,12 @@ export function AdminDashboard() {
                 <div className="flex gap-2">
                   <Select value={dateFilter} onValueChange={(val) => {
                       setDateFilter(val)
+                      // Clear other filters when date changes
+                      if (val !== 'all') {
+                        setFilter('all')
+                        setSearchQuery('')
+                        setSearchNumber('')
+                      }
                       // Only update local state, require manual trigger
                   }}>
                     <SelectTrigger className="w-[110px]">
@@ -1039,6 +1045,12 @@ export function AdminDashboard() {
                   
                   <Select value={filter} onValueChange={(val) => {
                       setFilter(val)
+                      // Clear other filters when status changes
+                      if (val !== 'all') {
+                        setDateFilter('all')
+                        setSearchQuery('')
+                        setSearchNumber('')
+                      }
                       // Only update local state, require manual trigger
                   }}>
                     <SelectTrigger className="w-[110px]">
@@ -1061,7 +1073,15 @@ export function AdminDashboard() {
                   <Input 
                     placeholder="No." 
                     value={searchNumber}
-                    onChange={(e) => setSearchNumber(e.target.value)}
+                    onChange={(e) => {
+                      setSearchNumber(e.target.value)
+                      // Clear other filters when typing number
+                      if (e.target.value) {
+                         setSearchQuery('')
+                         setFilter('all')
+                         setDateFilter('all')
+                      }
+                    }}
                     onKeyDown={handleKeyDown}
                     className="pl-6"
                   />
@@ -1070,7 +1090,15 @@ export function AdminDashboard() {
                   <Input 
                     placeholder="Search by email, name, ID..." 
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                       // Clear other filters when typing search
+                      if (e.target.value) {
+                         setSearchNumber('')
+                         setFilter('all')
+                         setDateFilter('all')
+                      }
+                    }}
                     onKeyDown={handleKeyDown}
                     className="flex-1"
                   />
