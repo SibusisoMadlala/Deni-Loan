@@ -2195,7 +2195,9 @@ export function AdminDashboard() {
                     Select an application to view details
                   </p>
                 </CardContent>
-              </Card>
+            )}
+          </div>
+        </div>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
@@ -2218,4 +2220,5 @@ export function AdminDashboard() {
       </div>
     </div>
   )
+}
 }
