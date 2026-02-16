@@ -754,10 +754,10 @@ export function AdminDashboard() {
     const matchesNumber = searchNumber === '' || app.originalIndex.toString() === searchNumber.replace('#', '').trim()
 
     const matchesSearch = 
-      (app.email?.toLowerCase().includes(searchLower)) ||
-      (app.id?.toLowerCase().includes(searchLower)) ||
-      (app.fullName?.toLowerCase().includes(searchLower)) ||
-      (app.idNumber?.includes(searchLower))
+      (app.email?.toLowerCase() || '').includes(searchLower) ||
+      (app.id?.toLowerCase() || '').includes(searchLower) ||
+      (app.fullName?.toLowerCase() || '').includes(searchLower) ||
+      (app.idNumber?.includes(searchLower) || false)
 
     // Date Filter
     let matchesDate = true
@@ -772,7 +772,7 @@ export function AdminDashboard() {
   const stats = {
     total: applications.length,
     pending: applications.filter(app => app.status === 'pending').length,
-    approved: applications.filter(app => app.status === 'approved').length,
+    approved: applications.filter(app => ['approved', 'disbursed', 'repaid'].includes(app.status || '')).length,
     disbursed: applications.filter(app => app.status === 'disbursed').length,
     totalDisbursed: applications
       .filter(app => app.status === 'disbursed' || app.status === 'repaid') // include repaid as they were disbursed
