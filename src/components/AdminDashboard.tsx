@@ -808,7 +808,7 @@ export function AdminDashboard() {
     if (!applications) return []
     
     return applications
-    .map((app, index) => ({...app, originalIndex: index + 1}))
+    .map((app, index) => ({...app, originalIndex: applications.length - index})) // Calculate descending index
     .filter(app => {
       if (!app) return false
       
