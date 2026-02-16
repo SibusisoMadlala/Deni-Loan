@@ -28,7 +28,11 @@ import {
   Pencil,
   UserPlus,
   UserCheck,
-  Search // Import the Search icon
+  Search, // Import the Search icon
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react'
 
 export function AdminDashboard() {
@@ -47,6 +51,10 @@ export function AdminDashboard() {
   const [activeSearchNumber, setActiveSearchNumber] = useState('')
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [activeDateFilter, setActiveDateFilter] = useState<string>('all')
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
 
   // Decision modal state
   const [showDecisionModal, setShowDecisionModal] = useState(false)
@@ -789,6 +797,7 @@ export function AdminDashboard() {
     // Reset selected app if it's filtered out? 
     // Or keep it. Usually resetting is safer to avoid confusion.
     setSelectedApp(null)
+    setCurrentPage(1)
   }
 
   // Trigger search when pressing Enter
@@ -1067,7 +1076,7 @@ export function AdminDashboard() {
             </div>
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredApplications.map((app: any) => (
+              {filteredApplications.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((app: any) => (
                 <Card
                   key={app.id}
                   className={`cursor-pointer transition-all hover:shadow-md ${
@@ -1128,6 +1137,33 @@ export function AdminDashboard() {
                 </div>
               )}
             </div>
+
+            {/* Pagination Controls */}
+            {filteredApplications.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between pt-2 border-t mt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Prev
+                </Button>
+                <div className="text-xs text-gray-500 font-medium">
+                  Page {currentPage} of {Math.ceil(filteredApplications.length / ITEMS_PER_PAGE)}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredApplications.length / ITEMS_PER_PAGE), p + 1))}
+                  disabled={currentPage >= Math.ceil(filteredApplications.length / ITEMS_PER_PAGE)}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Application Details */}
