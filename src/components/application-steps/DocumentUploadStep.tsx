@@ -58,15 +58,37 @@ export function DocumentUploadStep({
   }
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_FILE_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
 
   const validateFiles = (files: File | File[]): File | File[] | null => {
     const fileList = Array.isArray(files) ? files : [files]
-    const invalidFiles = fileList.filter(file => file.size > MAX_FILE_SIZE)
-
-    if (invalidFiles.length > 0) {
-      setError(`File(s) exceed 10MB limit: ${invalidFiles.map(f => f.name).join(', ')}`)
+    
+    // Check sizes
+    const oversizedFiles = fileList.filter(file => file.size > MAX_FILE_SIZE)
+    if (oversizedFiles.length > 0) {
+      setError(`File(s) exceed 10MB limit: ${oversizedFiles.map(f => f.name).join(', ')}`)
       return null
     }
+
+    // Check types
+    const invalidTypeFiles = fileList.filter(file => !ALLOWED_FILE_TYPES.includes(file.type))
+    if (invalidTypeFiles.length > 0) {
+      // Fallback: check extension if type is empty or generic
+      const invalidExtensionFiles = invalidTypeFiles.filter(file => {
+          const lowerName = file.name.toLowerCase();
+          return !lowerName.endsWith('.pdf') && !lowerName.endsWith('.doc') && !lowerName.endsWith('.docx');
+      });
+
+      if (invalidExtensionFiles.length > 0) {
+        setError(`Invalid file type. Only PDF and Word documents are allowed: ${invalidExtensionFiles.map(f => f.name).join(', ')}`)
+        return null
+      }
+    }
+    
     return files
   }
 
@@ -139,11 +161,11 @@ export function DocumentUploadStep({
               {hasDocument('id') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Photo of your ID card or ID book (both sides, max 10MB)
+              Copy of your ID card or ID book (PDF or Word only, max 10MB)
             </p>
             <Input
               type="file"
-              accept="image/*,.pdf"
+              accept=".pdf,.doc,.docx"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) handleUpload(file, 'id')
@@ -167,11 +189,11 @@ export function DocumentUploadStep({
               {hasDocument('bank_statement') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Recent 3 months of bank statements (PDF or images, max 10MB each). Required for NCR affordability assessment. You can select multiple files.
+              Recent 3 months of bank statements (PDF or Word only, max 10MB each). Required for NCR affordability assessment. You can select multiple files.
             </p>
             <Input
               type="file"
-              accept="image/*,.pdf"
+              accept=".pdf,.doc,.docx"
               multiple
               onChange={(e) => {
                 const files = e.target.files
@@ -199,11 +221,11 @@ export function DocumentUploadStep({
               {hasDocument('proof_of_residence') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Utility bill, lease agreement, or municipal rates letter (not older than 3 months, max 10MB)
+              Utility bill, lease agreement, or municipal rates letter (not older than 3 months, PDF or Word only, max 10MB)
             </p>
             <Input
               type="file"
-              accept="image/*,.pdf"
+              accept=".pdf,.doc,.docx"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) handleUpload(file, 'proof_of_residence')
@@ -227,11 +249,11 @@ export function DocumentUploadStep({
               {hasDocument('payslip') && <CheckCircle className="w-5 h-5 text-green-600" />}
             </div>
             <p className="text-sm text-gray-600 mb-3">
-              Most recent payslip (max 10MB). Required for income verification.
+              Most recent payslip (PDF or Word only, max 10MB). Required for income verification.
             </p>
             <Input
               type="file"
-              accept="image/*,.pdf"
+              accept=".pdf,.doc,.docx"
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (file) handleUpload(file, 'payslip')
