@@ -427,32 +427,11 @@ export function AdminDashboard() {
 
   useEffect(() => {
     if (!loading && !accessToken) {
-      navigate('/login')
-      return
-    }
-    if (accessToken) {
-      loadApplications()
-    }
-  }, [accessToken, loading])
-
-  useEffect(() => {
-    if (selectedApp?.id) {
-      loadDocuments(selectedApp.id)
-      loadCreditReport(selectedApp)
-      // Initialize approved amount with current value or requested value
-      setApprovedAmount(selectedApp.approvedAmount || selectedApp.requestedAmount || 0)
-    }
-  }, [selectedApp])
-
-  useEffect(() => {
-    if (selectedApp) {
-      setTempIdNumber(selectedApp.idNumber)
-    }
-  }, [selectedApp?.idNumber])
-
   const loadApplications = async () => {
     try {
-      const apps = await adminService.getAllApplications(accessToken!)
+      if (!accessToken) return;
+      
+      const apps = await adminService.getAllApplications(accessToken)
       
       // Deduplicate applications based on ID (keep first occurrence)
       const uniqueApps = Array.from(new Map(apps.map(item => [item.id, item])).values());
@@ -470,34 +449,22 @@ export function AdminDashboard() {
     }
   }
 
-  const loadDocuments = async (applicationId: string) => {
-    try {
-      const docs = await documentService.getDocuments(applicationId, accessToken!)
-      setDocuments(docs)
-    } catch (err) {
-      console.error('Failed to load documents:', err)
-    }
-  }
-
-  const loadCreditReport = async (app: LoanApplication) => {
-    // Check if we already have a persisted report
-    if (app.creditReport) {
-      setCreditReport(app.creditReport)
+  // Load initial data
+  useEffect(() => {
+    if (!loading && !accessToken) {
+      navigate('/login')
       return
     }
+    if (accessToken) {
+      loadApplications()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, navigate]) 
 
-    setCreditReportLoading(true)
-    try {
-      // Extract names from fullName
-      const nameParts = app.fullName?.split(' ') || []
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
-      
-      // Try to fetch credit report if we have the necessary info
-      const loanService = await import('../services/loanService').then(m => m.loanService)
-      const report = await loanService.performCreditCheck(
-        app.idNumber!,
-        app.netSalary || 0,
+  useEffect(() => {
+    if (selectedApp?.id) {
+      loadDocuments(selectedApp.id)
+      loadCreditReport(selectedApp)
         0, // existingDebts - we can enhance this later
         accessToken!,
         firstName,
