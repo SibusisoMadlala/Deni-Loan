@@ -2195,6 +2195,7 @@ export function AdminDashboard() {
                     Select an application to view details
                   </p>
                 </CardContent>
+              </Card>
             )}
           </div>
         </div>
@@ -2220,5 +2221,4 @@ export function AdminDashboard() {
       </div>
     </div>
   )
-}
 }
