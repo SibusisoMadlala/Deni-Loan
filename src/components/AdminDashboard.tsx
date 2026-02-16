@@ -1063,12 +1063,9 @@ export function AdminDashboard() {
                 <div className="flex gap-2">
                   <Select value={dateFilter} onValueChange={(val) => {
                       setDateFilter(val)
-                      // Clear other filters when date changes
-                      if (val !== 'all') {
-                        setFilter('all')
-                        setSearchQuery('')
-                        setSearchNumber('')
-                      }
+                      // Only clear text searches, keep status filter
+                      setSearchQuery('')
+                      setSearchNumber('')
                       // Only update local state, require manual trigger
                   }}>
                     <SelectTrigger className="w-[110px]">
@@ -1084,12 +1081,9 @@ export function AdminDashboard() {
                   
                   <Select value={filter} onValueChange={(val) => {
                       setFilter(val)
-                      // Clear other filters when status changes
-                      if (val !== 'all') {
-                        setDateFilter('all')
-                        setSearchQuery('')
-                        setSearchNumber('')
-                      }
+                      // Only clear text searches, keep date filter
+                      setSearchQuery('')
+                      setSearchNumber('')
                       // Only update local state, require manual trigger
                   }}>
                     <SelectTrigger className="w-[110px]">
