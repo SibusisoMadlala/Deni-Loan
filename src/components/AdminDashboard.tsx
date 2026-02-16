@@ -769,39 +769,44 @@ export function AdminDashboard() {
     if (!applications) return []
     
     // Create base array with indices first
-    const mappedApps = applications.map((app, index) => ({
-      ...app, 
-      originalIndex: applications.length - index
-    }));
-
-    return mappedApps.filter(app => {
+    // Note: We reverse the index calculation because we want stable IDs based on creation order
+    // But we sort by newest first, so index 1 = oldest.
+    
+    return applications
+    .map((app, index) => ({...app, originalIndex: applications.length - index}))
+    .filter(app => {
       if (!app) return false
+      
       // Status Filter
-      const matchesStatus = filter === 'all' || (app.status && app.status === filter)
+      if (filter !== 'all' && app.status !== filter) return false
       
       // Search Filter
-      const searchLower = searchQuery.toLowerCase()
-      
-      // Number Filter
-      const matchesNumber = searchNumber === '' || (app.originalIndex && app.originalIndex.toString() === searchNumber.replace('#', '').trim())
-
-      const matchesSearch = 
-        (app.email?.toLowerCase() || '').includes(searchLower) ||
-        (app.id?.toLowerCase() || '').includes(searchLower) ||
-        (app.fullName?.toLowerCase() || '').includes(searchLower) ||
-        (app.idNumber?.includes(searchLower) || false)
-
-      // Date Filter
-      let matchesDate = true
-      if (app.createdAt) {
-         if (dateFilter === 'today') matchesDate = isToday(app.createdAt)
-         if (dateFilter === 'week') matchesDate = isThisWeek(app.createdAt)
-         if (dateFilter === 'month') matchesDate = isThisMonth(app.createdAt)
-      } else if (dateFilter !== 'all') {
-         matchesDate = false
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase()
+        const matchesSearch = 
+          (app.email?.toLowerCase() || '').includes(searchLower) ||
+          (app.id?.toLowerCase() || '').includes(searchLower) ||
+          (app.fullName?.toLowerCase() || '').includes(searchLower) ||
+          (app.idNumber?.includes(searchLower) || false)
+          
+        if (!matchesSearch) return false
       }
       
-      return matchesStatus && matchesSearch && matchesDate && matchesNumber
+      // Number Filter
+      if (searchNumber) {
+        const num = searchNumber.replace('#', '').trim()
+        if (num && app.originalIndex?.toString() !== num) return false
+      }
+
+      // Date Filter
+      if (dateFilter !== 'all') {
+         if (!app.createdAt) return false
+         if (dateFilter === 'today' && !isToday(app.createdAt)) return false
+         if (dateFilter === 'week' && !isThisWeek(app.createdAt)) return false
+         if (dateFilter === 'month' && !isThisMonth(app.createdAt)) return false
+      }
+      
+      return true
     })
   }, [applications, filter, searchQuery, searchNumber, dateFilter])
 
