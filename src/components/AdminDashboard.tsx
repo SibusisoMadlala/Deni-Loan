@@ -48,6 +48,8 @@ export function AdminDashboard() {
   const { accessToken, user } = useAuth()
   const navigate = useNavigate()
   const [applications, setApplications] = useState<LoanApplication[]>([])
+  // Context: User wants stats to be based on raw count (including duplicates/API rows) even if display is unique.
+  const [rawApplications, setRawApplications] = useState<LoanApplication[]>([])
   const [selectedApp, setSelectedApp] = useState<LoanApplication | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [creditReport, setCreditReport] = useState<CreditReport | null>(null)
@@ -441,6 +443,9 @@ export function AdminDashboard() {
         return (a.id || '').localeCompare(b.id || '');
       });
 
+      // 2024-05-20: User requested stats to use RAW data (with duplicates)
+      setRawApplications(sortedRaw);
+
       // 2024-05-20: Deduplicate applications based on ID. 
       // We use a Map to keep one entry per application ID.
       // Important: Map preserves the insertion order of the *first* time a key is set.
@@ -586,6 +591,10 @@ export function AdminDashboard() {
       setApplications(prevApps => 
         prevApps.map(app => app.id === selectedApp.id ? updatedApp : app)
       );
+      // Keep raw stats in sync optimistically
+      setRawApplications(prevRaw => 
+        prevRaw.map(app => app.id === selectedApp.id ? updatedApp : app)
+      );
       setSelectedApp(updatedApp as LoanApplication);
 
       setShowDecisionModal(false)
@@ -614,6 +623,9 @@ export function AdminDashboard() {
       setApplications(prevApps => 
         prevApps.map(app => app.id === selectedApp.id ? updatedApp : app)
       );
+      setRawApplications(prevRaw => 
+        prevRaw.map(app => app.id === selectedApp.id ? updatedApp : app)
+      );
       setSelectedApp(updatedApp as LoanApplication);
       
       await loadApplications()
@@ -638,6 +650,9 @@ export function AdminDashboard() {
       const updatedApp = { ...selectedApp, status: 'repaid' as const };
       setApplications(prevApps => 
         prevApps.map(app => app.id === selectedApp.id ? updatedApp : app)
+      );
+      setRawApplications(prevRaw => 
+        prevRaw.map(app => app.id === selectedApp.id ? updatedApp : app)
       );
       setSelectedApp(updatedApp as LoanApplication);
 
@@ -947,20 +962,24 @@ export function AdminDashboard() {
   const stats = useMemo(() => {
     // Helper to normalize status
     const getStatus = (app: any) => (app.status || 'pending').toLowerCase().trim();
+    
+    // 2024-05-20: Use rawApplications for stats (Approved/Pending/Total) as requested by user.
+    // Display applications are filtered (unique), but stats reflect raw data.
+    const sourceApps = rawApplications.length > 0 ? rawApplications : applications;
 
     return {
-      total: applications.length,
-      pending: applications.filter(app => getStatus(app) === 'pending').length,
-      approved: applications.filter(app => getStatus(app) === 'approved').length,
-      disbursed: applications.filter(app => ['disbursed'].includes(getStatus(app))).length,
-      totalDisbursed: applications
+      total: sourceApps.length,
+      pending: sourceApps.filter(app => getStatus(app) === 'pending').length,
+      approved: sourceApps.filter(app => getStatus(app) === 'approved').length,
+      disbursed: sourceApps.filter(app => ['disbursed'].includes(getStatus(app))).length,
+      totalDisbursed: sourceApps
         .filter(app => ['disbursed'].includes(getStatus(app)))
         .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0),
-      totalRepaid: applications
+      totalRepaid: sourceApps
         .filter(app => getStatus(app) === 'repaid')
         .reduce((sum, app) => sum + (app.approvedAmount || app.requestedAmount || 0), 0)
     };
-  }, [applications]);
+  }, [applications, rawApplications]);
 
   const handleSendReminder = async (e: React.MouseEvent, app: LoanApplication) => {
     e.stopPropagation()
