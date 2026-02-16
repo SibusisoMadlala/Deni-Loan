@@ -765,15 +765,12 @@ export function AdminDashboard() {
       date.getFullYear() === today.getFullYear()
   }
 
+
   const filteredApplications = useMemo(() => {
     if (!applications) return []
     
-    // Create base array with indices first
-    // Note: We reverse the index calculation because we want stable IDs based on creation order
-    // But we sort by newest first, so index 1 = oldest.
-    
     return applications
-    .map((app, index) => ({...app, originalIndex: applications.length - index}))
+    .map((app, index) => ({...app, originalIndex: index + 1}))
     .filter(app => {
       if (!app) return false
       
