@@ -467,6 +467,49 @@ export function AdminDashboard() {
       loadCreditReport(selectedApp)
     }
   }, [selectedApp])
+
+  const loadDocuments = async (applicationId: string) => {
+    try {
+      const docs = await documentService.getDocuments(applicationId, accessToken!)
+      setDocuments(docs)
+    } catch (err) {
+      console.error('Failed to load documents:', err)
+    }
+  }
+
+  const loadCreditReport = async (app: LoanApplication) => {
+    if (app.creditReport) {
+      setCreditReport(app.creditReport)
+      return
+    }
+
+    // Only attempt if we have ID
+    if (!app.idNumber) return;
+
+    setCreditReportLoading(true)
+    try {
+      // Dynamic import
+      const loanService = await import('../services/loanService').then(m => m.loanService)
+      
+      const nameParts = app.fullName?.split(' ') || []
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
+      const report = await loanService.performCreditCheck(
+        app.idNumber,
+        app.netSalary || 0,
+        0, 
+        accessToken!,
+        firstName,
+        lastName,
+        app.dateOfBirth,
+        app.id
+      )
+      setCreditReport(report)
+      
+      setApplications(prev => prev.map(a => 
+         a.id === app.id ? { ...a, creditReport: report } : a
+      ))
     } catch (err) {
       console.error('Failed to load credit report:', err)
       setCreditReport(null)
