@@ -1098,11 +1098,11 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Applications List */}
           <div className="space-y-4">
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-lg">Applications ({filteredApplications.length})</h3>
-                <div className="flex gap-2 items-center flex-wrap">
-                  <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border">
+            <div className="flex flex-col space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <h3 className="text-lg font-medium">Applications ({filteredApplications.length})</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border shadow-sm">
                     <span className="text-xs text-gray-500 whitespace-nowrap">From:</span>
                     <Input 
                       type="date" 
@@ -1112,7 +1112,7 @@ export function AdminDashboard() {
                           setSearchQuery('')
                           setSearchNumber('')
                       }}
-                      className="h-8 w-[130px] border-0 focus-visible:ring-0 px-1 text-xs"
+                      className="h-8 w-[125px] border-0 focus-visible:ring-0 px-1 text-xs"
                     />
                     <span className="text-xs text-gray-500 whitespace-nowrap ml-1">To:</span>
                     <Input 
@@ -1123,7 +1123,7 @@ export function AdminDashboard() {
                           setSearchQuery('')
                           setSearchNumber('')
                       }}
-                      className="h-8 w-[130px] border-0 focus-visible:ring-0 px-1 text-xs"
+                      className="h-8 w-[125px] border-0 focus-visible:ring-0 px-1 text-xs"
                     />
                   </div>
                   
