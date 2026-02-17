@@ -56,13 +56,18 @@ export function AdminDashboard() {
   const [creditReportLoading, setCreditReportLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
-  const [dateFilter, setDateFilter] = useState<string>('all')
+  // Date range state
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [searchNumber, setSearchNumber] = useState('')
   const [activeSearchQuery, setActiveSearchQuery] = useState('')
   const [activeSearchNumber, setActiveSearchNumber] = useState('')
   const [activeFilter, setActiveFilter] = useState<string>('all')
-  const [activeDateFilter, setActiveDateFilter] = useState<string>('all')
+  // Active date range state
+  const [activeStartDate, setActiveStartDate] = useState<string>('')
+  const [activeEndDate, setActiveEndDate] = useState<string>('')
 
   // Decision modal state
   const [showDecisionModal, setShowDecisionModal] = useState(false)
@@ -834,7 +839,7 @@ export function AdminDashboard() {
     
     const config = variants[status] || variants.pending
     const Icon = config.icon
-    
+
     return (
       <Badge variant={config.variant} className="flex items-center space-x-1">
         <Icon className="w-3 h-3" />
@@ -843,42 +848,15 @@ export function AdminDashboard() {
     )
   }
 
-  const isToday = (dateString?: string) => {
-    if (!dateString) return false
-    const today = new Date()
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return false
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-  }
-
-  const isThisWeek = (dateString?: string) => {
-    if (!dateString) return false
-    const today = new Date()
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return false
-    const diff = today.getTime() - date.getTime()
-    const days = diff / (1000 * 3600 * 24)
-    return days >= 0 && days <= 7
-  }
-
-  const isThisMonth = (dateString?: string) => {
-    if (!dateString) return false
-    const today = new Date()
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return false
-    return date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-  }
-
-
   const handleSearch = () => {
     // Apply all current values (one of which has likely been cleared by user action)
     setActiveSearchQuery(searchQuery.trim()) 
     setActiveSearchNumber(searchNumber.trim())
     setActiveFilter(filter)
-    setActiveDateFilter(dateFilter)
+    
+    // Set active dates
+    setActiveStartDate(startDate)
+    setActiveEndDate(endDate)
     
     // Reset selected app on search
     setSelectedApp(null)
@@ -946,17 +924,27 @@ export function AdminDashboard() {
         }
       }
 
-      // Date Filter
-      if (activeDateFilter !== 'all') {
-         if (!app.createdAt) return false
-         if (activeDateFilter === 'today' && !isToday(app.createdAt)) return false
-         if (activeDateFilter === 'week' && !isThisWeek(app.createdAt)) return false
-         if (activeDateFilter === 'month' && !isThisMonth(app.createdAt)) return false
+      // Date Range Filter
+      if (activeStartDate || activeEndDate) {
+        if (!app.createdAt) return false
+        const appDate = new Date(app.createdAt)
+        
+        if (activeStartDate) {
+          const start = new Date(activeStartDate)
+          start.setHours(0, 0, 0, 0)
+          if (appDate < start) return false
+        }
+        
+        if (activeEndDate) {
+          const end = new Date(activeEndDate)
+          end.setHours(23, 59, 59, 999)
+          if (appDate > end) return false
+        }
       }
       
       return true
     })
-  }, [applications, activeFilter, activeSearchQuery, activeSearchNumber, activeDateFilter])
+  }, [applications, activeFilter, activeSearchQuery, activeSearchNumber, activeStartDate, activeEndDate])
 
   // Statistics - Memoized for consistency
   const stats = useMemo(() => {
@@ -1111,26 +1099,33 @@ export function AdminDashboard() {
           {/* Applications List */}
           <div className="space-y-4">
             <div className="flex flex-col space-y-2">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <h3 className="text-lg">Applications ({filteredApplications.length})</h3>
-                <div className="flex gap-2">
-                  <Select value={dateFilter} onValueChange={(val) => {
-                      setDateFilter(val)
-                      // Only clear text searches, keep status filter
-                      setSearchQuery('')
-                      setSearchNumber('')
-                      // Only update local state, require manual trigger
-                  }}>
-                    <SelectTrigger className="w-[110px]">
-                      <SelectValue placeholder="Date" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Time</SelectItem>
-                      <SelectItem value="today">Today</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                      <SelectItem value="month">This Month</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border">
+                    <span className="text-xs text-gray-500 whitespace-nowrap">From:</span>
+                    <Input 
+                      type="date" 
+                      value={startDate}
+                      onChange={(e) => {
+                          setStartDate(e.target.value)
+                          setSearchQuery('')
+                          setSearchNumber('')
+                      }}
+                      className="h-8 w-[130px] border-0 focus-visible:ring-0 px-1 text-xs"
+                    />
+                    <span className="text-xs text-gray-500 whitespace-nowrap ml-1">To:</span>
+                    <Input 
+                      type="date" 
+                      value={endDate}
+                      onChange={(e) => {
+                          setEndDate(e.target.value)
+                          setSearchQuery('')
+                          setSearchNumber('')
+                      }}
+                      className="h-8 w-[130px] border-0 focus-visible:ring-0 px-1 text-xs"
+                    />
+                  </div>
                   
                   <Select value={filter} onValueChange={(val) => {
                       setFilter(val)
@@ -1165,7 +1160,8 @@ export function AdminDashboard() {
                       if (e.target.value) {
                          setSearchQuery('')
                          setFilter('all')
-                         setDateFilter('all')
+                         setStartDate('')
+                         setEndDate('')
                       }
                     }}
                     onKeyDown={handleKeyDown}
@@ -1182,7 +1178,8 @@ export function AdminDashboard() {
                       if (e.target.value) {
                          setSearchNumber('')
                          setFilter('all')
-                         setDateFilter('all')
+                         setStartDate('')
+                         setEndDate('')
                       }
                     }}
                     onKeyDown={handleKeyDown}
