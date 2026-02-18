@@ -885,13 +885,9 @@ export function AdminDashboard() {
   }, [loading])
 
   const filteredApplications = useMemo(() => {
-    // Use rawApplications for search to include all records (even duplicates)
-    // This helps in debugging and finding applications that might have been deduplicated
-    const sourceApps = rawApplications.length > 0 ? rawApplications : applications;
+    if (!applications) return []
     
-    if (!sourceApps) return []
-    
-    return sourceApps
+    return applications
     .map((app) => ({...app})) // Create copy to avoid mutation issues
     .filter(app => {
       if (!app) return false
@@ -948,7 +944,7 @@ export function AdminDashboard() {
       
       return true
     })
-  }, [applications, rawApplications, activeFilter, activeSearchQuery, activeSearchNumber, activeStartDate, activeEndDate])
+  }, [applications, activeFilter, activeSearchQuery, activeSearchNumber, activeStartDate, activeEndDate])
 
   // Statistics - Memoized for consistency
   const stats = useMemo(() => {
