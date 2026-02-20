@@ -1235,6 +1235,53 @@ app.get('/make-server-1ed353c1/admin/applications', requireAdmin, async (c)=>{
   }
 });
 
+// Debug endpoint to search by email
+app.get('/make-server-1ed353c1/admin/search-by-email', requireAdmin, async (c)=>{
+  try {
+    const email = c.req.query('email');
+    if (!email) {
+      return c.json({ error: 'Email parameter required' }, 400);
+    }
+
+    console.log(`🔍 Searching for applications with email: ${email}`);
+
+    // Get all applications
+    const applications = await kv.getByPrefix('loan_application');
+    const validApps = applications.filter(Boolean);
+    
+    console.log(`📊 Total applications in KV: ${validApps.length}`);
+
+    // Filter by email (case-insensitive)
+    const matches = validApps.filter(app => 
+      app && app.email?.toLowerCase() === email.toLowerCase()
+    );
+
+    console.log(`🎯 Applications matching ${email}: ${matches.length}`);
+    
+    // Log each match
+    matches.forEach((app, idx) => {
+      console.log(`Match ${idx + 1}:`, {
+        id: app.id,
+        email: app.email,
+        fullName: app.fullName,
+        status: app.status,
+        createdAt: app.createdAt
+      });
+    });
+
+    return c.json({ 
+      success: true,
+      email,
+      totalApplications: validApps.length,
+      matchCount: matches.length,
+      applications: matches 
+    });
+  } catch (error) {
+    console.error('❌ Search by email error:', error);
+    return c.json({ error: 'Search failed', details: String(error) }, 500);
+  }
+});
+
 app.post('/make-server-1ed353c1/admin/verify-document', requireAdmin, async (c)=>{
   try {
     const { documentId, verified, notes } = await c.req.json();
