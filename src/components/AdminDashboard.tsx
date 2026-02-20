@@ -452,18 +452,25 @@ export function AdminDashboard() {
       setRawApplications(sortedRaw);
 
       // 2024-05-20: Deduplicate applications based on ID. 
-      // UPDATE 2024-05-20: User requested to use duplicates list for now.
-      // We skip the Map deduplication and use sortedRaw directly.
-      const processedApps = sortedRaw;
+      // We use a Map to keep one entry per application ID.
+      // Important: Map preserves the insertion order of the *first* time a key is set.
+      // Since sortedRaw is sorted Oldest -> Newest, the FIRST occurrence establishes the position (index).
+      // Subsequent occurrences (updates) overwrite the value but keep the position.
+      // This ensures Badge Numbers (based on index) are stable relative to the *original creation time*.
+      const uniqueAppsMap = new Map();
+      sortedRaw.forEach(app => {
+        uniqueAppsMap.set(app.id, app);
+      });
+      // Convert back to array
+      const processedApps = Array.from(uniqueAppsMap.values());
       
-      console.log('Using raw (duplicated) applications count:', processedApps.length);
+      console.log('Using deduplicated applications count:', processedApps.length);
       
       const appsWithFixedIndex = processedApps
         .map((app, index) => ({ 
             ...app, 
-            // Since we are allowing duplicates, ID might not be unique.
-            // Creating a unique render ID for React keys.
-            _renderId: `${app.id}-${index}`, 
+            // Since we deduplicated, ID should be unique.
+            _renderId: app.id, 
             fixedOriginalIndex: index + 1 
         }));
 
