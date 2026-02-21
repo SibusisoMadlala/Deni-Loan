@@ -107,12 +107,12 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="paydayCycle">Payday Cycle</Label>
+        <Label htmlFor="paydayCycle" className={errors.paydayCycle ? 'text-red-500' : ''}>Payday Cycle</Label>
         <Select
           value={data.paydayCycle}
           onValueChange={(value) => updateData({ paydayCycle: value })}
         >
-          <SelectTrigger>
+          <SelectTrigger className={errors.paydayCycle ? 'border-red-500' : ''}>
             <SelectValue placeholder="Select payday cycle" />
           </SelectTrigger>
           <SelectContent>
@@ -124,14 +124,15 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
       </div>
 
       <div className="space-y-2">
-        <Label>Next Pay Date</Label>
+        <Label className={errors.nextPayDate ? 'text-red-500' : ''}>Next Pay Date</Label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant={"outline"}
               className={cn(
                 "w-full justify-start text-left font-normal",
-                !data.nextPayDate && "text-muted-foreground"
+                !data.nextPayDate && "text-muted-foreground",
+                errors.nextPayDate && "border-red-500"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />

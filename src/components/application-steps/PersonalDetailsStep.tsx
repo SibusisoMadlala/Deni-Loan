@@ -12,6 +12,47 @@ interface PersonalDetailsStepProps {
 export function PersonalDetailsStep({ data, updateData, errors = {} }: PersonalDetailsStepProps) {
   return (
     <div className="space-y-4">
+      
+      <div className="space-y-4 pt-2 border-t mt-4 mb-6">
+        <h3 className="font-semibold text-gray-900 mb-4">Loan Details</h3>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="requestedAmount">Requested Amount (R)</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R</span>
+              <Input
+                id="requestedAmount"
+                type="number"
+                min={500}
+                max={4000}
+                placeholder="2000"
+                className="pl-8"
+                value={data.requestedAmount}
+                onChange={(e) => updateData({ requestedAmount: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="repaymentMonths">Repayment Term</Label>
+            <Select
+              value={data.repaymentMonths?.toString() || '1'}
+              onValueChange={(value) => updateData({ repaymentMonths: Number(value) })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select term" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Month</SelectItem>
+                <SelectItem value="2">2 Months</SelectItem>
+                <SelectItem value="3">3 Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="title">Title</Label>

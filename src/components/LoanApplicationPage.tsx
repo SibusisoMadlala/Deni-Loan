@@ -61,6 +61,7 @@ export function LoanApplicationPage() {
     branchCode: '',
     accountNumber: '',
     requestedAmount: 2000,
+    repaymentMonths: 1,
     acceptPOPIA: false,
     acceptExperian: false
   })
@@ -158,6 +159,8 @@ export function LoanApplicationPage() {
     
     // Validate current step before proceeding
     if (currentStep === 0) {
+      if (!applicationData.requestedAmount) errors.requestedAmount = 'Requested Amount is required'
+      if (!applicationData.repaymentMonths) errors.repaymentMonths = 'Repayment Term is required'
       if (!applicationData.idNumber) errors.idNumber = 'ID Number is required'
       if (!applicationData.fullName) errors.fullName = 'Full Name is required'
       if (!applicationData.phone) errors.phone = 'Phone Number is required'
@@ -178,6 +181,8 @@ export function LoanApplicationPage() {
       if (!applicationData.employerName) errors.employerName = 'Employer Name is required'
       if (!applicationData.employerAddress) errors.employerAddress = 'Employer Address is required'
       if (!applicationData.employerPhone) errors.employerPhone = 'Employer Phone is required'
+      if (!applicationData.nextPayDate) errors.nextPayDate = 'Next Pay Date is required'
+      if (!applicationData.paydayCycle) errors.paydayCycle = 'Payday Frequency is required'
       if (!applicationData.netSalary) errors.netSalary = 'Net Salary is required'
       else if (applicationData.netSalary < 2000) errors.netSalary = 'Minimum net salary requirement is R2000'
     }
