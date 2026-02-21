@@ -57,15 +57,7 @@ export function HomePage() {
                     <p className="text-sm text-sky-200">POPIA Compliant</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-amber-300" />
-                  </div>
-                  <div>
-                    <p className="font-bold">Same Day</p>
-                    <p className="text-sm text-sky-200">Money Transfer</p>
-                  </div>
-                </div>
+                
               </div>
             </div>
 
