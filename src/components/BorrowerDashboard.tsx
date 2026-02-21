@@ -105,7 +105,7 @@ export function BorrowerDashboard() {
       totalWithInterest = application.totalDue;
     } else {
       // Fallback for applications without stored totals
-      const { totalRepayable } = calculateLoan(approvedAmount, true);
+      const { totalRepayable } = calculateLoan(approvedAmount, 1, true);
       totalWithInterest = totalRepayable;
     }
 

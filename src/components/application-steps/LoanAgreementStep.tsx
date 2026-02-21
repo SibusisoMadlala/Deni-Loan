@@ -18,7 +18,7 @@ export function LoanAgreementStep({ applicationData, creditReport, onComplete, i
   const [signed, setSigned] = useState(false)
 
   const loanAmount = creditReport.maxLoanAmount
-  const { interest, initiationFee, serviceFee, insurance, totalRepayable } = calculateLoan(loanAmount, isFirstLoanInYear)
+  const { interest, initiationFee, serviceFee, insurance, totalRepayable } = calculateLoan(loanAmount, 1, isFirstLoanInYear)
   
   const repaymentDate = new Date()
   repaymentDate.setMonth(repaymentDate.getMonth() + 1)
