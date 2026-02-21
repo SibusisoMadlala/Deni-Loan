@@ -29,6 +29,8 @@ export function LoanApplicationPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [hasActiveApprovedLoan, setHasActiveApprovedLoan] = useState(false)
+  const [isInCoolingOffPeriod, setIsInCoolingOffPeriod] = useState(false)
+  const [coolingOffDate, setCoolingOffDate] = useState<Date | null>(null)
   const [checkingApplications, setCheckingApplications] = useState(true)
   const [isFirstLoanInYear, setIsFirstLoanInYear] = useState(true) // Default to true
   const [isDocumentsValid, setIsDocumentsValid] = useState(false)
@@ -92,15 +94,32 @@ export function LoanApplicationPage() {
       const apps = await loanService.getMyApplications(accessToken!)
       
       // Check if user has any approved or disbursed loans
-      const hasActive = apps.some(app => 
-        app.status === 'approved' || app.status === 'disbursed'
+      const hasActive = apps.some((app: any) => 
+        ['pending', 'approved', 'disbursed'].includes(app.status)
       )
       
       setHasActiveApprovedLoan(hasActive)
 
+      // Check for cooling off period (30 days from last repayment)
+      const repaidLoans = apps
+        .filter((app: any) => app.status === 'repaid' && app.updatedAt)
+        .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      
+      if (repaidLoans.length > 0) {
+        const lastRepaymentDate = new Date(repaidLoans[0].updatedAt)
+        // Check if less than 30 days passed since repayment
+        const thirtyDaysLater = new Date(lastRepaymentDate)
+        thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30)
+        
+        if (new Date() < thirtyDaysLater) {
+            setIsInCoolingOffPeriod(true)
+            setCoolingOffDate(thirtyDaysLater)
+        }
+      }
+
       // Check if first loan in calendar year
       const currentYear = new Date().getFullYear()
-      const hasLoanInYear = apps.some(app => {
+      const hasLoanInYear = apps.some((app: any) => {
         const appDate = new Date(app.createdAt || '')
         return appDate.getFullYear() === currentYear && (app.status === 'repaid' || app.status === 'disbursed' || app.status === 'approved')
       })
@@ -266,6 +285,41 @@ export function LoanApplicationPage() {
 
               <Button onClick={() => navigate('/dashboard')} className="w-full">
                 Go to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Block if user is in cooling-off period
+  if (isInCoolingOffPeriod) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8 px-4">
+        <div className="max-w-3xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cooling-Off Period Active</CardTitle>
+              <CardDescription>
+                You recently repaid a loan. Please wait before applying again.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Application Restricted</strong>
+                  <br />
+                  <br />
+                  As part of our responsible lending policy, there is a 30-day cooling-off period after repaying a loan.
+                  <br />
+                  You can apply again on: <strong>{coolingOffDate?.toLocaleDateString()}</strong>
+                </AlertDescription>
+              </Alert>
+
+              <Button onClick={() => navigate('/dashboard')} className="w-full">
+                Return to Dashboard
               </Button>
             </CardContent>
           </Card>

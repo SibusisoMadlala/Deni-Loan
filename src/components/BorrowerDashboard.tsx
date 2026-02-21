@@ -150,6 +150,28 @@ export function BorrowerDashboard() {
       }
     }
 
+    // Rule C: 30-Day Cooling Off (if repaid)
+    // Find the most recent repaid loan
+    const repaidLoans = applications
+      .filter((app: any) => app.status === 'repaid' && app.updatedAt)
+      .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    if (repaidLoans.length > 0) {
+      const lastRepaid = repaidLoans[0];
+      const repaidDate = new Date(lastRepaid.updatedAt);
+      const today = new Date();
+      // Calculate days passed since repayment
+      const diffTime = today.getTime() - repaidDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 30) {
+        return { 
+          canApply: false, 
+          reason: `Cooling off period active. You can apply again in ${30 - diffDays} days.` 
+        };
+      }
+    }
+
     return { canApply: true };
   };
 
