@@ -2,8 +2,11 @@ import { SetStateAction, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from './ui/button'
 import { Slider } from './ui/slider'
-import { CheckCircle, FileCheck, Lock, ArrowRight, Zap, Shield, Clock } from 'lucide-react'
+import { CheckCircle, FileCheck, Lock, ArrowRight, Zap, Shield, Clock, Instagram, Facebook, Link as LinkIcon, Phone } from 'lucide-react'
 import { calculateLoan } from '../utils/loanCalculator'
+import ncrLogo from '../assets/NCRlogoV.png'
+import experianLogo from '../assets/ExperianLogo.png'
+import casaLogo from '../assets/CASALogo.jpg'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -31,13 +34,10 @@ export function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="text-white space-y-8">
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-                <Zap className="w-4 h-4 text-amber-300" />
-                <span className="text-sm font-medium">Fast Approval in 15 Minutes</span>
-              </div>
+              
               
               <h1 className="text-5xl lg:text-6xl font-extrabold leading-tight">
-                Get Your First Loan 
+                Get Your Deni Loan 
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-200 to-blue-200 mt-2">
                   100% Online
                 </span>
@@ -128,38 +128,7 @@ export function HomePage() {
                 </div>
                 
                 {/* Repayment Summary */}
-                <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 mb-6 border-2 border-sky-200">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-gray-700 font-semibold">Total Repayment:</span>
-                    <span className="text-3xl font-black text-gray-900">
-                      R{totalRepayable.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                    </span>
-                  </div>
-                  <button 
-                    onClick={() => setShowBreakdown(!showBreakdown)}
-                    className="text-sm text-sky-600 hover:text-sky-800 font-semibold flex items-center gap-1 group"
-                  >
-                    {showBreakdown ? 'Hide Breakdown' : 'View Cost Breakdown'}
-                    <ArrowRight className={`w-4 h-4 transition-transform ${showBreakdown ? 'rotate-90' : ''} group-hover:translate-x-1`} />
-                  </button>
-                  
-                  {showBreakdown && (
-                    <div className="mt-4 pt-4 border-t border-sky-200 space-y-2 text-sm">
-                      <div className="flex justify-between text-gray-700">
-                        <span>Principal Amount:</span>
-                        <span className="font-semibold">R{loanAmount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-700">
-                        <span>Interest:</span>
-                        <span className="font-semibold">R{interest.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-700">
-                        <span>Fees (Init + Service + Insurance):</span>
-                        <span className="font-semibold">R{totalFees.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                
 
                 {/* CTA Button */}
                 <Button 
@@ -169,11 +138,6 @@ export function HomePage() {
                   Apply Now
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-                
-                <p className="text-center text-xs text-gray-500 mt-4">
-                  <CheckCircle className="inline w-4 h-4 text-emerald-500 mr-1" />
-                  No impact on credit score
-                </p>
               </div>
             </div>
           </div>
@@ -374,7 +338,7 @@ export function HomePage() {
             
             <div className="bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
               <div className="flex text-amber-500 mb-5 text-xl">
-                {[1, 2, 3, 4, 5].map((s) => <span key={s}>★</span>)}
+                {[1, 2, 3, 4].map((s) => <span key={s}>★</span>)}
               </div>
               <p className="text-gray-700 italic mb-6 leading-relaxed">
                 "Thank you, you help out. I always use the services of your company. Completely satisfied with the level of service."
@@ -392,37 +356,38 @@ export function HomePage() {
             
             <div className="bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
               <div className="flex text-amber-500 mb-5 text-xl">
-                {[1, 2, 3, 4, 5].map((s) => <span key={s}>★</span>)}
+                {[1, 2, 3, 4].map((s) => <span key={s}>★</span>)}
               </div>
               <p className="text-gray-700 italic mb-6 leading-relaxed">
-                "I received a loan online very quickly and without complications, exactly as you write about it. The repayment terms are clear."
+                "Very helpful service! Needed money urgently for a medical emergency. Deni Loans approved me quickly and funds were in my account same day."
               </p>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-sky-500 rounded-full flex items-center justify-center text-white font-bold">
-                  SL
+                <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-sky-500 rounded-full flex items-center justify-center text-white font-bold">
+                  JM
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">Sarah L.</p>
-                  <p className="text-sm text-gray-500">Durban</p>
+                  <p className="font-bold text-gray-900">Jessica M.</p>
+                  <p className="text-sm text-gray-500">Cape Town</p>
                 </div>
               </div>
             </div>
+            
+           
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-400">
-        {/* Terms & Disclosures */}
+      <footer className="bg-gray-900 border-t border-gray-800">
         <div className="border-b border-gray-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <h3 className="text-white text-2xl font-bold mb-8 flex items-center gap-2">
               <FileCheck className="w-6 h-6" />
               Terms & Disclosures
             </h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="grid grid-cols-1">
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-3 gap-6">
                   <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                     <p className="text-xs text-gray-400 mb-1">Minimum Term</p>
                     <p className="text-2xl font-bold text-white">61 Days</p>
@@ -431,44 +396,10 @@ export function HomePage() {
                     <p className="text-xs text-gray-400 mb-1">Maximum Term</p>
                     <p className="text-2xl font-bold text-white">90 Days</p>
                   </div>
-                </div>
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <p className="text-xs text-gray-400 mb-1">Maximum APR</p>
-                  <p className="text-3xl font-bold text-white">60%</p>
-                </div>
-                <p className="text-sm leading-relaxed">
-                  Save your precious time and money. No need to visit anywhere to handover documents. Apply from wherever you are.
-                  The process of making a decision and transferring money takes from 1 hour.
-                  We undertake the responsibility of securing your personal information.
-                </p>
-              </div>
-              <div>
-                <h4 className="text-white font-bold text-lg mb-4">Representative Example:</h4>
-                <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border border-gray-700 space-y-3 text-sm">
-                  <p className="text-white font-semibold border-b border-gray-700 pb-2">For a loan of R2,000 taken over 3 months:</p>
-                  <div className="flex justify-between">
-                    <span>Initiation Fee:</span>
-                    <span className="font-semibold text-white">R265.00</span>
+                  <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                    <p className="text-xs text-gray-400 mb-1">Maximum APR</p>
+                    <p className="text-3xl font-bold text-white">60%</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Monthly Service Fee:</span>
-                    <span className="font-semibold text-white">R60.00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Interest:</span>
-                    <span className="font-semibold text-white">R200.00</span>
-                  </div>
-                  <div className="flex justify-between border-t border-gray-700 pt-3 text-base">
-                    <span className="text-white font-bold">Total Repayable:</span>
-                    <span className="font-bold text-white">R2,900.00</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Monthly Instalment:</span>
-                    <span className="font-semibold text-white">R966.00</span>
-                  </div>
-                  <p className="text-xs opacity-75 italic pt-2 border-t border-gray-700">
-                    * Fees include 15% VAT where applicable. Interest rates subject to credit profile.
-                  </p>
                 </div>
               </div>
             </div>
@@ -480,63 +411,50 @@ export function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div className="lg:col-span-2">
               <h3 className="text-white text-2xl font-bold mb-4">Deni Loans</h3>
-              <p className="mb-6 leading-relaxed">
+              <p className="mb-6 leading-relaxed text-gray-300">
                 Deni Loans (Pty) Ltd is a company duly incorporated and registered under the laws of South Africa. We are committed to responsible lending practices.
               </p>
               <div className="flex flex-wrap gap-4">
-                <div className="h-16 bg-white rounded-lg p-2 opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[80px]">
-                  <span className="text-gray-900 font-bold text-sm">NCR Registered</span>
+                <div className="h-16 bg-white rounded-lg p-2 opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[120px]">
+                  <img src={ncrLogo} alt="NCR Registered" className="h-full object-contain" />
                 </div>
-                <div className="h-16 bg-white rounded-lg p-2 opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[80px]">
-                  <span className="text-gray-900 font-bold text-sm">Experian</span>
+                <div className="h-16 bg-white rounded-lg p-2 opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[120px]">
+                  <img src={experianLogo} alt="Experian" className="h-full object-contain" />
                 </div>
-                <div className="h-16 bg-white rounded-lg p-2 opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[80px]">
-                  <span className="text-gray-900 font-bold text-sm">CASA</span>
+                <div className="h-16 bg-white rounded-lg p-2 opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[120px]">
+                  <img src={casaLogo} alt="CASA" className="h-full object-contain" />
                 </div>
               </div>
             </div>
             
             <div>
               <h4 className="text-white font-bold text-lg mb-4">Contact Us</h4>
-              <div className="space-y-3 text-sm">
-                <p>155 West Street<br/>Sandton, 2196</p>
+              <div className="space-y-3 text-sm text-gray-300">
+                <p>155 West Street<br/>Sandton</p>
                 <p className="text-sky-400 hover:text-sky-300 transition-colors">
-                  support@deniloans.co.za
+                  admin@deniloans.co.za
                 </p>
-                <p>Mon - Fri<br/>8:00 AM - 5:00 PM</p>
+                <div className="flex flex-col gap-2 mt-2">
+                  <p>Mon - Fri<br/>8:00 AM - 5:00 PM</p>
+                  <a href="https://api.whatsapp.com/send?phone=27648778580" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300">
+                    <Phone className="w-4 h-4" />
+                    WhatsApp Support
+                  </a>
+                </div>
+                
+                <div className="flex gap-4 mt-4 pt-4 border-t border-gray-700">
+                  <a href="https://www.instagram.com/deni_loans" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-pink-500 transition-colors">
+                    <Instagram className="w-6 h-6" />
+                  </a>
+                  <a href="https://www.facebook.com/profile.php?id=61584881896312&ref=PROFILE_EDIT_ig_profile_ac" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-500 transition-colors">
+                    <Facebook className="w-6 h-6" />
+                  </a>
+                  <a href="https://linktr.ee/Deni_Loans?fbclid=IwY2xjawQGw49leHRuA2FlbQIxMABicmlkETFvMDRjVk1nanBaNmx4V2pJc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHgKkbnZil98Wltr-_KGFX656PXVVAAxtvd93GFINWnDSUkAyos1ng2Rau8Zd_aem_XgmRzq-l2w71t6g4W-N0qw" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-green-500 transition-colors">
+                    <LinkIcon className="w-6 h-6" />
+                  </a>
+                </div>
               </div>
             </div>
-            
-            <div>
-              <h4 className="text-white font-bold text-lg mb-4">Legal</h4>
-              <ul className="space-y-3 text-sm">
-                <li>
-                  <a href="/terms" className="hover:text-white transition-colors flex items-center gap-2">
-                    <ArrowRight className="w-4 h-4" />
-                    Terms & Conditions
-                  </a>
-                </li>
-                <li>
-                  <a href="/privacy" className="hover:text-white transition-colors flex items-center gap-2">
-                    <ArrowRight className="w-4 h-4" />
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors flex items-center gap-2">
-                    <ArrowRight className="w-4 h-4" />
-                    PAIA Manual
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
-            <p>&copy; {new Date().getFullYear()} Deni Loans (Pty) Ltd. All Rights Reserved.</p>
-            <p>
-              NCR Registration: <span className="text-white font-semibold">NCRCP22836</span>
-            </p>
           </div>
         </div>
       </footer>
