@@ -28,8 +28,20 @@ export function PersonalDetailsStep({ data, updateData, errors = {} }: PersonalD
                 max={4000}
                 placeholder="2000"
                 className="pl-8"
-                value={data.requestedAmount}
-                onChange={(e) => updateData({ requestedAmount: Number(e.target.value) })}
+                value={data.requestedAmount || ''}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  // Cap maximum value at 4000
+                  if (val <= 4000) {
+                    updateData({ requestedAmount: val })
+                  }
+                }}
+                onBlur={() => {
+                  // Enforce minimum value of 500 on blur
+                  if (Number(data.requestedAmount) < 500) {
+                    updateData({ requestedAmount: 500 })
+                  }
+                }}
               />
             </div>
           </div>
