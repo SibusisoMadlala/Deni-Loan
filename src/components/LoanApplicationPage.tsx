@@ -100,6 +100,17 @@ export function LoanApplicationPage() {
       
       setHasActiveApprovedLoan(hasActive)
 
+      // Check for existing draft application to resume/prevent duplicates
+      const draftApp = apps
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .find((app: any) => app.status === 'draft')
+      
+      if (draftApp) {
+        console.log('Found existing draft application:', draftApp.id)
+        setApplicationId(draftApp.id)
+        // detailed population of form data would be ideal here if needed
+      }
+
       // Check for cooling off period (30 days from last repayment)
       const repaidLoans = apps
         .filter((app: any) => app.status === 'repaid' && app.updatedAt)
@@ -193,9 +204,17 @@ export function LoanApplicationPage() {
 
       setLoading(true)
       try {
-        // 1. Create Application
-        const result = await loanService.createApplication(applicationData, accessToken!)
-        const newAppId = result.application.id
+        let newAppId = applicationId;
+
+        // 1. Create or Update Application
+        if (!newAppId) {
+          const result = await loanService.createApplication(applicationData, accessToken!)
+          newAppId = result.application.id
+          setApplicationId(newAppId)
+        } else {
+          // If draft exists, update it with latest data
+          await loanService.updateApplication(newAppId, applicationData, accessToken!)
+        }
 
         // 2. Upload Documents
         for (const [type, files] of Object.entries(selectedFiles)) {

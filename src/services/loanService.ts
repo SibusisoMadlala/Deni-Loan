@@ -5,7 +5,7 @@ const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-1ed3
 export interface LoanApplication {
   id?: string
   userId?: string
-  status?: 'draft' | 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid'
+  status?: 'draft' | 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid' | 'archived'
   
   // Personal Details
   title?: string

@@ -1383,6 +1383,43 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
   }
 });
 
+app.delete('/make-server-1ed353c1/admin/applications/:id', requireAdmin, async (c) => {
+  try {
+    const applicationId = c.req.param('id');
+    const application = await kv.get(`loan_application:${applicationId}`);
+
+    if (!application) {
+      return c.json({ error: 'Application not found' }, 404);
+    }
+
+    // Delete application
+    await kv.delete(`loan_application:${applicationId}`);
+
+    // Delete pointer in user's list
+    if (application.userId) {
+      await kv.delete(`user_applications:${application.userId}:${applicationId}`);
+    }
+
+    // Also delete any associated documents pointers (optional but cleaner)
+    try {
+      const documentIds = await kv.getByPrefix(`application_documents:${applicationId}:`);
+      for (const docId of documentIds) {
+          // Delete document metadata
+          await kv.delete(`document:${docId}`);
+          // Delete application->document link
+          await kv.delete(`application_documents:${applicationId}:${docId}`);
+      }
+    } catch (e) {
+      console.log('Error cleaning up documents for deleted application', e);
+    }
+
+    return c.json({ success: true, message: 'Application deleted' });
+  } catch (error) {
+    console.log(`Delete application error: ${error}`);
+    return c.json({ error: 'Failed to delete application' }, 500);
+  }
+});
+
 // Admin disburse route - supports PayShap (payshapId) or manual bank disbursement (bank details)
 app.post('/make-server-1ed353c1/admin/disburse', requireAdmin, async (c) => {
   try {
