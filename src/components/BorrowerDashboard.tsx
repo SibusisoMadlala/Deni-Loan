@@ -192,9 +192,20 @@ export function BorrowerDashboard() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl mb-2">Welcome back, {user?.fullName}</h1>
-            <p className="text-gray-600">Manage your loans and documents</p>
+          <div className="flex flex-col gap-2">
+            <div>
+              <h1 className="text-3xl mb-2">Welcome back, {user?.fullName}</h1>
+              <p className="text-gray-600">Manage your loans and documents.</p>
+            </div>
+            <a 
+              href="https://api.whatsapp.com/send?phone=27648778580" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium px-4 py-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors w-fit border border-emerald-200"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Need Help? Chat on WhatsApp
+            </a>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Button 

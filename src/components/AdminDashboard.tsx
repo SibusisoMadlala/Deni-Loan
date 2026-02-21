@@ -1528,6 +1528,12 @@ export function AdminDashboard() {
                           <p className="text-sm">{selectedApp.employerPhone || 'Not specified'}</p>
                         </div>
                         <div>
+                          <Label className="text-xs text-gray-600">Repayment Term</Label>
+                          <p className="text-sm font-medium">
+                            {selectedApp.repaymentMonths || 1} Month{(selectedApp.repaymentMonths || 1) > 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div>
                           <Label className="text-xs text-gray-600">Next Pay Date</Label>
                           <p className="text-sm font-medium">
                             {selectedApp.nextPayDate 
@@ -1554,6 +1560,10 @@ export function AdminDashboard() {
                         <div>
                           <Label className="text-xs text-gray-600">Requested Amount</Label>
                           <p className="text-sm">R{selectedApp.requestedAmount?.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-600">Repayment Term</Label>
+                          <p className="text-sm">{selectedApp.repaymentMonths || 1} Month{(selectedApp.repaymentMonths || 1) > 1 ? 's' : ''}</p>
                         </div>
                         {selectedApp.creditScore && (
                           <div>

@@ -125,6 +125,20 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
 
       <div className="space-y-2">
         <Label className={errors.nextPayDate ? 'text-red-500' : ''}>Next Pay Date</Label>
+        {/* Use native date picker on mobile for better compatibility */}
+        <div className="md:hidden">
+          <Input 
+            type="date"
+            value={data.nextPayDate ? new Date(data.nextPayDate).toISOString().split('T')[0] : ''}
+            onChange={(e) => updateData({ nextPayDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+            min={new Date().toISOString().split('T')[0]}
+            max={getCycleEndDate().toISOString().split('T')[0]}
+            className={errors.nextPayDate ? 'border-red-500 w-full' : 'w-full'}
+          />
+        </div>
+        
+        {/* Use custom calendar on desktop */}
+        <div className="hidden md:block">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -149,6 +163,7 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
             />
           </PopoverContent>
         </Popover>
+        </div>
       </div>
 
       <div className="space-y-2">
