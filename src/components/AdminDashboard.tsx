@@ -1153,12 +1153,12 @@ export function AdminDashboard() {
                     value={searchNumber}
                     onChange={(e) => {
                       setSearchNumber(e.target.value)
-                      // Clear other filters when typing number
+                      // Clear other search filters when typing number, BUT keep status/date filters
                       if (e.target.value) {
                          setSearchQuery('')
-                         setFilter('all')
-                         setStartDate('')
-                         setEndDate('')
+                         // setFilter('all') // Keep existing status filter
+                         // setStartDate('') // Keep date filters
+                         // setEndDate('') // Keep date filters
                       }
                     }}
                     onKeyDown={handleKeyDown}
@@ -1171,12 +1171,12 @@ export function AdminDashboard() {
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value)
-                       // Clear other filters when typing search
+                       // Clear other search filters when typing search, BUT keep status/date filters
                       if (e.target.value) {
                          setSearchNumber('')
-                         setFilter('all')
-                         setStartDate('')
-                         setEndDate('')
+                         // setFilter('all') // Keep existing status filter
+                         // setStartDate('') // Keep date filters
+                         // setEndDate('') // Keep date filters
                       }
                     }}
                     onKeyDown={handleKeyDown}
