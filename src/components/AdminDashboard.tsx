@@ -102,93 +102,11 @@ export function AdminDashboard() {
   // Deletion state
   const [deleteId, setDeleteId] = useState<string | null>(null)
   
-  // Cleanup duplicates state
-  const [isCleaningUp, setIsCleaningUp] = useState(false)
-  
   useEffect(() => {
     if (selectedApp) {
       setAdminNote(selectedApp.adminNotes || '')
     }
   }, [selectedApp?.id])
-
-  const handleCleanupDuplicates = async () => {
-    if (!window.confirm('Are you sure you want to archive all duplicate applications? This will keep only the most recent application for each ID number and move the rest to the archive.')) {
-      return
-    }
-
-    setIsCleaningUp(true)
-    try {
-      // 1. Group by ID Number
-      const groups: Record<string, LoanApplication[]> = {}
-      
-      // Use rawApplications to ensure we catch everything
-      const sourceApps = rawApplications.length > 0 ? rawApplications : applications
-
-      sourceApps.forEach(app => {
-        if (!app.idNumber || app.status === 'archived') return
-        if (!groups[app.idNumber]) {
-          groups[app.idNumber] = []
-        }
-        groups[app.idNumber].push(app)
-      })
-
-      // 2. Identify duplicates
-      const appsToArchive: string[] = []
-      let duplicateCount = 0
-
-      Object.values(groups).forEach(group => {
-        // Keep non-draft status applications if possible, or just date based?
-        // Let's stick to date based for now.
-        if (group.length > 1) {
-          // Sort by createdAt descending (newest first)
-          group.sort((a, b) => {
-            const timeA = new Date(a.createdAt || 0).getTime()
-            const timeB = new Date(b.createdAt || 0).getTime()
-            return timeB - timeA
-          })
-          
-          // Keep the first (newest), mark rest for archiving
-          const duplicates = group.slice(1)
-          duplicates.forEach(dup => {
-            if (dup.id) appsToArchive.push(dup.id)
-          })
-          duplicateCount += duplicates.length
-        }
-      })
-
-      if (appsToArchive.length === 0) {
-        toast.info('No duplicates found')
-        return
-      }
-
-      toast.loading(`Archiving ${appsToArchive.length} duplicates...`)
-
-      // 3. Archive duplicates
-      let successCount = 0
-      for (const id of appsToArchive) {
-        try {
-          // Use updateLoanStatus to set status to 'archived'
-          await adminService.updateLoanStatus(id, 'archived', undefined, undefined, accessToken!)
-          successCount++
-        } catch (err) {
-          console.error(`Failed to archive duplicate ${id}`, err)
-        }
-      }
-
-      toast.dismiss()
-      toast.success(`Cleanup complete. Archived ${successCount} duplicate applications.`)
-      
-      // Refresh list
-      loadApplications()
-      setSelectedApp(null)
-
-    } catch (err) {
-      console.error('Cleanup failed:', err)
-      toast.error('Failed to cleanup duplicates')
-    } finally {
-      setIsCleaningUp(false)
-    }
-  }
 
   const handleDeleteApplication = async () => {
     if (!deleteId) return
@@ -1178,15 +1096,6 @@ export function AdminDashboard() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-medium">Applications ({filteredApplications.length})</h3>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleCleanupDuplicates}
-                    disabled={isCleaningUp || loading}
-                    className="text-xs h-7 ml-2 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200"
-                  >
-                    {isCleaningUp ? 'Archiving...' : 'Archive Duplicates'}
-                  </Button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border shadow-sm">
