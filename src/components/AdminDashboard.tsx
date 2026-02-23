@@ -41,7 +41,8 @@ import {
   UserPlus,
   UserCheck,
   Search, // Import the Search icon
-  Trash2
+  Trash2,
+  Archive
 } from 'lucide-react'
 
 export function AdminDashboard() {
@@ -833,7 +834,8 @@ export function AdminDashboard() {
       declined: { variant: 'destructive', icon: XCircle, label: 'Declined' },
       disbursed: { variant: 'default', icon: DollarSign, label: 'Disbursed' },
       repaid: { variant: 'outline', icon: CheckCircle, label: 'Repaid' },
-      counter_offer: { variant: 'warning', icon: AlertCircle, label: 'Counter Offer' }
+      counter_offer: { variant: 'warning', icon: AlertCircle, label: 'Counter Offer' },
+      archived: { variant: 'secondary', icon: Archive, label: 'Archived' }
     }
     
     const normalizedStatus = (status || 'pending').toLowerCase().trim();
