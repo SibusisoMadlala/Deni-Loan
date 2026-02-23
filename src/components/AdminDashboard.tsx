@@ -832,10 +832,13 @@ export function AdminDashboard() {
       approved: { variant: 'default', icon: CheckCircle, label: 'Approved' },
       declined: { variant: 'destructive', icon: XCircle, label: 'Declined' },
       disbursed: { variant: 'default', icon: DollarSign, label: 'Disbursed' },
-      repaid: { variant: 'outline', icon: CheckCircle, label: 'Repaid' }
+      repaid: { variant: 'outline', icon: CheckCircle, label: 'Repaid' },
+      counter_offer: { variant: 'warning', icon: AlertCircle, label: 'Counter Offer' },
+      archived: { variant: 'outline', icon: Trash2, label: 'Archived' }
     }
     
-    const config = variants[status] || variants.pending
+    const normalizedStatus = (status || 'pending').toLowerCase().trim();
+    const config = variants[normalizedStatus] || variants.pending
     const Icon = config.icon
 
     return (
@@ -1150,6 +1153,7 @@ export function AdminDashboard() {
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="counter_offer">Counter Offer</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="declined">Declined</SelectItem>
                       <SelectItem value="disbursed">Disbursed</SelectItem>
@@ -1807,7 +1811,8 @@ export function AdminDashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {selectedApp.status === 'pending' ? (
+                      {/* Treat 'pending', undefined, null, or 'draft' statuses as actionable Pending state. Handle case-insensitivity. */}
+                      {(!selectedApp.status || ['pending', 'draft'].includes(selectedApp.status.toLowerCase())) ? (
                         <>
                           <div className="space-y-2">
                             <Label>Decision</Label>
@@ -1894,7 +1899,7 @@ export function AdminDashboard() {
                             Submit Decision
                           </Button>
                         </>
-                      ) : selectedApp.status === 'approved' ? (
+                      ) : selectedApp.status?.toLowerCase() === 'approved' ? (
                         <div className="space-y-4">
                           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                             <div className="flex items-center mb-2">
@@ -1917,7 +1922,7 @@ export function AdminDashboard() {
                              {getStatusBadge(selectedApp.status!)}
                           </div>
                         </div>
-                      ) : selectedApp.status === 'disbursed' ? (
+                      ) : selectedApp.status?.toLowerCase() === 'disbursed' ? (
                         <div className="space-y-4">
                           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                             <div className="flex items-center mb-2">
@@ -1933,6 +1938,39 @@ export function AdminDashboard() {
                             >
                               Mark as Repaid
                             </Button>
+                          </div>
+                          <div className="text-center">
+                             <p className="text-gray-600 mb-2">Current Status</p>
+                             {getStatusBadge(selectedApp.status!)}
+                          </div>
+                        </div>
+                      ) : selectedApp.status?.toLowerCase() === 'counter_offer' ? (
+                        <div className="space-y-4">
+                          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <div className="flex items-center mb-2">
+                              <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+                              <h4 className="font-medium text-yellow-900">Counter Offer Sent</h4>
+                            </div>
+                            <p className="text-sm text-yellow-700 mb-4">
+                              A counter offer for <span className="font-bold">R{selectedApp.counterOfferAmount?.toLocaleString()}</span> has been sent to the borrower.
+                              <br/>Awaiting their decision (Accept/Decline).
+                            </p>
+                          </div>
+                          <div className="text-center">
+                             <p className="text-gray-600 mb-2">Current Status</p>
+                             {getStatusBadge(selectedApp.status!)}
+                          </div>
+                        </div>
+                      ) : selectedApp.status?.toLowerCase() === 'archived' ? (
+                        <div className="space-y-4">
+                          <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
+                            <div className="flex items-center mb-2">
+                              <FileText className="w-5 h-5 text-gray-600 mr-2" />
+                              <h4 className="font-medium text-gray-900">Application Archived</h4>
+                            </div>
+                            <p className="text-sm text-gray-700 mb-4">
+                              This application has been archived. No further actions can be taken.
+                            </p>
                           </div>
                           <div className="text-center">
                              <p className="text-gray-600 mb-2">Current Status</p>
