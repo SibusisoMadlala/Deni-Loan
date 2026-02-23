@@ -1346,7 +1346,8 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
     const updatedApplication = {
       ...application,
       status,
-      approvedAmount: approvedAmount ?? application.approvedAmount,
+      // Fallback to requestedAmount if approvedAmount is 0 or undefined
+      approvedAmount: (approvedAmount && approvedAmount > 0) ? approvedAmount : (application.approvedAmount || application.requestedAmount),
       declineReason: declineReason ?? application.declineReason,
       counterOfferAmount: counterOfferAmount ?? application.counterOfferAmount,
       decidedAt: new Date().toISOString(),
