@@ -127,6 +127,48 @@ export function AdminDashboard() {
     }
   }
 
+  const handleArchive = async (app: LoanApplication) => {
+    if (!app.id) return;
+    try {
+      // Toggle archived status
+      const currentArchivedState = (app as any).archived === true || app.status === 'archived';
+      const newArchivedState = !currentArchivedState;
+      
+      // If the current status is strictly 'archived', we may want to restore it to 'pending' if original status is lost?
+      // Or we can just set 'archived' flag.
+      // But if status is 'archived', we KEEP status as 'archived' unless we know better?
+      // The user wants filtering by archived but seeing original status.
+      // If we un-archive something that had status='archived', it will still have status='archived' and show up in Archived tab (if filters rely on status).
+      // So let's try to infer pending if status was 'archived'.
+      
+      let updates: any = { archived: newArchivedState };
+      
+      // If we are archiving, we don't change status.
+      // If we are un-archiving, and status was 'archived', default to 'pending' to make it visible again?
+      if (!newArchivedState && app.status === 'archived') {
+          updates.status = 'pending'; 
+      }
+      
+      // We assume backend accepts partial updates including extra fields
+      await adminService.updateApplication(app.id, updates, accessToken!);
+
+      const updatedApp = { ...app, ...updates };
+      
+      setApplications(prev => prev.map(a => a.id === app.id ? updatedApp : a));
+      // Also update raw applications
+      setRawApplications(prev => prev.map(a => a.id === app.id ? updatedApp : a));
+      
+      if (selectedApp?.id === app.id) {
+        setSelectedApp(updatedApp as LoanApplication);
+      }
+      
+      toast.success(newArchivedState ? 'Application archived' : 'Application restored');
+    } catch (err) {
+      console.error('Failed to update archive status:', err);
+      toast.error('Failed to update archive status');
+    }
+  }
+
   const handleSaveNote = async () => {
     if (!selectedApp?.id) return
     setSavingNote(true)
@@ -827,7 +869,7 @@ export function AdminDashboard() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, archived?: boolean, approvedAmount?: number, declineReason?: string) => {
     const variants: any = {
       pending: { variant: 'secondary', icon: Clock, label: 'Pending' },
       approved: { variant: 'default', icon: CheckCircle, label: 'Approved' },
@@ -838,15 +880,45 @@ export function AdminDashboard() {
       archived: { variant: 'secondary', icon: Archive, label: 'Archived' }
     }
     
-    const normalizedStatus = (status || 'pending').toLowerCase().trim();
+    let normalizedStatus = (status || 'pending').toLowerCase().trim();
+    
+    // Check if effective archived state (either flag or status string)
+    // If status is 'archived', treat it as archived
+    const isArchived = archived || normalizedStatus === 'archived';
+
+    // If status is 'archived' or 'pending' (which might be default for null status), 
+    // try to infer the original status from other fields.
+    // This handles legacy data where status was overwritten or lost.
+    if (normalizedStatus === 'archived' || normalizedStatus === 'pending') {
+      // Check for approved amount (number or string representation)
+      if (approvedAmount && Number(approvedAmount) > 0) {
+        normalizedStatus = 'approved';
+      } else if (declineReason && typeof declineReason === 'string' && declineReason.trim().length > 0) {
+        normalizedStatus = 'declined';
+      } else if (normalizedStatus === 'archived') {
+        // If archived but no decision evidence found, show as Pending
+        normalizedStatus = 'pending';
+      }
+    }
+
     const config = variants[normalizedStatus] || variants.pending
     const Icon = config.icon
 
+    // Make container wrap to prevent overlap, and handle alignment based on context if needed
+    // Defaulting to flex-wrap allows responsive behavior
     return (
-      <Badge variant={config.variant} className="flex items-center space-x-1">
-        <Icon className="w-3 h-3" />
-        <span>{config.label}</span>
-      </Badge>
+      <div className="flex flex-wrap gap-1 items-center justify-end md:justify-start w-fit max-w-full">
+        {isArchived && normalizedStatus !== 'archived' && (
+          <Badge variant="secondary" className="flex items-center space-x-1 opacity-70 scale-90 origin-right">
+            <Archive className="w-3 h-3" />
+            <span className="hidden xs:inline">Archived</span>
+          </Badge>
+        )}
+        <Badge variant={config.variant} className="flex items-center space-x-1 whitespace-nowrap">
+          <Icon className="w-3 h-3" />
+          <span>{config.label}</span>
+        </Badge>
+      </div>
     )
   }
 
@@ -897,11 +969,21 @@ export function AdminDashboard() {
       // Status Filter
       const appStatus = app.status?.toLowerCase().trim() || 'pending';
       const filterStatus = activeFilter.toLowerCase().trim();
+      const isArchived = (app as any).archived === true || appStatus === 'archived';
 
-      if (filterStatus === 'all') {
-         if (appStatus === 'archived') return false;
-      } else if (appStatus !== filterStatus) {
-         return false;
+      if (filterStatus === 'archived') {
+         if (!isArchived) return false;
+      } else if (filterStatus === 'all') {
+         // Exclude archived items from "All" view unless specific reason to include
+         if (isArchived) return false;
+      } else {
+         // Specific status filter (e.g. 'pending', 'approved')
+         // Should we show archived items here? Typically no.
+         if (isArchived) return false;
+         
+         if (appStatus !== filterStatus) {
+            return false;
+         }
       }
       
       // Search Filter
@@ -1239,7 +1321,14 @@ export function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                          {getStatusBadge(app.status)}
+                          <div className="scale-75 origin-right">
+                            {getStatusBadge(
+                              app.status, 
+                              (app as any).archived, 
+                              app.approvedAmount || (app as any).approved_amount, 
+                              app.declineReason || (app as any).decline_reason
+                            )}
+                          </div>
                           {app.adminNotes && (
                             <Badge variant="outline" className="text-[10px] h-4 px-1 border-yellow-200 bg-yellow-50 text-yellow-700">
                               <FileText className="w-2 h-2 mr-1" />
@@ -1263,18 +1352,19 @@ export function AdminDashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                  {app.status === 'pending' && (
+                  {/* Archive Button - Show for active applications */}
+                  {!(app as any).archived && app.status !== 'archived' && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 text-gray-400 hover:text-blue-500 hover:bg-blue-50"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setDeleteId(app.id)
+                        handleArchive(app)
                       }}
-                      title="Delete Application"
+                      title="Archive Application"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Archive className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
@@ -1592,7 +1682,12 @@ export function AdminDashboard() {
                         <div>
                           <Label className="text-xs text-gray-600">Status</Label>
                           <div className="mt-1 flex items-center gap-2">
-                            {getStatusBadge(selectedApp.status!)}
+                            {getStatusBadge(
+                              selectedApp.status!, 
+                              (selectedApp as any).archived, 
+                              selectedApp.approvedAmount || (selectedApp as any).approved_amount, 
+                              selectedApp.declineReason || (selectedApp as any).decline_reason
+                            )}
                             {showNotifyButton(selectedApp) && (
                               <Button 
                                 size="sm" 
@@ -1812,8 +1907,19 @@ export function AdminDashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Treat 'pending', undefined, null, or 'draft' statuses as actionable Pending state. Handle case-insensitivity. */}
-                      {(!selectedApp.status || ['pending', 'draft'].includes(selectedApp.status.toLowerCase())) ? (
+                      {/* Treat 'pending', undefined, null, 'draft', or undecided 'archived' statuses as actionable Pending state. */}
+                      {(() => {
+                        const s = (selectedApp.status || 'pending').toLowerCase();
+                        const isArchivedUndecided = s === 'archived' && 
+                          !((selectedApp.approvedAmount && selectedApp.approvedAmount > 0) || 
+                            (selectedApp.declineReason && selectedApp.declineReason.trim().length > 0));
+                        
+                        const isPending = !selectedApp.status || 
+                                          ['pending', 'draft'].includes(s) || 
+                                          isArchivedUndecided;
+
+                        if (isPending) {
+                          return (
                         <>
                           <div className="space-y-2">
                             <Label>Decision</Label>
@@ -1900,7 +2006,9 @@ export function AdminDashboard() {
                             Submit Decision
                           </Button>
                         </>
-                      ) : selectedApp.status?.toLowerCase() === 'approved' ? (
+                      );
+                      } else if (selectedApp.status?.toLowerCase() === 'approved' || (s === 'archived' && selectedApp.approvedAmount && selectedApp.approvedAmount > 0)) {
+                        return (
                         <div className="space-y-4">
                           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                             <div className="flex items-center mb-2">
@@ -1920,10 +2028,17 @@ export function AdminDashboard() {
                           </div>
                           <div className="text-center">
                              <p className="text-gray-600 mb-2">Current Status</p>
-                             {getStatusBadge(selectedApp.status!)}
+                             {getStatusBadge(
+                               selectedApp.status!, 
+                               (selectedApp as any).archived, 
+                               selectedApp.approvedAmount || (selectedApp as any).approved_amount, 
+                               selectedApp.declineReason || (selectedApp as any).decline_reason
+                             )}
                           </div>
                         </div>
-                      ) : selectedApp.status?.toLowerCase() === 'disbursed' ? (
+                      );
+                    } else if (selectedApp.status?.toLowerCase() === 'disbursed') {
+                        return (
                         <div className="space-y-4">
                           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                             <div className="flex items-center mb-2">
@@ -1942,10 +2057,17 @@ export function AdminDashboard() {
                           </div>
                           <div className="text-center">
                              <p className="text-gray-600 mb-2">Current Status</p>
-                             {getStatusBadge(selectedApp.status!)}
+                             {getStatusBadge(
+                               selectedApp.status!, 
+                               (selectedApp as any).archived, 
+                               selectedApp.approvedAmount || (selectedApp as any).approved_amount, 
+                               selectedApp.declineReason || (selectedApp as any).decline_reason
+                             )}
                           </div>
                         </div>
-                      ) : selectedApp.status?.toLowerCase() === 'counter_offer' ? (
+                      );
+                    } else if (selectedApp.status?.toLowerCase() === 'counter_offer') {
+                       return (
                         <div className="space-y-4">
                           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                             <div className="flex items-center mb-2">
@@ -1959,17 +2081,31 @@ export function AdminDashboard() {
                           </div>
                           <div className="text-center">
                              <p className="text-gray-600 mb-2">Current Status</p>
-                             {getStatusBadge(selectedApp.status!)}
+                             {getStatusBadge(
+                               selectedApp.status!, 
+                               (selectedApp as any).archived, 
+                               selectedApp.approvedAmount || (selectedApp as any).approved_amount, 
+                               selectedApp.declineReason || (selectedApp as any).decline_reason
+                             )}
                           </div>
                         </div>
-                      ) : (
+                      );
+                    } else {
+                        return (
                         <div className="text-center py-8">
                           <p className="text-gray-600 mb-2">
                             Decision already made
                           </p>
-                          {getStatusBadge(selectedApp.status!)}
+                          {getStatusBadge(
+                            selectedApp.status!, 
+                            (selectedApp as any).archived, 
+                            selectedApp.approvedAmount || (selectedApp as any).approved_amount, 
+                            selectedApp.declineReason || (selectedApp as any).decline_reason
+                          )}
                         </div>
-                      )}
+                      );
+                    }
+                    })()}
                     </CardContent>
                   </Card>
                 </TabsContent>

@@ -7,6 +7,11 @@ export interface LoanApplication {
   userId?: string
   status?: 'draft' | 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid' | 'archived' | 'counter_offer'
   
+  // Archiving
+  archived?: boolean
+  archivedAt?: string
+  originalStatus?: string
+
   // Counter Offer
   counterOfferAmount?: number
   counterOfferStatus?: 'pending' | 'accepted' | 'declined'
