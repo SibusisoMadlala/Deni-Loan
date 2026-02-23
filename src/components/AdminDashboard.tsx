@@ -833,8 +833,7 @@ export function AdminDashboard() {
       declined: { variant: 'destructive', icon: XCircle, label: 'Declined' },
       disbursed: { variant: 'default', icon: DollarSign, label: 'Disbursed' },
       repaid: { variant: 'outline', icon: CheckCircle, label: 'Repaid' },
-      counter_offer: { variant: 'warning', icon: AlertCircle, label: 'Counter Offer' },
-      archived: { variant: 'outline', icon: Trash2, label: 'Archived' }
+      counter_offer: { variant: 'warning', icon: AlertCircle, label: 'Counter Offer' }
     }
     
     const normalizedStatus = (status || 'pending').toLowerCase().trim();
@@ -1954,22 +1953,6 @@ export function AdminDashboard() {
                             <p className="text-sm text-yellow-700 mb-4">
                               A counter offer for <span className="font-bold">R{selectedApp.counterOfferAmount?.toLocaleString()}</span> has been sent to the borrower.
                               <br/>Awaiting their decision (Accept/Decline).
-                            </p>
-                          </div>
-                          <div className="text-center">
-                             <p className="text-gray-600 mb-2">Current Status</p>
-                             {getStatusBadge(selectedApp.status!)}
-                          </div>
-                        </div>
-                      ) : selectedApp.status?.toLowerCase() === 'archived' ? (
-                        <div className="space-y-4">
-                          <div className="bg-gray-100 p-4 rounded-lg border border-gray-200">
-                            <div className="flex items-center mb-2">
-                              <FileText className="w-5 h-5 text-gray-600 mr-2" />
-                              <h4 className="font-medium text-gray-900">Application Archived</h4>
-                            </div>
-                            <p className="text-sm text-gray-700 mb-4">
-                              This application has been archived. No further actions can be taken.
                             </p>
                           </div>
                           <div className="text-center">
