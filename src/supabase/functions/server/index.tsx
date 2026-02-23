@@ -1026,8 +1026,32 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
     };
     await kv.set(`loan_application:${applicationId}`, updatedApplication);
 
+    // Trigger "Counter Offer Accepted" email
+    if (updates.counterOfferStatus === 'accepted' && application.counterOfferStatus !== 'accepted') {
+      try {
+        console.log(`Sending Counter Offer Accepted email to Admin`);
+        await transporter.sendMail({
+          from: '"Deni Loans System" <admin@deniloans.co.za>',
+          to: 'admin@deniloans.co.za',
+          subject: `Counter Offer Accepted - ${application.fullName}`,
+          text: `Applicant ${application.fullName} has accepted the counter offer of R${updates.requestedAmount || application.counterOfferAmount}.\nPlease review and finalize the application.`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">Counter Offer Accepted</h2>
+              <p>Applicant <strong>${application.fullName}</strong> has accepted the counter offer.</p>
+              <p><strong>New Amount:</strong> R${updates.requestedAmount || application.counterOfferAmount}</p>
+              <p>Please review and finalize the application.</p>
+            </div>
+          `
+        });
+      } catch (emailError) {
+        console.error('Failed to send counter offer accepted email:', emailError);
+      }
+    }
+
     // Trigger "Application Received" email
-    if (updates.status === 'pending' && application.status !== 'pending') {
+    // Check if it's a new application or re-submission (not counter offer acceptance)
+    if (updates.status === 'pending' && application.status !== 'pending' && updates.counterOfferStatus !== 'accepted') {
       try {
         console.log(`Sending Application Received email to ${application.email}`);
         await transporter.sendMail({
@@ -1312,7 +1336,7 @@ app.post('/make-server-1ed353c1/admin/verify-document', requireAdmin, async (c)=
 
 app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (c)=>{
   try {
-    const { applicationId, status, approvedAmount, declineReason } = await c.req.json();
+    const { applicationId, status, approvedAmount, declineReason, counterOfferAmount } = await c.req.json();
     const application = await kv.get(`loan_application:${applicationId}`);
     if (!application) {
       return c.json({
@@ -1324,6 +1348,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
       status,
       approvedAmount: approvedAmount ?? application.approvedAmount,
       declineReason: declineReason ?? application.declineReason,
+      counterOfferAmount: counterOfferAmount ?? application.counterOfferAmount,
       decidedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1362,6 +1387,23 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
               <p>Thank you for your application. After careful review, we regret to inform you that we are unable to approve your loan at this time.</p>
               <p><strong>Reason:</strong> ${declineReason || 'Did not meet credit criteria'}</p>
               <p>You may apply again in 30 days.</p>
+              <p>Best regards,<br>Deni Loans Team</p>
+            </div>
+          `
+        });
+      } else if (status === 'counter_offer') {
+        console.log(`Sending Counter Offer email to ${application.email}`);
+        await transporter.sendMail({
+          from: '"Deni Loans" <admin@deniloans.co.za>',
+          to: application.email,
+          subject: "Loan Application Update - Counter Offer",
+          text: `Dear ${application.fullName},\n\nWe have reviewed your application. While we cannot offer the full requested amount, we can offer you R${updatedApplication.counterOfferAmount}.\n\nPlease log in to your dashboard to accept or decline this offer.\n\nBest regards,\nDeni Loans Team`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #ca8a04;">Counter Offer Received</h2>
+              <p>Dear ${application.fullName},</p>
+              <p>We have reviewed your application. While we cannot offer the full requested amount, we can offer you <strong>R${updatedApplication.counterOfferAmount}</strong>.</p>
+              <p>Please log in to your dashboard to accept or decline this offer.</p>
               <p>Best regards,<br>Deni Loans Team</p>
             </div>
           `

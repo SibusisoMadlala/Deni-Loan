@@ -5,8 +5,12 @@ const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-1ed3
 export interface LoanApplication {
   id?: string
   userId?: string
-  status?: 'draft' | 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid' | 'archived'
+  status?: 'draft' | 'pending' | 'approved' | 'declined' | 'disbursed' | 'repaid' | 'archived' | 'counter_offer'
   
+  // Counter Offer
+  counterOfferAmount?: number
+  counterOfferStatus?: 'pending' | 'accepted' | 'declined'
+
   // Personal Details
   title?: string
   idNumber: string
@@ -179,6 +183,40 @@ export const loanService = {
       return data.applications
     } catch (error: any) {
       console.error('Get my applications error:', error)
+      throw error
+    }
+  },
+
+  async respondToCounterOffer(applicationId: string, accepted: boolean, accessToken: string) {
+    try {
+      // Fetch current application details first to get the counter offer amount
+      const app = await this.getApplication(applicationId, accessToken);
+      const counterAmount = app.counterOfferAmount;
+      
+      let updates: Partial<LoanApplication> = {};
+
+      if (accepted) {
+          // If accepted, update requested amount to counter offer amount and reset status to pending for final approval
+          updates = {
+              status: 'pending',
+              requestedAmount: counterAmount,
+              adminNotes: (app.adminNotes || '') + `\n[System] Borrower accepted counter offer of R${counterAmount}`,
+              counterOfferStatus: 'accepted'
+          };
+      } else {
+          // If declined, mark as declined or withdrawn
+          updates = {
+              status: 'declined', // Or 'withdrawn' if supported
+              declineReason: 'Borrower declined counter offer',
+              adminNotes: (app.adminNotes || '') + `\n[System] Borrower declined counter offer`,
+              counterOfferStatus: 'declined'
+          };
+      }
+
+      // Use updateApplication instead of a custom endpoint if custom endpoint is not guaranteed
+      return await this.updateApplication(applicationId, updates, accessToken);
+    } catch (error: any) {
+      console.error('Respond to counter offer error:', error)
       throw error
     }
   },

@@ -74,6 +74,7 @@ export function AdminDashboard() {
   const [decisionStatus, setDecisionStatus] = useState<string>('approved')
   const [approvedAmount, setApprovedAmount] = useState<number>(0)
   const [declineReason, setDeclineReason] = useState('')
+  const [counterOfferAmount, setCounterOfferAmount] = useState<number>(0)
 
   // Identity verification state
   const [verifyingIdentity, setVerifyingIdentity] = useState(false)
@@ -574,6 +575,7 @@ export function AdminDashboard() {
         decisionStatus,
         decisionStatus === 'approved' ? approvedAmount : undefined,
         decisionStatus === 'declined' ? declineReason : undefined,
+        decisionStatus === 'counter_offer' ? counterOfferAmount : undefined,
         accessToken!
       )
       
@@ -583,7 +585,8 @@ export function AdminDashboard() {
         ...selectedApp, 
         status: updatedStatus as any, // Cast to match LoanApplication type if needed
         approvedAmount: decisionStatus === 'approved' ? approvedAmount : selectedApp.approvedAmount,
-        declineReason: decisionStatus === 'declined' ? declineReason : selectedApp.declineReason
+        declineReason: decisionStatus === 'declined' ? declineReason : selectedApp.declineReason,
+        counterOfferAmount: decisionStatus === 'counter_offer' ? counterOfferAmount : selectedApp.counterOfferAmount
       };
 
       setApplications(prevApps => 
@@ -613,6 +616,7 @@ export function AdminDashboard() {
         'disbursed',
         selectedApp.approvedAmount,
         undefined,
+        undefined,
         accessToken!
       )
       
@@ -639,6 +643,7 @@ export function AdminDashboard() {
       await adminService.updateLoanStatus(
         selectedApp.id,
         'repaid',
+        undefined,
         undefined,
         undefined,
         accessToken!
@@ -1813,6 +1818,7 @@ export function AdminDashboard() {
                               <SelectContent>
                                 <SelectItem value="approved">Approve</SelectItem>
                                 <SelectItem value="declined">Decline</SelectItem>
+                                <SelectItem value="counter_offer">Make Counter Offer</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1830,6 +1836,41 @@ export function AdminDashboard() {
                                   min="500"
                                   max="4000"
                                 />
+                              </div>
+                            </div>
+                          )}
+
+                        {decisionStatus === 'counter_offer' && (
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label>Counter Offer Amount (R500 - R4000)</Label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-2.5 text-gray-500">R</span>
+                                  <Input
+                                    type="number"
+                                    className="pl-8"
+                                    value={counterOfferAmount || ''}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value);
+                                      if (isNaN(val)) {
+                                        setCounterOfferAmount(0);
+                                      } else if (val <= 4000) {
+                                        setCounterOfferAmount(val);
+                                      }
+                                    }}
+                                    onBlur={() => {
+                                      if (counterOfferAmount < 500) {
+                                        setCounterOfferAmount(500);
+                                      }
+                                    }}
+                                    min="500"
+                                    max="4000"
+                                    step="100"
+                                  />
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  Enter an amount between R500 and R4,000.
+                                </p>
                               </div>
                             </div>
                           )}

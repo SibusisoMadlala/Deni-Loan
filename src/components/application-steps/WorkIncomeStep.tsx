@@ -130,7 +130,20 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
           <Input 
             type="date"
             value={data.nextPayDate ? new Date(data.nextPayDate).toISOString().split('T')[0] : ''}
-            onChange={(e) => updateData({ nextPayDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+            onChange={(e) => {
+               if (e.target.value) {
+                 const date = new Date(e.target.value);
+                 // We need to set the time to local noon again to be safe from UTC shifts
+                 // e.target.value is YYYY-MM-DD
+                 // new Date("YYYY-MM-DD") is usually UTC midnight.
+                 // Let's explicitly construct local noon
+                 const parts = e.target.value.split('-');
+                 const localDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
+                 updateData({ nextPayDate: localDate.toISOString() });
+               } else {
+                 updateData({ nextPayDate: undefined });
+               }
+            }}
             min={new Date().toISOString().split('T')[0]}
             max={getCycleEndDate().toISOString().split('T')[0]}
             className={errors.nextPayDate ? 'border-red-500 w-full' : 'w-full'}
@@ -154,11 +167,27 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
+          <Calendar
               mode="single"
               selected={data.nextPayDate ? new Date(data.nextPayDate) : undefined}
-              onSelect={(date) => updateData({ nextPayDate: date ? date.toISOString() : undefined })}
-              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0)) || date > getCycleEndDate()}
+              onSelect={(date) => {
+                if (date) {
+                  // Adjust for timezone offset to ensure the date string is preserved correctly
+                  // Create a new date object from the year, month, and day to avoid UTC shifts
+                  const year = date.getFullYear();
+                  const month = date.getMonth();
+                  const day = date.getDate();
+                  const localDate = new Date(year, month, day, 12, 0, 0); // Set to noon to avoid boundary issues
+                  updateData({ nextPayDate: localDate.toISOString() });
+                } else {
+                  updateData({ nextPayDate: undefined });
+                }
+              }}
+              disabled={(date) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date < today || date > getCycleEndDate();
+              }}
               initialFocus
             />
           </PopoverContent>

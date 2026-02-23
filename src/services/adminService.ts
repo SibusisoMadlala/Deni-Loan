@@ -89,6 +89,7 @@ export const adminService = {
     status: string,
     approvedAmount?: number,
     declineReason?: string,
+    counterOfferAmount?: number,
     accessToken?: string
   ) {
     try {
@@ -98,7 +99,7 @@ export const adminService = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ applicationId, status, approvedAmount, declineReason })
+        body: JSON.stringify({ applicationId, status, approvedAmount, declineReason, counterOfferAmount })
       })
 
       const data = await response.json()

@@ -81,7 +81,8 @@ export function BorrowerDashboard() {
       approved: { variant: 'default', icon: CheckCircle, label: 'Approved' },
       declined: { variant: 'destructive', icon: XCircle, label: 'Declined' },
       disbursed: { variant: 'default', icon: DollarSign, label: 'Disbursed' },
-      repaid: { variant: 'outline', icon: CheckCircle, label: 'Repaid' }
+      repaid: { variant: 'outline', icon: CheckCircle, label: 'Repaid' },
+      counter_offer: { variant: 'warning', icon: AlertCircle, label: 'Counter Offer' }
     }
     
     const config = variants[status] || variants.pending
@@ -176,6 +177,16 @@ export function BorrowerDashboard() {
   };
 
   const { canApply, reason: restrictionReason } = checkForEligibility();
+
+  const handleRespondToCounterOffer = async (accepted: boolean) => {
+    try {
+      if (!selectedApplication) return;
+      await loanService.respondToCounterOffer(selectedApplication, accepted, accessToken!);
+      await loadApplications();
+    } catch (err) {
+      console.error('Failed to respond to counter offer:', err);
+    }
+  }
 
   const currentApp = applications.find(app => app.id === selectedApplication)
   const repaymentAmounts = currentApp ? calculateRepaymentAmounts(currentApp) : null;
@@ -305,6 +316,36 @@ export function BorrowerDashboard() {
                             <p className="text-sm text-gray-600">Requested Amount</p>
                             <p className="text-lg">R{(currentApp.requestedAmount || 0).toLocaleString()}</p>
                           </div>
+                          
+                          {(currentApp.status === 'counter_offer') && (
+                            <div className="col-span-2 mt-4 p-4 border border-yellow-200 bg-yellow-50 rounded-md">
+                              <h3 className="font-semibold text-yellow-800 mb-2 flex items-center">
+                                <AlertCircle className="w-5 h-5 mr-2" />
+                                Counter Offer Received
+                              </h3>
+                              <p className="text-sm text-yellow-700 mb-4">
+                                We reviewed your application and can offer you a loan of:
+                                <span className="block text-2xl font-bold mt-1">
+                                  R{(currentApp.counterOfferAmount || 0).toLocaleString()}
+                                </span>
+                              </p>
+                              <div className="flex gap-4">
+                                <Button 
+                                  onClick={() => handleRespondToCounterOffer(true)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  Accept Offer
+                                </Button>
+                                <Button 
+                                  variant="destructive"
+                                  onClick={() => handleRespondToCounterOffer(false)}
+                                >
+                                  Decline Offer
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
                           {currentApp.approvedAmount && (
                             <div>
                               <p className="text-sm text-gray-600">Approved Amount</p>
