@@ -348,19 +348,19 @@ export function HomePage() {
             
             <div className="bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
               <div className="flex text-amber-500 mb-5 text-xl">
-                {[1, 2, 3, 4].map((s) => <span key={s}>★</span>)}
+              {[1, 2, 3, 4, 5].map((s) => <span key={s}>★</span>)}
               </div>
               <p className="text-gray-700 italic mb-6 leading-relaxed">
-                "Very helpful service! Needed money urgently for a medical emergency. Deni Loans approved me quickly and funds were in my account same day."
+              "The process was incredibly smooth. I was skeptical about applying online at first, but the transparency and speed of Deni Loans completely won me over."
               </p>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-sky-500 rounded-full flex items-center justify-center text-white font-bold">
-                  JM
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900">Jessica M.</p>
-                  <p className="text-sm text-gray-500">Cape Town</p>
-                </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                ZN
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Zanele N.</p>
+                <p className="text-sm text-gray-500">Durban</p>
+              </div>
               </div>
             </div>
             
@@ -371,32 +371,7 @@ export function HomePage() {
 
       {/* Footer */}
       <footer className="bg-gray-900 border-t border-gray-800">
-        <div className="border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <h3 className="text-white text-2xl font-bold mb-8 flex items-center gap-2">
-              <FileCheck className="w-6 h-6" />
-              Terms & Disclosures
-            </h3>
-            <div className="grid grid-cols-1">
-              <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 mb-1">Minimum Term</p>
-                    <p className="text-2xl font-bold text-white">61 Days</p>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 mb-1">Maximum Term</p>
-                    <p className="text-2xl font-bold text-white">90 Days</p>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                    <p className="text-xs text-gray-400 mb-1">Maximum APR</p>
-                    <p className="text-3xl font-bold text-white">60%</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        
 
         {/* Footer Links */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
