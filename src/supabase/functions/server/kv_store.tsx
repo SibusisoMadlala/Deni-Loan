@@ -77,6 +77,16 @@ export const mdel = async (keys: string[]): Promise<void> => {
 };
 
 // Search for key-value pairs by prefix.
+/**
+ * Retrieves all values from the "kv_store_1ed353c1" table in Supabase whose keys start with the specified prefix.
+ * 
+ * This function paginates through the table in batches of 1000 rows to efficiently fetch all matching entries.
+ * It concatenates the results from each page and returns an array of the `value` fields for all matching rows.
+ * 
+ * @param prefix - The prefix string to match against the `key` column in the table.
+ * @returns A promise that resolves to an array of values whose keys start with the given prefix.
+ * @throws An error if the Supabase query fails.
+ */
 export const getByPrefix = async (prefix: string): Promise<any[]> => {
   const supabase = client();
   let allRows: any[] = [];

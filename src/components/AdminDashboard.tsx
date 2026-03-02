@@ -110,22 +110,7 @@ export function AdminDashboard() {
     }
   }, [selectedApp?.id])
 
-  const handleDeleteApplication = async () => {
-    if (!deleteId) return
-    try {
-      await adminService.deleteApplication(deleteId, accessToken!)
-      setApplications(prev => prev.filter(app => app.id !== deleteId))
-      if (selectedApp?.id === deleteId) {
-        setSelectedApp(null)
-      }
-      toast.success('Application deleted successfully')
-    } catch (err) {
-      console.error('Failed to delete application:', err)
-      toast.error('Failed to delete application')
-    } finally {
-      setDeleteId(null)
-    }
-  }
+  
 
   const handleArchive = async (app: LoanApplication) => {
     if (!app.id) return;
@@ -2441,22 +2426,7 @@ export function AdminDashboard() {
         </div>
 
         {/* Delete Confirmation Dialog */}
-        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the loan application.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteApplication} className="bg-red-600 hover:bg-red-700">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        
         
       </div>
     </div>

@@ -125,18 +125,13 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
 
       <div className="space-y-2">
         <Label className={errors.nextPayDate ? 'text-red-500' : ''}>Next Pay Date</Label>
-        {/* Use native date picker on mobile for better compatibility */}
-        <div className="md:hidden">
+        {/* Use native date picker for better compatibility across all devices */}
+        <div>
           <Input 
             type="date"
             value={data.nextPayDate ? new Date(data.nextPayDate).toISOString().split('T')[0] : ''}
             onChange={(e) => {
                if (e.target.value) {
-                 const date = new Date(e.target.value);
-                 // We need to set the time to local noon again to be safe from UTC shifts
-                 // e.target.value is YYYY-MM-DD
-                 // new Date("YYYY-MM-DD") is usually UTC midnight.
-                 // Let's explicitly construct local noon
                  const parts = e.target.value.split('-');
                  const localDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 12, 0, 0);
                  updateData({ nextPayDate: localDate.toISOString() });
@@ -148,50 +143,6 @@ export function WorkIncomeStep({ data, updateData, errors = {} }: WorkIncomeStep
             max={getCycleEndDate().toISOString().split('T')[0]}
             className={errors.nextPayDate ? 'border-red-500 w-full' : 'w-full'}
           />
-        </div>
-        
-        {/* Use custom calendar on desktop */}
-        <div className="hidden md:block">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !data.nextPayDate && "text-muted-foreground",
-                errors.nextPayDate && "border-red-500"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {data.nextPayDate ? format(new Date(data.nextPayDate), "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-              mode="single"
-              selected={data.nextPayDate ? new Date(data.nextPayDate) : undefined}
-              onSelect={(date) => {
-                if (date) {
-                  // Adjust for timezone offset to ensure the date string is preserved correctly
-                  // Create a new date object from the year, month, and day to avoid UTC shifts
-                  const year = date.getFullYear();
-                  const month = date.getMonth();
-                  const day = date.getDate();
-                  const localDate = new Date(year, month, day, 12, 0, 0); // Set to noon to avoid boundary issues
-                  updateData({ nextPayDate: localDate.toISOString() });
-                } else {
-                  updateData({ nextPayDate: undefined });
-                }
-              }}
-              disabled={(date) => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return date < today || date > getCycleEndDate();
-              }}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
         </div>
       </div>
 

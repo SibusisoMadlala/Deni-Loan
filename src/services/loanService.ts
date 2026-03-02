@@ -289,5 +289,44 @@ export const loanService = {
       console.error('Credit check error:', error)
       throw error
     }
-  }
+  },
+
+  /**
+   * TEMP fallback: fetch all applications for admin dashboard if paginated endpoint is missing
+   */
+  async getApplicationsPaginated({ page = 1, search = '', status = 'all', pageSize = 20, accessToken }) {
+    try {
+      // Fallback: fetch all and filter client-side if paginated endpoint is not implemented
+      const response = await fetch(`${API_BASE}/admin/applications`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get applications');
+      }
+      let apps = data.applications || [];
+      // Filter by search
+      if (search) {
+        const s = search.toLowerCase();
+        apps = apps.filter(app =>
+          (app.email && app.email.toLowerCase().includes(s)) ||
+          (app.fullName && app.fullName.toLowerCase().includes(s)) ||
+          (app.idNumber && app.idNumber.includes(s))
+        );
+      }
+      // Filter by status
+      if (status && status !== 'all') {
+        apps = apps.filter(app => (app.status || '').toLowerCase() === status.toLowerCase());
+      }
+      // Pagination
+      const totalPages = Math.max(1, Math.ceil(apps.length / pageSize));
+      const paged = apps.slice((page - 1) * pageSize, page * pageSize);
+      return { data: paged, totalPages };
+    } catch (error) {
+      console.error('Get paginated applications error:', error);
+      throw error;
+    }
+  },
 }

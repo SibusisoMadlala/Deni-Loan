@@ -112,7 +112,8 @@ export function LoanApplicationPage() {
         // detailed population of form data would be ideal here if needed
       }
 
-      // Check for cooling off period (30 days from last repayment)
+      // Check for cooling off period (30 days from last repayment) - DISABLED
+      /*
       const repaidLoans = apps
         .filter((app: any) => app.status === 'repaid' && app.updatedAt)
         .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -128,6 +129,7 @@ export function LoanApplicationPage() {
             setCoolingOffDate(thirtyDaysLater)
         }
       }
+      */
 
       // Check if first loan in calendar year
       const currentYear = new Date().getFullYear()

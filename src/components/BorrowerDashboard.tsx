@@ -151,8 +151,9 @@ export function BorrowerDashboard() {
       }
     }
 
-    // Rule C: 30-Day Cooling Off (if repaid)
+    // Rule C: 30-Day Cooling Off (if repaid) - DISABLED
     // Find the most recent repaid loan
+    /*
     const repaidLoans = applications
       .filter((app: any) => app.status === 'repaid' && app.updatedAt)
       .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -172,6 +173,7 @@ export function BorrowerDashboard() {
         };
       }
     }
+    */
 
     return { canApply: true };
   };
