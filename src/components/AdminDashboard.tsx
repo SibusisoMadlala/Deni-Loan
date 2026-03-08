@@ -1322,8 +1322,10 @@ export function AdminDashboard() {
                           )}
                         </div>
                       </div>
-                      <p className="text-lg">R{(app.requestedAmount || 0).toLocaleString()}</p>
-                      <div className="flex justify-between items-center mt-1">
+                      <div className="my-3">
+                        <p className="text-lg font-semibold">R{(app.requestedAmount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                         <p className="text-xs text-gray-500">
                           {app.createdAt && !isNaN(new Date(app.createdAt).getTime()) 
                             ? new Date(app.createdAt).toLocaleDateString() 
