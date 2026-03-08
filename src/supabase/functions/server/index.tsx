@@ -1156,6 +1156,16 @@ app.post('/make-server-1ed353c1/credit-check', requireAuth, async (c)=>{
 });
 
 // ============ ADMIN ROUTES ============
+app.get('/make-server-1ed353c1/admin/users', requireAdmin, async (c) => {
+  try {
+    const users = await db.getAllUsers();
+    return c.json({ users });
+  } catch (error) {
+    console.log(`Get all users error: ${error}`);
+    return c.json({ error: 'Failed to get users' }, 500);
+  }
+});
+
 app.get('/make-server-1ed353c1/admin/applications', requireAdmin, async (c)=>{
   try {
     const applications = await db.getAllApplications();

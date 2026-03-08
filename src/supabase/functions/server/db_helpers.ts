@@ -167,7 +167,12 @@ export const db = {
   },
 
   async saveDocumentMetadata(data: any) {
-    const docType = data.usageType || data.documentType;
+    // const docType = data.usageType || data.documentType; 
+    
+    // NOTE: The 'documents' table in MIGRATION_GUIDE.md is missing 'usage_type' and 'data' columns.
+    // We are only inserting fields that definitely exist to prevent errors.
+    // To enable document types, run: ALTER TABLE documents ADD COLUMN usage_type TEXT;
+    
     const { data: result, error } = await supabase
       .from('documents')
       .insert({
@@ -177,9 +182,9 @@ export const db = {
         file_path: data.filePath,
         file_name: data.fileName,
         file_type: data.fileType,
-        // usage_type: docType, // Removed as column might start missing
-        uploaded_at: data.createdAt || new Date().toISOString(),
-        data: { ...data, usageType: docType, documentType: docType }
+        // usage_type: docType, // Column missing in current schema
+        uploaded_at: data.createdAt || new Date().toISOString()
+        // data: { ...data, usageType: docType } // Column missing in current schema
       })
       .select()
       .single();
@@ -199,8 +204,13 @@ export const db = {
     
     if (error) throw error;
     return (data || []).map(doc => {
-      const meta = doc.data || {};
-      const type = doc.usage_type || meta.usageType || meta.documentType || 'unknown';
+      // Best guess for usage type based on filename since column is missing
+      let docType = 'unknown';
+      if (doc.file_name.toLowerCase().includes('bank')) docType = 'bank_statement';
+      else if (doc.file_name.toLowerCase().includes('id')) docType = 'id';
+      else if (doc.file_name.toLowerCase().includes('payslip')) docType = 'payslip';
+      else if (doc.file_name.toLowerCase().includes('residence')) docType = 'proof_of_residence';
+
       return {
         ...doc,
         id: doc.id,
@@ -209,10 +219,25 @@ export const db = {
         filePath: doc.file_path,
         fileName: doc.file_name,
         fileType: doc.file_type,
-        usageType: type,
-        documentType: type,
-        uploadedAt: doc.uploaded_at || doc.created_at
+        usageType: docType,
+        documentType: docType,
+        uploadedAt: doc.uploaded_at
       }
     });
+  },
+
+  async getAllUsers() {
+    const { data: { users }, error } = await supabase.auth.admin.listUsers({
+      perPage: 10000 
+    });
+    
+    if (error) throw error;
+    
+    return users.map(u => ({
+      id: u.id,
+      email: u.email,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at
+    }));
   }
 };

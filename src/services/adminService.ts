@@ -12,6 +12,23 @@ export interface Payment {
 }
 
 export const adminService = {
+  async getAllUsers(accessToken: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_BASE}/admin/users`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+      
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to get users')
+      return data.users
+    } catch (error) {
+      console.error('Get all users error:', error)
+      return []
+    }
+  },
+
   async getAllApplications(accessToken: string): Promise<LoanApplication[]> {
     try {
       

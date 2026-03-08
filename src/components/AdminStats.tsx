@@ -18,7 +18,9 @@ import {
   Pie, 
   Cell,
   LineChart,
-  Line
+  Line,
+  AreaChart,
+  Area
 } from 'recharts'
 import { 
   TrendingUp, 
@@ -37,6 +39,7 @@ export function AdminStats() {
   const { accessToken, user } = useAuth()
   const navigate = useNavigate()
   const [applications, setApplications] = useState<LoanApplication[]>([])
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,8 +50,12 @@ export function AdminStats() {
     if (!accessToken) return
     try {
       setLoading(true)
-      const apps = await adminService.getAllApplications(accessToken)
-      setApplications(apps)
+      const [applicationsData, usersData] = await Promise.all([
+        adminService.getAllApplications(accessToken),
+        adminService.getAllUsers(accessToken)
+      ])
+      setApplications(applicationsData)
+      setUsers(usersData)
     } catch (error) {
       console.error('Failed to load stats data:', error)
     } finally {
@@ -86,6 +93,28 @@ export function AdminStats() {
   }, [applications])
 
   // Charts Data Preparation
+
+  // 0. User Sign-Up Trend
+  const userTrendData = useMemo(() => {
+    const dailyCounts: Record<string, number> = {}
+    
+    const sortedUsers = [...users].sort((a: any, b: any) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+
+    sortedUsers.forEach((u: any) => {
+      if (!u.created_at) return
+      try {
+        const date = new Date(u.created_at).toISOString().split('T')[0]
+        dailyCounts[date] = (dailyCounts[date] || 0) + 1
+      } catch (e) {}
+    })
+
+    return Object.keys(dailyCounts).map(date => ({
+      date,
+      count: dailyCounts[date]
+    }))
+  }, [users])
 
   // 1. Status Distribution
   const statusData = useMemo(() => {
@@ -340,6 +369,38 @@ export function AdminStats() {
                   <Tooltip cursor={{fill: 'transparent'}} />
                   <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} name="Applications" barSize={32} />
                 </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* User Sign-Ups */}
+          <Card className="shadow-sm lg:col-span-2">
+            <CardHeader>
+              <CardTitle>User Sign-Up Trends</CardTitle>
+              <CardDescription>New user registrations over time</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={userTrendData}>
+                  <defs>
+                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{fontSize: 12}} 
+                    tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    formatter={(value: number) => [`${value} Users`, 'New Sign-ups']}
+                  />
+                  <Area type="monotone" dataKey="count" stroke="#ec4899" fillOpacity={1} fill="url(#colorUsers)" />
+                </AreaChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
