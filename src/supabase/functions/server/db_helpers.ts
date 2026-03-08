@@ -167,6 +167,7 @@ export const db = {
   },
 
   async saveDocumentMetadata(data: any) {
+    const docType = data.usageType || data.documentType;
     const { data: result, error } = await supabase
       .from('documents')
       .insert({
@@ -176,8 +177,9 @@ export const db = {
         file_path: data.filePath,
         file_name: data.fileName,
         file_type: data.fileType,
-        usage_type: data.usageType,
-        created_at: data.createdAt || new Date().toISOString()
+        // usage_type: docType, // Removed as column might start missing
+        uploaded_at: data.createdAt || new Date().toISOString(),
+        data: { ...data, usageType: docType, documentType: docType }
       })
       .select()
       .single();
@@ -196,17 +198,21 @@ export const db = {
       .eq('application_id', applicationId);
     
     if (error) throw error;
-    return (data || []).map(doc => ({
-      ...doc,
-      id: doc.id,
-      applicationId: doc.application_id,
-      userId: doc.user_id,
-      filePath: doc.file_path,
-      fileName: doc.file_name,
-      fileType: doc.file_type,
-      usageType: doc.usage_type,
-      documentType: doc.usage_type || 'unknown',
-      uploadedAt: doc.created_at
-    }));
+    return (data || []).map(doc => {
+      const meta = doc.data || {};
+      const type = doc.usage_type || meta.usageType || meta.documentType || 'unknown';
+      return {
+        ...doc,
+        id: doc.id,
+        applicationId: doc.application_id,
+        userId: doc.user_id,
+        filePath: doc.file_path,
+        fileName: doc.file_name,
+        fileType: doc.file_type,
+        usageType: type,
+        documentType: type,
+        uploadedAt: doc.uploaded_at || doc.created_at
+      }
+    });
   }
 };
