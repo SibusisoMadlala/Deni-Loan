@@ -1178,8 +1178,8 @@ export function AdminDashboard() {
           {/* Applications List */}
           <div className="space-y-4">
             <div className="flex flex-col space-y-3">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium">Applications ({filteredApplications.length})</h3>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
