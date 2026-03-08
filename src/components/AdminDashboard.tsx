@@ -53,6 +53,7 @@ export function AdminDashboard() {
   const [rawApplications, setRawApplications] = useState<LoanApplication[]>([])
   const [selectedApp, setSelectedApp] = useState<LoanApplication | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
+  const [documentsLoading, setDocumentsLoading] = useState(false)
   const [creditReport, setCreditReport] = useState<CreditReport | null>(null)
   const [creditReportLoading, setCreditReportLoading] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -536,11 +537,15 @@ export function AdminDashboard() {
   }, [selectedApp])
 
   const loadDocuments = async (applicationId: string) => {
+    setDocuments([])
+    setDocumentsLoading(true)
     try {
       const docs = await documentService.getDocuments(applicationId, accessToken!)
       setDocuments(docs)
     } catch (err) {
       console.error('Failed to load documents:', err)
+    } finally {
+      setDocumentsLoading(false)
     }
   }
 
@@ -1700,7 +1705,12 @@ export function AdminDashboard() {
                       <CardDescription>Review and verify uploaded documents</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      {documents.length > 0 ? (
+                      {documentsLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                          <p className="text-sm">Loading documents...</p>
+                        </div>
+                      ) : documents.length > 0 ? (
                         <div className="space-y-4">
                           {documents.map((doc) => (
                             <div
