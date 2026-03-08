@@ -118,23 +118,43 @@ export const db = {
     return (rows || []).map(mapToCamelCase);
   },
 
-  async getAllApplications(status?: string, limit = 100) {
-    let query = supabase
-      .from('loan_applications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    
-    if (status && status !== 'all') {
-      query = query.eq('status', status);
+  async getAllApplications(status?: string, limit = 10000) {
+    let allRows: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from('loan_applications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (status && status !== 'all') {
+        query = query.eq('status', status);
+      }
+      
+      const { data: rows, error } = await query;
+      
+      if (error) {
+        console.error('Get All Apps DB Error:', error);
+        throw error;
+      }
+      
+      if (rows && rows.length > 0) {
+        allRows = [...allRows, ...rows];
+        if (rows.length < pageSize || allRows.length >= limit) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      } else {
+        hasMore = false;
+      }
     }
-    
-    const { data: rows, error } = await query;
-    if (error) {
-      console.error('Get All Apps DB Error:', error);
-      throw error;
-    }
-    return (rows || []).map(mapToCamelCase);
+
+    return (allRows || []).slice(0, limit).map(mapToCamelCase);
   },
 
   async deleteApplication(id: string) {

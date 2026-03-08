@@ -266,6 +266,62 @@ export function HomePage() {
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-20">
+            <div className="group bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <span className="bg-sky-100 text-sky-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                Example: First Loan
+              </h3>
+              <ul className="space-y-4 text-gray-700 text-sm">
+                <li className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
+                  <span>The amount of credit you need is <strong>R2,000</strong>.</span>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
+                  <span>The term is 90 days, but you decide to repay within <strong>61 days</strong>.</span>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
+                  <span>The interest rate is 5% per month, plus an initiation fee and a monthly service fee.</span>
+                </li>
+                <li className="flex gap-3 items-center font-semibold text-gray-900 bg-sky-50 p-3 rounded-xl border border-sky-100">
+                  <DollarSign className="w-5 h-5 text-sky-600 shrink-0" />
+                  <span>Total Repayment: R2,742</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="group bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <span className="bg-emerald-100 text-emerald-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                Example: Second Loan
+              </h3>
+              <ul className="space-y-4 text-gray-700 text-sm">
+                <li className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>The amount of credit you need is <strong>R3,000</strong>.</span>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>The term is 90 days, but you decide to repay within <strong>75 days</strong>.</span>
+                </li>
+                <li className="flex gap-3 items-start">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>The interest rate remains 5% per month, with standard fees applied.</span>
+                </li>
+                <li className="flex gap-3 items-center font-semibold text-gray-900 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                  <DollarSign className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>Total Repayment: R3,890</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          
+          <p className="text-center text-xs text-gray-400 mt-8 max-w-2xl mx-auto italic">
+            * These examples include VAT where applicable. Your actual repayment amount will depend on your approved loan amount, repayment date and individual credit assessment.
+          </p>
         </div>
       </div>
 
@@ -476,7 +532,7 @@ export function HomePage() {
               <div className="space-y-3 text-sm text-gray-300">
                 <p>155 West Street<br/>Sandton</p>
                 <p className="text-sky-400 hover:text-sky-300 transition-colors">
-                  operations@deniloans.co.za
+                  admin@deniloans.co.za
                 </p>
                 <div className="flex flex-col gap-2 mt-2">
                   <p>Mon - Fri<br/>8:00 AM - 5:00 PM</p>

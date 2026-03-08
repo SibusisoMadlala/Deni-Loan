@@ -20,7 +20,7 @@ const transporter = createTransport({
   port: 465,
   secure: true,
   auth: {
-    user: "operations@deniloans.co.za", // REPLACE WITH YOUR EMAIL
+    user: "admin@deniloans.co.za", // REPLACE WITH YOUR EMAIL
     pass: "nnti ahmo ffjv jumc",     // REPLACE WITH YOUR APP PASSWORD
   },
 });
@@ -945,8 +945,8 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
       try {
         console.log(`Sending Counter Offer Accepted email to Admin`);
         await transporter.sendMail({
-          from: '"Deni Loans System" <operations@deniloans.co.za>',
-          to: 'operations@deniloans.co.za',
+          from: '"Deni Loans System" <admin@deniloans.co.za>',
+          to: 'admin@deniloans.co.za',
           subject: `Counter Offer Accepted - ${application.fullName}`,
           text: `Applicant ${application.fullName} has accepted the counter offer of R${updates.requestedAmount || application.counterOfferAmount}.\nPlease review and finalize the application.`,
           html: `
@@ -969,7 +969,7 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
       try {
         console.log(`Sending Application Received email to ${application.email}`);
         await transporter.sendMail({
-          from: '"Deni Loans" <operations@deniloans.co.za>', // Update this sender email
+          from: '"Deni Loans" <admin@deniloans.co.za>', // Update this sender email
           to: application.email,
           subject: "Application Received - Deni Loans",
           text: `Dear ${application.fullName},\n\nWe have received your loan application and it is currently under review.\nOur team will assess your application and you will be notified of the outcome shortly.\n\nBest regards,\nDeni Loans Team`,
@@ -986,8 +986,8 @@ app.patch('/make-server-1ed353c1/loan-application/:id', requireAuth, async (c)=>
 
         console.log(`Sending New Application Alert email to Admin`);
         await transporter.sendMail({
-          from: '"Deni Loans System" <operations@deniloans.co.za>',
-          to: 'operations@deniloans.co.za',
+          from: '"Deni Loans System" <admin@deniloans.co.za>',
+          to: 'admin@deniloans.co.za',
           subject: "New Loan Application Submitted",
           text: `A new loan application has been submitted.\n\nApplicant: ${application.fullName}\nID Number: ${application.idNumber}\nPhone: ${application.phone}`,
           html: `
@@ -1262,7 +1262,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
       if (status === 'approved') {
         console.log(`Sending Loan Approved email to ${application.email}`);
         await transporter.sendMail({
-          from: '"Deni Loans" <operations@deniloans.co.za>',
+          from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Approved - Deni Loans",
           text: `Dear ${application.fullName},\n\nCongratulations! Your loan application for R${updatedApplication.approvedAmount} has been approved.\nThe funds will be disbursed to your account shortly.\n\nBest regards,\nDeni Loans Team`,
@@ -1279,7 +1279,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
       } else if (status === 'declined') {
         console.log(`Sending Loan Declined email to ${application.email}`);
         await transporter.sendMail({
-          from: '"Deni Loans" <operations@deniloans.co.za>',
+          from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Application Update - Deni Loans",
           text: `Dear ${application.fullName},\n\nThank you for your application. After careful review, we regret to inform you that we are unable to approve your loan at this time.\nReason: ${declineReason || 'Did not meet credit criteria'}\n\nYou may apply again in 30 days.\n\nBest regards,\nDeni Loans Team`,
@@ -1297,7 +1297,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
       } else if (status === 'counter_offer') {
         console.log(`Sending Counter Offer email to ${application.email}`);
         await transporter.sendMail({
-          from: '"Deni Loans" <operations@deniloans.co.za>',
+          from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Application Update - Counter Offer",
           text: `Dear ${application.fullName},\n\nWe have reviewed your application. While we cannot offer the full requested amount, we can offer you R${updatedApplication.counterOfferAmount}.\n\nPlease log in to your dashboard to accept or decline this offer.\n\nBest regards,\nDeni Loans Team`,
@@ -1314,7 +1314,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
       } else if (status === 'repaid') {
         console.log(`Sending Loan Repaid email to ${application.email}`);
         await transporter.sendMail({
-          from: '"Deni Loans" <operations@deniloans.co.za>',
+          from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Repaid Successfully - Deni Loans",
           text: `Dear ${application.fullName},\n\nThank you for settling your loan. Your status has been updated to repaid.\n\nYou are now eligible to apply for a new loan immediately.\n\nBest regards,\nDeni Loans Team`,
@@ -1483,7 +1483,7 @@ app.post('/make-server-1ed353c1/admin/send-payment-reminder', requireAdmin, asyn
     // Send email using nodemailer
     try {
       await transporter.sendMail({
-        from: '"Deni Loans" <operations@deniloans.co.za>',
+        from: '"Deni Loans" <admin@deniloans.co.za>',
         to: application.email,
         subject: "Payment Reminder - Deni Loans",
         text: `Dear ${application.fullName},\n\nThis is a reminder that your loan payment is due on ${application.nextPayDate}.\nPlease ensure you have sufficient funds or make a payment via the dashboard.\n\nBest regards,\nDeni Loans Team`,
