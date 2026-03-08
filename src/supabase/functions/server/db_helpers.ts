@@ -184,7 +184,9 @@ export const db = {
       filePath: doc.file_path,
       fileName: doc.file_name,
       fileType: doc.file_type,
-      usageType: doc.usage_type
+      usageType: doc.usage_type,
+      documentType: doc.usage_type || 'unknown',
+      uploadedAt: doc.created_at
     }));
   }
 };
