@@ -95,6 +95,9 @@ export function AdminDashboard() {
   // Account Verification state
   const [verifyingAccount, setVerifyingAccount] = useState(false)
 
+  // Status Update state
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+
   // Assignment state
   const [assigning, setAssigning] = useState(false)
 
@@ -601,6 +604,7 @@ export function AdminDashboard() {
 
   const handleUpdateLoanStatus = async () => {
     if (!selectedApp?.id) return
+    setUpdatingStatus(true)
 
     try {
       await adminService.updateLoanStatus(
@@ -637,6 +641,8 @@ export function AdminDashboard() {
     } catch (err) {
       console.error('Failed to update loan status:', err)
       toast.error('Failed to update status')
+    } finally {
+      setUpdatingStatus(false)
     }
   }
 
@@ -1999,8 +2005,16 @@ export function AdminDashboard() {
                           <Button
                             className="w-full"
                             onClick={handleUpdateLoanStatus}
+                            disabled={updatingStatus}
                           >
-                            Submit Decision
+                            {updatingStatus ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Submitting...
+                              </>
+                            ) : (
+                              'Submit Decision'
+                            )}
                           </Button>
                         </>
                       );
