@@ -235,36 +235,7 @@ export function HomePage() {
             </div>
 
             {/* APR and Representative Example */}
-            <div className="mt-12 text-center max-w-4xl mx-auto">
-              <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Annual Percentage Rate (APR)</h3>
-                <p className="text-gray-600 mb-6">
-                  Our loans have a maximum Annual Percentage Rate (APR) of 158%. The APR includes the interest rate plus fees and other costs for a year, calculated consistently with the National Credit Act.
-                </p>
-                
-                <h4 className="text-lg font-semibold text-gray-900 mb-3">Representative Example:</h4>
-                <div className="bg-blue-50 rounded-xl p-6 text-sm text-gray-700 space-y-2">
-                  <p>
-                    <strong>Loan Amount:</strong> R2,000.00 for 3 Months
-                  </p>
-                  <p>
-                    <strong>Initiation Fee:</strong> R265.00
-                  </p>
-                  <p>
-                    <strong>Monthly Service Fee:</strong> R60.00
-                  </p>
-                  <p>
-                    <strong>Interest Rate:</strong> 5% per month
-                  </p>
-                  <p>
-                    <strong>Total Repayment:</strong> R2,778.75
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    * The above example includes VAT on fees where applicable. Actual costs may vary based on your specific loan offer and credit assessment.
-                  </p>
-                </div>
-              </div>
-            </div>
+            
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-20">
