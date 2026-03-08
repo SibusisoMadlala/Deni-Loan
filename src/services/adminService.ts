@@ -15,7 +15,7 @@ export const adminService = {
   async getAllApplications(accessToken: string): Promise<LoanApplication[]> {
     try {
       
-      const response = await fetch(`${API_BASE}/admin/applications`, {
+      const response = await fetch(`${API_BASE}/admin/applicationstest`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }

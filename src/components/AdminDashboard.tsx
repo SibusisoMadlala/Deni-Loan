@@ -1178,7 +1178,7 @@ export function AdminDashboard() {
           {/* Applications List */}
           <div className="space-y-4">
             <div className="flex flex-col space-y-3">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-medium">Applications ({filteredApplications.length})</h3>
                 </div>
@@ -1193,7 +1193,7 @@ export function AdminDashboard() {
                           setSearchQuery('')
                           setSearchNumber('')
                       }}
-                      className="h-8 w-[125px] border-0 focus-visible:ring-0 px-1 text-xs"
+                      className="h-8 w-auto min-w-[110px] border-0 focus-visible:ring-0 px-1 text-xs"
                     />
                     <span className="text-xs text-gray-500 whitespace-nowrap ml-1">To:</span>
                     <Input 
@@ -1204,7 +1204,7 @@ export function AdminDashboard() {
                           setSearchQuery('')
                           setSearchNumber('')
                       }}
-                      className="h-8 w-[125px] border-0 focus-visible:ring-0 px-1 text-xs"
+                      className="h-8 w-auto min-w-[110px] border-0 focus-visible:ring-0 px-1 text-xs"
                     />
                   </div>
                   

@@ -192,6 +192,83 @@ export function HomePage() {
         </div>
       </div>
 
+      {/* Loan Terms and Disclosures Section */}
+      <div className="py-16 bg-slate-50 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">
+              Loan Terms and Disclosures
+            </h2>
+            <div className="flex flex-col md:flex-row justify-center items-center gap-6 mt-8">
+              {/* Minimum Repayment */}
+              <div className="flex items-center space-x-4 bg-white px-8 py-6 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto min-w-[280px]">
+                <div className="bg-blue-50 p-3 rounded-xl">
+                  <Clock className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Minimum Repayment</p>
+                  <p className="text-xl font-bold text-gray-900">61 Days</p>
+                </div>
+              </div>
+
+              {/* Maximum Repayment */}
+              <div className="flex items-center space-x-4 bg-white px-8 py-6 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto min-w-[280px]">
+                <div className="bg-blue-50 p-3 rounded-xl">
+                  <Clock className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">Maximum Repayment</p>
+                  <p className="text-xl font-bold text-gray-900">3 Months</p>
+                </div>
+              </div>
+
+              {/* NCR Registration */}
+              <div className="flex items-center space-x-4 bg-white px-8 py-6 rounded-2xl shadow-sm border border-gray-100 w-full md:w-auto min-w-[280px]">
+                <div className="bg-blue-50 p-3 rounded-xl">
+                  <Shield className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">NCR Registration</p>
+                  <p className="text-xl font-bold text-gray-900">NCRCP22836</p>
+                </div>
+              </div>
+            </div>
+
+            {/* APR and Representative Example */}
+            <div className="mt-12 text-center max-w-4xl mx-auto">
+              <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Annual Percentage Rate (APR)</h3>
+                <p className="text-gray-600 mb-6">
+                  Our loans have a maximum Annual Percentage Rate (APR) of 158%. The APR includes the interest rate plus fees and other costs for a year, calculated consistently with the National Credit Act.
+                </p>
+                
+                <h4 className="text-lg font-semibold text-gray-900 mb-3">Representative Example:</h4>
+                <div className="bg-blue-50 rounded-xl p-6 text-sm text-gray-700 space-y-2">
+                  <p>
+                    <strong>Loan Amount:</strong> R2,000.00 for 3 Months
+                  </p>
+                  <p>
+                    <strong>Initiation Fee:</strong> R265.00
+                  </p>
+                  <p>
+                    <strong>Monthly Service Fee:</strong> R60.00
+                  </p>
+                  <p>
+                    <strong>Interest Rate:</strong> 5% per month
+                  </p>
+                  <p>
+                    <strong>Total Repayment:</strong> R2,778.75
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    * The above example includes VAT on fees where applicable. Actual costs may vary based on your specific loan offer and credit assessment.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* How It Works Section */}
       <div className="py-24 bg-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-sky-50 rounded-full blur-3xl opacity-50 -z-0"></div>
@@ -399,7 +476,7 @@ export function HomePage() {
               <div className="space-y-3 text-sm text-gray-300">
                 <p>155 West Street<br/>Sandton</p>
                 <p className="text-sky-400 hover:text-sky-300 transition-colors">
-                  admin@deniloans.co.za
+                  operations@deniloans.co.za
                 </p>
                 <div className="flex flex-col gap-2 mt-2">
                   <p>Mon - Fri<br/>8:00 AM - 5:00 PM</p>
