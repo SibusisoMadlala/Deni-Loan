@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/button'
 import DeniLogoLoanss from '../assets/DeniLogo.png'
-import { LogOut, User, LayoutDashboard } from 'lucide-react'
+import { LogOut, User, LayoutDashboard, BarChart3 } from 'lucide-react'
 
 export function Navbar() {
   const { user, signOut, isAdmin } = useAuth()
@@ -30,6 +30,16 @@ export function Navbar() {
                 <span className="text-sm text-gray-600 hidden sm:inline">
                   {user.fullName || user.email}
                 </span>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/admin/stats')}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Stats
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

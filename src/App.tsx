@@ -7,6 +7,7 @@ import { EmailVerificationPage } from './components/EmailVerificationPage'
 import { LoanApplicationPage } from './components/LoanApplicationPage'
 import { BorrowerDashboard } from './components/BorrowerDashboard'
 import { AdminDashboard } from './components/AdminDashboard'
+import { AdminStats } from './components/AdminStats'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Toaster } from './components/ui/sonner'
 // App.tsx or your router file
@@ -68,6 +69,15 @@ export default function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/stats"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminStats />
               </ProtectedRoute>
             }
           />
