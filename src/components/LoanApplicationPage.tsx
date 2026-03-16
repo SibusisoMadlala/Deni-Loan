@@ -94,10 +94,20 @@ export function LoanApplicationPage() {
     try {
       const apps = await loanService.getMyApplications(accessToken!)
       
-      // Check if user has any approved or disbursed loans
-      const hasActive = apps.some((app: any) => 
-        ['pending', 'approved', 'disbursed'].includes(app.status)
-      )
+      // Check if user has any active loans (approved/disbursed)
+      // Approved loans older than 30 days are considered stale and don't block
+      const hasActive = apps.some((app: any) => {
+        if (app.status === 'disbursed') return true; // Disbursed always blocks
+        if (app.status === 'pending' || app.status === 'reviewing' || app.status === 'review') return true; // Active applications block
+        if (app.status === 'approved') {
+          // Check if approved more than 30 days ago
+          const approvedDate = new Date(app.updatedAt || app.createdAt);
+          const today = new Date();
+          const diffDays = Math.floor((today.getTime() - approvedDate.getTime()) / (1000 * 60 * 60 * 24));
+          return diffDays < 30; // Only block if approved within last 30 days
+        }
+        return false;
+      })
       
       setHasActiveApprovedLoan(hasActive)
 

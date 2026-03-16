@@ -812,14 +812,31 @@ app.post('/make-server-1ed353c1/loan-application', requireAuth, async (c)=>{
 
     if (lastApp) {
       // Rule A: Prevent multiple active loans
-      // Ensure specific checked statuses match your system's statuses
-      // 'review' or any other intermediate status should also block
-      const activeStatuses = ['draft', 'pending', 'review', 'approved', 'disbursed'];
-      if (activeStatuses.includes(lastApp.status)) {
+      // Disbursed always blocks, pending/review blocks, approved only blocks within 30 days
+      const alwaysBlockStatuses = ['draft', 'pending', 'review', 'disbursed'];
+      if (alwaysBlockStatuses.includes(lastApp.status)) {
          console.log(`Blocked: Active loan found with status ${lastApp.status}`);
          return c.json({
           error: 'You already have an active application or loan. Please settle it or wait for a decision before applying again.'
         }, 400);
+      }
+      
+      // Rule A2: Approved loans only block for 30 days - after that they're stale
+      if (lastApp.status === 'approved') {
+        const approvedDateStr = lastApp.updatedAt || lastApp.createdAt;
+        const approvedDate = new Date(approvedDateStr);
+        const today = new Date();
+        const diffDays = Math.floor((today.getTime() - approvedDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        console.log(`Last app approved on ${approvedDateStr}. Days passed: ${diffDays}`);
+        
+        if (diffDays < 30) {
+          return c.json({
+            error: 'You have an approved loan waiting to be disbursed. Please contact support if you need assistance.'
+          }, 400);
+        }
+        // Approved more than 30 days ago - allow new application
+        console.log(`Approved loan is ${diffDays} days old (>30), allowing new application`);
       }
 
       // Rule B: 30-Day Cooling Period for Declined Applications

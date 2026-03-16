@@ -128,12 +128,34 @@ export function BorrowerDashboard() {
     const lastApp = applications[0];
 
     // Rule A: Active Loan Check
-    const activeStatuses = ['pending', 'reviewing', 'approved', 'disbursed'];
-    if (activeStatuses.includes(lastApp.status || 'pending')) {
+    // Disbursed always blocks, pending/reviewing blocks, approved only blocks within 30 days
+    if (lastApp.status === 'disbursed') {
       return { 
         canApply: false, 
-        reason: 'You have an active application. Please wait for a decision or settle your current loan.' 
+        reason: 'You have an active disbursed loan. Please settle your current loan before applying for a new one.' 
       };
+    }
+    
+    if (lastApp.status === 'pending' || lastApp.status === 'reviewing' || lastApp.status === 'review') {
+      return { 
+        canApply: false, 
+        reason: 'You have an application being reviewed. Please wait for a decision.' 
+      };
+    }
+    
+    // Approved loans only block for 30 days - after that they're considered stale
+    if (lastApp.status === 'approved') {
+      const approvedDate = new Date(lastApp.updatedAt || lastApp.createdAt!);
+      const today = new Date();
+      const diffDays = Math.floor((today.getTime() - approvedDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 30) {
+        return { 
+          canApply: false, 
+          reason: 'You have an approved loan. Please wait for disbursement or contact support.' 
+        };
+      }
+      // Approved more than 30 days ago - allow new application
     }
 
     // Rule B: 30-Day Cooling Off (if declined)
