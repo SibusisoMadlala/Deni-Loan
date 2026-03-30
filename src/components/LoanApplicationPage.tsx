@@ -438,32 +438,7 @@ export function LoanApplicationPage() {
           </CardContent>
         </Card>
 
-        <div className="mt-8 bg-white/50 backdrop-blur-sm rounded-xl p-6 border border-gray-100 max-w-3xl mx-auto">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4 text-center">Loan Terms and Disclosures</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center text-xs text-gray-600">
-            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
-              <span className="font-medium text-gray-900 mb-1">Minimum Repayment</span>
-              <span>61 Days</span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
-              <span className="font-medium text-gray-900 mb-1">Maximum Repayment</span>
-              <span>3 Months</span>
-            </div>
-            <div className="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-100">
-              <span className="font-medium text-gray-900 mb-1">NCR Registration</span>
-              <span>NCRCP22836</span>
-            </div>
-          </div>
-          
-          <div className="mt-6 pt-6 border-t border-gray-200">
-             <div className="text-xs text-gray-500 text-center space-y-2">
-                <p><strong>Representation of Cost:</strong> Annual Percentage Rate (APR) varies based on your credit profile and loan amount, up to a maximum of 158% (including fees).
-                The APR includes the interest rate plus fees and other costs for a year, calculated consistently with local law.</p>
-                <p><strong>Representative Example:</strong> For a loan of R2,000 repaid over 3 months, the total repayment amount would be R2,778.75. This includes Interest of R300.00, Initiation Fee of R265.00, Monthly Service Fee of R60.00 pm, and Credit Life Insurance where applicable. 
-                </p>
-             </div>
-          </div>
-        </div>
+       
       </div>
     </div>
   )

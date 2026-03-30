@@ -95,7 +95,7 @@ export function SignupPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create Your Account</CardTitle>
-          <CardDescription>Join QuickLoan and get started today</CardDescription>
+          <CardDescription>Join Deni Loans and get started today</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

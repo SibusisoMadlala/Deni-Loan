@@ -22,8 +22,7 @@ import {
   AlertDialogDescription, 
   AlertDialogFooter, 
   AlertDialogHeader, 
-  AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTitle
 } from './ui/alert-dialog'
 import { 
   CheckCircle, 
@@ -73,6 +72,7 @@ export function AdminDashboard() {
 
   // Decision modal state
   const [showDecisionModal, setShowDecisionModal] = useState(false)
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const [decisionStatus, setDecisionStatus] = useState<string>('approved')
   const [approvedAmount, setApprovedAmount] = useState<number>(0)
   const [declineReason, setDeclineReason] = useState('')
@@ -636,6 +636,7 @@ export function AdminDashboard() {
       setSelectedApp(updatedApp as LoanApplication);
 
       setShowDecisionModal(false)
+  setShowApproveConfirm(false)
       // Background refresh
       loadApplications()
     } catch (err) {
@@ -644,6 +645,15 @@ export function AdminDashboard() {
     } finally {
       setUpdatingStatus(false)
     }
+  }
+
+  const handleSubmitDecision = () => {
+    if (decisionStatus === 'approved') {
+      setShowApproveConfirm(true)
+      return
+    }
+
+    handleUpdateLoanStatus()
   }
 
   const handleDisburseLoan = async () => {
@@ -2002,20 +2012,71 @@ export function AdminDashboard() {
                             </div>
                           )}
 
-                          <Button
-                            className="w-full"
-                            onClick={handleUpdateLoanStatus}
-                            disabled={updatingStatus}
-                          >
-                            {updatingStatus ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Submitting...
-                              </>
-                            ) : (
-                              'Submit Decision'
-                            )}
-                          </Button>
+                          <>
+                            <Button
+                              className="w-full"
+                              onClick={handleSubmitDecision}
+                              disabled={updatingStatus}
+                            >
+                              {updatingStatus ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Submitting...
+                                </>
+                              ) : (
+                                'Submit Decision'
+                              )}
+                            </Button>
+
+                            <AlertDialog open={showApproveConfirm} onOpenChange={setShowApproveConfirm}>
+                              <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md rounded-xl p-5 sm:p-6">
+                                <AlertDialogHeader className="space-y-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+                                      <CheckCircle className="h-5 w-5 text-green-600" />
+                                    </div>
+                                    <AlertDialogTitle className="text-base sm:text-lg">
+                                      Approve this loan?
+                                    </AlertDialogTitle>
+                                  </div>
+                                  <AlertDialogDescription className="text-sm leading-relaxed">
+                                    You are about to approve the loan application for{' '}
+                                    <span className="font-semibold text-gray-900">{selectedApp.fullName}</span>{' '}
+                                    for{' '}
+                                    <span className="font-semibold text-green-700">
+                                      R{(approvedAmount || selectedApp.requestedAmount || 0).toLocaleString()}
+                                    </span>.
+                                    This action will notify the borrower by email.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="mt-4 flex-col gap-2 sm:flex-row sm:justify-end">
+                                  <AlertDialogCancel
+                                    disabled={updatingStatus}
+                                    className="w-full sm:w-auto"
+                                  >
+                                    Cancel
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      handleUpdateLoanStatus()
+                                    }}
+                                    disabled={updatingStatus}
+                                  >
+                                    {updatingStatus ? (
+                                      <span className="flex items-center gap-2">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                        Approving...
+                                      </span>
+                                    ) : (
+                                      'Yes, approve'
+                                    )}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
                         </>
                       );
                       } else if (selectedApp.status?.toLowerCase() === 'approved' || (s === 'archived' && selectedApp.approvedAmount && selectedApp.approvedAmount > 0)) {
