@@ -17,9 +17,7 @@ import { TermsOfService } from './components/TermsOfService';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { ApplicationSuccessPage } from './components/ApplicationSuccessPage';
-
-// Add these routes
-
+import { InvestmentPage } from './components/InvestmentPage';
 
 export default function App() {
   return (
@@ -36,6 +34,7 @@ export default function App() {
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/cancel" element={<PaymentCancel />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/invest" element={<InvestmentPage />} />
           
           <Route
             path="/application-success"

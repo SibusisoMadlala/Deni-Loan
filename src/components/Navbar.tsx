@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { Button } from './ui/button'
 import DeniLogoLoanss from '../assets/DeniLogo.png'
-import { LogOut, User, LayoutDashboard, BarChart3 } from 'lucide-react'
+import { LogOut, User, LayoutDashboard, BarChart3, TrendingUp } from 'lucide-react'
 
 export function Navbar() {
   const { user, signOut, isAdmin } = useAuth()
@@ -25,6 +25,10 @@ export function Navbar() {
           </Link>
 
           <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/invest')}>
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Invest
+            </Button>
             {user ? (
               <>
                 <span className="text-sm text-gray-600 hidden sm:inline">
