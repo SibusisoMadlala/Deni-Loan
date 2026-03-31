@@ -299,7 +299,7 @@ export function InvestmentPage() {
                 href="mailto:admin@deniloans.co.za"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-full transition-colors border border-white/20"
               >
-                admin@deniloans.co.za
+                invest@deniloans.co.za
               </a>
               <a
                 href="https://www.deniloans.co.za"
