@@ -115,7 +115,15 @@ export function DocumentUploadStep({
       }
       await loadDocuments()
     } catch (err: any) {
-      setError(err.message || 'Failed to upload document')
+      const message = String(err?.message || '')
+
+      if (/failed to fetch|networkerror|could not reach the server/i.test(message)) {
+        setError('Upload failed due to a network issue. Please check your internet connection and try again in a few seconds.')
+      } else if (/timed out/i.test(message)) {
+        setError('Upload is taking too long. Please retry, or upload one file at a time if your connection is slow.')
+      } else {
+        setError(message || 'Failed to upload document')
+      }
     } finally {
       setUploading(null)
     }
