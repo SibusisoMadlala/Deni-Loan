@@ -200,13 +200,14 @@ export const loanService = {
       
       let updates: Partial<LoanApplication> = {};
 
-      if (accepted) {
-          // If accepted, update requested amount to counter offer amount and reset status to pending for final approval
+        if (accepted) {
+          // If accepted, keep the original requested amount unchanged and set approved amount to the counter offer amount.
+          const acceptedAmount = counterAmount ?? app.approvedAmount ?? app.requestedAmount;
           updates = {
-              status: 'pending',
-              requestedAmount: counterAmount,
-              adminNotes: (app.adminNotes || '') + `\n[System] Borrower accepted counter offer of R${counterAmount}`,
-              counterOfferStatus: 'accepted'
+            status: 'pending',
+            approvedAmount: acceptedAmount,
+            adminNotes: (app.adminNotes || '') + `\n[System] Borrower accepted counter offer of R${acceptedAmount}`,
+            counterOfferStatus: 'accepted'
           };
       } else {
           // If declined, mark as declined or withdrawn
