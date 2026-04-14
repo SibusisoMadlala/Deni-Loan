@@ -3,15 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { loanService, LoanApplication } from '../services/loanService'
 import { documentService, Document } from '../services/documentService'
-import { PaymentButton } from './paymentButton'// Add this import
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Badge } from './ui/badge'
 import { Alert, AlertDescription } from './ui/alert'
-import { calculateLoan } from '../utils/loanCalculator'
 import { 
-  CreditCard, 
   FileText, 
   Download, 
   Plus, 
@@ -30,7 +27,6 @@ export function BorrowerDashboard() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null)
-  const [paymentError, setPaymentError] = useState<string | null>(null) // Add payment error state
 
   useEffect(() => {
     if (!loading && !accessToken) {
@@ -95,30 +91,6 @@ export function BorrowerDashboard() {
       </Badge>
     )
   }
-
-  // Calculate repayment amounts
-  const calculateRepaymentAmounts = (application: any) => {
-    const approvedAmount = application.approvedAmount || application.requestedAmount || 0;
-    
-    let totalWithInterest = 0;
-    
-    if (application.totalDue) {
-      totalWithInterest = application.totalDue;
-    } else {
-      // Fallback for applications without stored totals
-      const { totalRepayable } = calculateLoan(approvedAmount, 1, true);
-      totalWithInterest = totalRepayable;
-    }
-
-    const monthlyInstallment = totalWithInterest; // Assuming 1 month term
-    const fullSettlement = totalWithInterest; 
-    
-    return {
-      monthlyInstallment,
-      fullSettlement,
-      totalWithInterest
-    };
-  };
 
   // Check if user has active approved/disbursed loan
   const checkForEligibility = () => {
@@ -213,7 +185,6 @@ export function BorrowerDashboard() {
   }
 
   const currentApp = applications.find(app => app.id === selectedApplication)
-  const repaymentAmounts = currentApp ? calculateRepaymentAmounts(currentApp) : null;
 
   if (loading) {
     return (
@@ -318,7 +289,6 @@ export function BorrowerDashboard() {
                 <Tabs defaultValue="details" className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="details">Loan Details</TabsTrigger>
-                    <TabsTrigger value="repayments">Repayments</TabsTrigger>
                     <TabsTrigger value="documents">Documents</TabsTrigger>
                   </TabsList>
 
@@ -409,7 +379,7 @@ export function BorrowerDashboard() {
                           <Alert>
                             <CheckCircle className="h-4 w-4" />
                             <AlertDescription>
-                              Your loan has been approved! Please proceed to the Repayments tab to pay the application fee and your funds will be disbursed within 24 hours.
+                              Your loan has been approved! Our team will contact you with the next steps for disbursement.
                             </AlertDescription>
                           </Alert>
                         )}
@@ -418,82 +388,9 @@ export function BorrowerDashboard() {
                           <Alert>
                             <DollarSign className="h-4 w-4" />
                             <AlertDescription>
-                              Funds have been paid to your account. Check the Repayments tab for payment details.
+                              Funds have been paid to your account.
                             </AlertDescription>
                           </Alert>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="repayments">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Repayments</CardTitle>
-                        <CardDescription>
-                          Manage your loan repayments
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        {currentApp.status === 'disbursed' ? (
-                          <div className="space-y-4">
-                            {/* Payment Error Alert */}
-                            {paymentError && (
-                              <Alert variant="destructive">
-                                <XCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                  {paymentError}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-
-                            {/* Payment Options - Early Repayment Only */}
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                <div>
-                                  <p className="font-semibold text-green-900">Early Repayment</p>
-                                  <p className="text-sm text-green-700">
-                                    Pay off your loan early
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-2xl font-bold text-green-900">
-                                    R{repaymentAmounts?.fullSettlement.toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button 
-                                className="w-full bg-blue-50 hover:bg-blue-100 text-black h-16 text-lg font-bold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-                                onClick={() => {
-                                  const amount = repaymentAmounts?.fullSettlement || 0;
-                                  const orderId = currentApp.idNumber.toString() || '123456789';
-                                  const customer = currentApp.fullName || user?.fullName || 'Customer';
-                                  // Redirect to external payment page
-                                  // Mapping: amount -> amount, orderId -> orderId, customer -> customer
-                                  const url = `https://website-afa19dec.jdn.ixm.mybluehost.me/omnipay-ozow/payment.php?amount=${amount}&orderId=${orderId}&customer=${encodeURIComponent(customer)}`;
-                                  window.location.href = url;
-                                }}
-                              >
-                                <CreditCard className="w-6 h-6 mr-2" />
-                                Pay Early Repayment - R{repaymentAmounts?.fullSettlement.toLocaleString()}
-                              </Button>
-                            </div>
-
-
-                          </div>
-                        ) : currentApp.status === 'approved' ? (
-                          <div className="text-center py-8">
-                            <Clock className="w-12 h-12 text-blue-500 mx-auto mb-3" />
-                            <h3 className="text-lg font-medium text-gray-900">Loan Approved</h3>
-                            <p className="text-gray-600 mt-2">
-                              Your loan has been approved and is being processed for disbursement.
-                              Payment options will appear here once the funds have been disbursed.
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-gray-600 text-center py-8">
-                            Repayment information will be available once your loan is approved and disbursed.
-                          </p>
                         )}
                       </CardContent>
                     </Card>
