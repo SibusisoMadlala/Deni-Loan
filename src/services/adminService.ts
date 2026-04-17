@@ -110,13 +110,21 @@ export const adminService = {
     accessToken?: string
   ) {
     try {
+      const normalizedStatus = String(status || '').toLowerCase().trim().replace(/[-\s]+/g, '_')
+
       const response = await fetch(`${API_BASE}/admin/update-loan-status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({ applicationId, status, approvedAmount, declineReason, counterOfferAmount })
+        body: JSON.stringify({
+          applicationId,
+          status: normalizedStatus,
+          approvedAmount,
+          declineReason,
+          counterOfferAmount
+        })
       })
 
       const data = await response.json()

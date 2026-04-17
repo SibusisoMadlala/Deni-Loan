@@ -1267,6 +1267,13 @@ app.post('/make-server-1ed353c1/admin/verify-document', requireAdmin, async (c)=
 app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (c)=>{
   try {
     const { applicationId, status, approvedAmount, declineReason, counterOfferAmount } = await c.req.json();
+    const normalizedStatus = String(status || '').toLowerCase().trim().replace(/[-\s]+/g, '_');
+    const isCounterOfferStatus = normalizedStatus === 'counter_offer';
+
+    if (!normalizedStatus) {
+      return c.json({ error: 'Status is required' }, 400);
+    }
+
     const application = await db.getApplication(applicationId);
     if (!application) {
       return c.json({
@@ -1276,13 +1283,13 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
     const resolvedApprovedAmount =
       typeof approvedAmount === 'number' && approvedAmount > 0
         ? approvedAmount
-        : status === 'approved'
+        : normalizedStatus === 'approved'
           ? (application.approvedAmount || application.requestedAmount)
           : application.approvedAmount;
 
     const updatedApplication = {
       ...application,
-      status,
+      status: normalizedStatus,
       // Only default to requestedAmount when explicitly approving a loan.
       approvedAmount: resolvedApprovedAmount,
       declineReason: declineReason ?? application.declineReason,
@@ -1294,7 +1301,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
 
     // Trigger emails based on status
     try {
-      if (status === 'approved') {
+      if (normalizedStatus === 'approved') {
         console.log(`Sending Loan Approved email to ${application.email}`);
         await transporter.sendMail({
           from: '"Deni Loans" <admin@deniloans.co.za>',
@@ -1311,7 +1318,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
             </div>
           `
         });
-      } else if (status === 'declined') {
+      } else if (normalizedStatus === 'declined') {
         console.log(`Sending Loan Declined email to ${application.email}`);
         await transporter.sendMail({
           from: '"Deni Loans" <admin@deniloans.co.za>',
@@ -1329,24 +1336,31 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
             </div>
           `
         });
-      } else if (status === 'counter_offer') {
-        console.log(`Sending Counter Offer email to ${application.email}`);
+      } else if (isCounterOfferStatus) {
+        const counterAmountForEmail =
+          typeof updatedApplication.counterOfferAmount === 'number' && updatedApplication.counterOfferAmount > 0
+            ? updatedApplication.counterOfferAmount
+            : (typeof application.counterOfferAmount === 'number' ? application.counterOfferAmount : undefined);
+
+        console.log(
+          `Sending Counter Offer email to ${application.email} (status=${normalizedStatus}, amount=${counterAmountForEmail ?? 'n/a'})`
+        );
         await transporter.sendMail({
           from: '"Deni Loans" <admin@deniloans.co.za>',
           to: application.email,
           subject: "Loan Application Update - Counter Offer",
-          text: `Dear ${application.fullName},\n\nWe have reviewed your application. While we cannot offer the full requested amount, we can offer you R${updatedApplication.counterOfferAmount}.\n\nPlease log in to your dashboard to accept or decline this offer.\n\nBest regards,\nDeni Loans Team`,
+          text: `Dear ${application.fullName},\n\nWe have reviewed your application. While we cannot offer the full requested amount, we can offer you R${counterAmountForEmail ?? 'N/A'}.\n\nPlease log in to your dashboard to accept or decline this offer.\n\nBest regards,\nDeni Loans Team`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #ca8a04;">Counter Offer Received</h2>
               <p>Dear ${application.fullName},</p>
-              <p>We have reviewed your application. While we cannot offer the full requested amount, we can offer you <strong>R${updatedApplication.counterOfferAmount}</strong>.</p>
+              <p>We have reviewed your application. While we cannot offer the full requested amount, we can offer you <strong>R${counterAmountForEmail ?? 'N/A'}</strong>.</p>
               <p>Please log in to your dashboard to accept or decline this offer.</p>
               <p>Best regards,<br>Deni Loans Team</p>
             </div>
           `
         });
-      } else if (status === 'repaid') {
+      } else if (normalizedStatus === 'repaid') {
         console.log(`Sending Loan Repaid email to ${application.email}`);
         await transporter.sendMail({
           from: '"Deni Loans" <admin@deniloans.co.za>',
@@ -1371,7 +1385,7 @@ app.post('/make-server-1ed353c1/admin/update-loan-status', requireAdmin, async (
         });
       }
     } catch (emailError) {
-      console.error(`Failed to send ${status} email:`, emailError);
+      console.error(`Failed to send ${normalizedStatus} email:`, emailError);
     }
 
     return c.json({
